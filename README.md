@@ -48,6 +48,7 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Storico report persistente lato server.
 - Storici visibili solo dopo login e isolati per account.
 - Cancellazione storico domini, social o completa per ogni account.
+- Cancellazione account e dati collegati per utenti loggati.
 - Export CSV dello storico.
 - Export admin sanitizzato per backup operativo senza password hash o secret.
 - Export report stampabile, salvabile come PDF dal browser.

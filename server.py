@@ -2459,6 +2459,25 @@ class Handler(SimpleHTTPRequestHandler):
                 connection.execute("DELETE FROM social_reports WHERE user_id = ?", (user["_id"],))
             self.send_json({"reports": [], "social_reports": []}, headers=headers)
             return
+        if parsed.path == "/api/account":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Accedi per eliminare l'account."}, 401, headers)
+                return
+            if is_admin_user(user):
+                self.send_json({"error": "L'account Admin corrente non puo essere eliminato da qui."}, 403, headers)
+                return
+            with db() as connection:
+                connection.execute("DELETE FROM reports WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM social_reports WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM monitors WHERE user_id = ?", (user["_id"],))
+                connection.execute("UPDATE stripe_events SET user_id = NULL WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM users WHERE id = ?", (user["_id"],))
+            self.send_json({"ok": True}, headers={
+                **headers,
+                "Set-Cookie": self.make_session_cookie("", max_age=0),
+            })
+            return
         if parsed.path.startswith("/api/monitors/"):
             user, headers = self.get_or_create_user()
             monitor_id = parsed.path.split("/")[-1]

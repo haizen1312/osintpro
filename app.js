@@ -199,6 +199,7 @@ function updateAccount() {
   document.querySelector("#userNickname").textContent = isAuthenticated ? `@${nickname}` : "Guest";
   document.querySelector("#userChip").classList.toggle("guest", !isAuthenticated);
   document.querySelector("#logoutButton").hidden = !isAuthenticated;
+  document.querySelector("#deleteAccountButton").disabled = !isAuthenticated || state.user.plan === "Admin";
   document.querySelector("#accountState").textContent = state.user.authenticated
     ? `Loggato come @${state.user.nickname}`
     : "Sessione anonima: registra un account con nickname per conservare pack, crediti e acquisti.";
@@ -817,6 +818,21 @@ document.querySelector("#clearAllHistory").addEventListener("click", async () =>
   state.socialReports = data.social_reports;
   renderReports();
   renderSocialReports();
+});
+
+document.querySelector("#deleteAccountButton").addEventListener("click", async () => {
+  if (!state.user.authenticated) {
+    showAccountMessage("Accedi prima di eliminare l'account.", true);
+    return;
+  }
+  if (state.user.plan === "Admin") {
+    showAccountMessage("L'account Admin non puo essere eliminato da qui.", true);
+    return;
+  }
+  const confirmation = window.prompt("Scrivi ELIMINA per cancellare account e dati.");
+  if (confirmation !== "ELIMINA") return;
+  await api("/api/account", { method: "DELETE" });
+  window.location.reload();
 });
 
 document.querySelectorAll("[data-checkout]").forEach(button => {

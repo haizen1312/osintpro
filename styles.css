@@ -992,6 +992,14 @@ input:focus {
   background: var(--panel-strong);
 }
 
+.danger-card {
+  border-color: rgba(255, 93, 108, .28);
+}
+
+.danger-card p {
+  margin-bottom: 0;
+}
+
 .auth-form {
   display: grid;
   gap: 8px;
