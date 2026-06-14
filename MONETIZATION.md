@@ -65,5 +65,6 @@ Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review e controllo ta
 - export PDF vero server-side
 - workspace agency multi-cliente
 - metriche admin avanzate e backup operativo
-- migrazione futura a Postgres gestito quando il traffico cresce
+- restore guidato da artifact GitHub Actions per restare su piano free
+- migrazione futura a Postgres gestito solo quando il traffico paga i costi
 - audit finale prima di rendere pubblico il repository

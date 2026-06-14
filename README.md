@@ -56,9 +56,8 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Cron monitor protetto da secret per rieseguire controlli in batch.
 - Workflow GitHub Actions giornaliero per richiamare il cron monitor in produzione.
 - Alert webhook opzionale quando un monitor cambia o va in errore.
-- Render Persistent Disk configurato in blueprint su `/var/data` per SQLite e backup.
-- Path database e backup configurabili via env per storage persistente.
-- Backup SQLite manuali da admin e automatici via cron protetto.
+- Path database e backup configurabili via env.
+- Backup SQLite manuali da admin, automatici via cron protetto e salvati come GitHub Actions artifact.
 - Limite anti multi-account Free basato su fingerprint hashato della connessione.
 - Checkout Stripe tramite Payment Link configurabile con riferimento utente.
 - Webhook Stripe firmato per attivare Pro/Agency dopo pagamento completato.
@@ -145,8 +144,8 @@ OSINTPRO_CRON_SECRET
 OSINTPRO_MONITOR_BATCH_LIMIT=20
 OSINTPRO_REGISTRATION_IP_LIMIT=3
 OSINTPRO_REGISTRATION_IP_ALLOWLIST="203.0.113.10,198.51.100.0/24"
-OSINTPRO_DB_PATH="/var/data/osintpro.sqlite3"
-OSINTPRO_BACKUP_DIR="/var/data/backups"
+OSINTPRO_DB_PATH="/path/persistente/osintpro.sqlite3"
+OSINTPRO_BACKUP_DIR="/path/persistente/backups"
 OSINTPRO_BACKUP_RETENTION=30
 ```
 
@@ -154,22 +153,24 @@ Il secret cron e configurato in produzione. Il repository include anche un workf
 
 `OSINTPRO_REGISTRATION_IP_ALLOWLIST` e opzionale e serve per escludere connessioni fidate dal limite anti multi-account.
 
-## Persistenza e backup
+## Persistenza gratuita e backup
 
-Il blueprint Render configura un Persistent Disk su `/var/data`.
-SQLite usa:
+Render Free non offre Persistent Disk. Per non spendere soldi, OSINTPRO resta compatibile con SQLite locale e usa backup esterni gratuiti tramite GitHub Actions artifacts.
+
+Il cron giornaliero:
+
+- richiama `/api/cron/monitors`
+- richiama `/api/cron/backup`
+- scarica `/api/cron/backup/download`
+- salva lo snapshot SQLite come artifact privato GitHub Actions per 30 giorni
+
+In locale o su hosting con filesystem persistente puoi comunque impostare:
 
 ```text
-/var/data/osintpro.sqlite3
+OSINTPRO_DB_PATH="/path/persistente/osintpro.sqlite3"
+OSINTPRO_BACKUP_DIR="/path/persistente/backups"
 ```
 
-I backup automatici e manuali vengono salvati in:
-
-```text
-/var/data/backups
-```
-
-Il workflow GitHub Actions giornaliero richiama anche `/api/cron/backup`, protetto dallo stesso `OSINTPRO_CRON_SECRET`.
 Dal pannello operativo privato puoi creare e scaricare snapshot SQLite manuali.
 
 ## Alert webhook
@@ -194,7 +195,7 @@ Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purp
 
 Rendere OSINTPRO piu solido per uso continuativo:
 
-1. Verificare in Render Dashboard che il disk `osintpro-data` sia attivo sul servizio.
+1. Aggiungere procedura restore da artifact GitHub Actions se Render Free resetta il filesystem.
 2. Aggiungere reset password se si introduce un canale di recupero account.
 3. Workspace agency multi-cliente.
 4. Audit finale prima di rendere il repository pubblico.

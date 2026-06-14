@@ -36,3 +36,22 @@ jobs:
             --request POST \
             --header "Authorization: Bearer $CRON_SECRET" \
             "https://osintpro-48j4.onrender.com/api/cron/backup"
+
+      - name: Download private database backup artifact
+        env:
+          CRON_SECRET: ${{ secrets.OSINTPRO_CRON_SECRET }}
+        run: |
+          test -n "$CRON_SECRET"
+          mkdir -p backups
+          curl --fail --show-error --silent \
+            --request GET \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            --output "backups/osintpro.sqlite3" \
+            "https://osintpro-48j4.onrender.com/api/cron/backup/download"
+
+      - name: Upload private database backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: osintpro-sqlite-backup-${{ github.run_id }}
+          path: backups/osintpro.sqlite3
+          retention-days: 30

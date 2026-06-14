@@ -2014,6 +2014,26 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             self.send_json(self.admin_overview(), headers=headers)
             return
+        if parsed.path == "/api/cron/backup/download":
+            if not cron_secret():
+                self.send_json({"error": "Cron non configurato."}, 503)
+                return
+            if not cron_authorized(self.headers):
+                self.send_json({"error": "Cron non autorizzato."}, 403)
+                return
+            try:
+                backup = create_sqlite_backup("artifact")
+                path = backup_path(str(backup["name"]))
+                body = path.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/octet-stream")
+                self.send_header("Content-Disposition", f"attachment; filename={path.name}")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception:
+                self.send_json({"error": "Download backup non completato. Nessun dettaglio interno esposto."}, 500)
+            return
         if parsed.path == "/api/admin/export":
             user, headers = self.get_or_create_user()
             if not is_admin_user(user):
