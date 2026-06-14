@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OSINTPRO Admin</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <section class="admin-panel">
+      <div class="brand">
+        <div class="mark">OP</div>
+        <div>
+          <strong>OSINTPRO</strong>
+          <span>Admin access</span>
+        </div>
+      </div>
+
+      <div>
+        <span class="pill">Private owner access</span>
+        <h1>Accesso admin</h1>
+        <p>Sblocca utilizzo completo dell'app senza checkout o limiti freemium.</p>
+      </div>
+
+      <form id="adminForm" class="admin-form">
+        <div>
+          <label for="adminCode">Codice admin</label>
+          <input id="adminCode" name="adminCode" type="password" autocomplete="current-password" placeholder="Codice privato">
+        </div>
+        <button class="primary" type="submit">Sblocca Admin</button>
+      </form>
+
+      <div class="billing-message" id="adminMessage"></div>
+      <a class="secondary button-link" href="/">Torna all'app</a>
+    </section>
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>

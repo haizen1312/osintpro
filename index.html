@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OSINTPRO Domain Intel</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="signalCanvas" aria-hidden="true"></canvas>
+  <div class="app">
+    <aside class="rail">
+      <div class="brand">
+        <div class="mark">OP</div>
+        <div>
+          <strong>OSINTPRO</strong>
+          <span>Domain Intel</span>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Navigazione principale">
+        <button class="nav-btn active" data-section="scan">Scan</button>
+        <button class="nav-btn" data-section="social">Social</button>
+        <button class="nav-btn" data-section="reports">Reports</button>
+        <button class="nav-btn" data-section="monitoring">Monitoring</button>
+        <button class="nav-btn" data-section="billing">Billing</button>
+        <button class="nav-btn" data-section="account">Account</button>
+      </nav>
+
+      <div class="account">
+        <span class="tiny" id="workspacePlan">Free workspace</span>
+        <strong><span id="credits">5</span> credits</strong>
+        <div class="bar"><span id="creditBar"></span></div>
+        <small><span id="monitorUsage">0/1</span> domini monitorati.</small>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <section class="hero">
+        <div>
+          <span class="pill">Passive reconnaissance</span>
+          <h1>Report vendibili per domini, SSL, DNS ed email security.</h1>
+          <p>Scansiona passivamente un dominio, genera un report stampabile e monitora cambiamenti pubblici nel tempo.</p>
+        </div>
+        <div class="status-card">
+          <span>Backend</span>
+          <strong id="apiStatus">checking...</strong>
+          <div class="pulse-line"><span></span></div>
+          <code id="liveSignal">passive sensors idle</code>
+          <button class="secondary small status-toggle" id="performanceToggle" type="button">Eco mode</button>
+        </div>
+      </section>
+
+      <section class="panel section" id="social">
+        <form id="socialForm" class="scan-form">
+          <div class="target-field">
+            <label for="username">Nickname social</label>
+            <input id="username" name="username" placeholder="@nickname" autocomplete="off" spellcheck="false">
+          </div>
+          <button class="primary" type="submit" id="socialButton">Run social OSINT</button>
+        </form>
+
+        <div class="notice">
+          <strong>Social OSINT</strong>
+          <span>Controlla passivamente handle pubblici su social e dev platform per brand monitoring, impersonation e due diligence.</span>
+        </div>
+
+        <div id="socialResult" class="result empty">
+          <h2>Nessun social report</h2>
+          <p>Prova con un nickname pubblico, senza password o dati privati.</p>
+        </div>
+      </section>
+
+      <section class="panel section active" id="scan">
+        <form id="scanForm" class="scan-form">
+          <div class="target-field">
+            <label for="target">Dominio</label>
+            <input id="target" name="target" placeholder="example.com" autocomplete="off" spellcheck="false">
+          </div>
+          <button class="primary" type="submit" id="scanButton">Run intel</button>
+        </form>
+
+        <div class="notice">
+          <strong>Nota prodotto</strong>
+          <span>Raccolta passiva: DNS lookup, certificato TLS e security header pubblici. Nessuno scanner aggressivo.</span>
+        </div>
+
+        <div id="result" class="result empty">
+          <h2>Nessun report ancora</h2>
+          <p>Prova con un dominio reale tipo <button class="linklike" data-example="openai.com">openai.com</button> o <button class="linklike" data-example="stripe.com">stripe.com</button>.</p>
+        </div>
+      </section>
+
+      <section class="section" id="reports">
+        <div class="section-head">
+          <div>
+            <span class="pill">Local history</span>
+            <h2>Report generati</h2>
+          </div>
+          <div class="actions">
+            <a class="secondary button-link" href="/api/reports.csv">CSV</a>
+            <button class="secondary" id="clearReports">Clear</button>
+          </div>
+        </div>
+        <div class="report-list" id="reportList"></div>
+        <div class="section-head secondary-head">
+          <div>
+            <span class="pill">Social history</span>
+            <h2>Nickname analizzati</h2>
+          </div>
+        </div>
+        <div class="report-list" id="socialReportList"></div>
+      </section>
+
+      <section class="section" id="monitoring">
+        <div class="section-head">
+          <div>
+            <span class="pill">Paid retention</span>
+            <h2>Domini monitorati</h2>
+          </div>
+          <button class="primary" id="runMonitors">Run checks</button>
+        </div>
+        <form id="monitorForm" class="scan-form compact">
+          <div class="target-field">
+            <label for="monitorDomain">Dominio da monitorare</label>
+            <input id="monitorDomain" name="monitorDomain" placeholder="cliente.com" autocomplete="off" spellcheck="false">
+          </div>
+          <button class="secondary" type="submit">Aggiungi</button>
+        </form>
+        <div class="notice">
+          <strong>Monetizzazione</strong>
+          <span>Free monitora 1 dominio. Pro monitora 5 domini. Agency monitora 25 domini per clienti.</span>
+        </div>
+        <div class="monitor-list" id="monitorList"></div>
+      </section>
+
+      <section class="section" id="billing">
+        <div class="billing-message" id="billingMessage"></div>
+        <div class="pricing">
+          <article>
+            <span class="pill">Free</span>
+            <h2>€0</h2>
+            <p>Acquisizione utenti: report limitati e 1 dominio monitorato.</p>
+            <ul>
+              <li>5 report mensili</li>
+              <li>DNS e IP pubblici</li>
+              <li>Storico locale</li>
+              <li>1 dominio monitorato</li>
+            </ul>
+            <button class="secondary" id="resetCredits">Reset demo</button>
+          </article>
+          <article class="pro">
+            <span class="pill">Pro</span>
+            <h2>€19/mese</h2>
+            <p>Per founder, consulenti e piccoli team che vogliono controllo continuo.</p>
+            <ul>
+              <li>Report illimitati</li>
+              <li>5 domini monitorati</li>
+              <li>Export PDF/CSV</li>
+              <li>Alert su cambiamenti</li>
+            </ul>
+            <div class="price-actions">
+              <button class="primary" data-checkout="Pro">Checkout</button>
+              <button class="secondary" data-demo-upgrade="Pro">Demo Pro</button>
+            </div>
+          </article>
+          <article class="agency">
+            <span class="pill">Agency</span>
+            <h2>€79/mese</h2>
+            <p>Per agenzie web che vogliono report per clienti e manutenzione ricorrente.</p>
+            <ul>
+              <li>25 domini monitorati</li>
+              <li>Report condivisibili</li>
+              <li>CSV per portfolio clienti</li>
+              <li>Base per white-label</li>
+            </ul>
+            <div class="price-actions">
+              <button class="primary" data-checkout="Agency">Checkout</button>
+              <button class="secondary" data-demo-upgrade="Agency">Demo Agency</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="account">
+        <div class="section-head">
+          <div>
+            <span class="pill">Identity</span>
+            <h2>Account e accesso</h2>
+          </div>
+          <button class="secondary" id="logoutButton">Logout</button>
+        </div>
+        <div class="auth-grid">
+          <article class="auth-card">
+            <h2>Stato account</h2>
+            <p id="accountState">Sessione anonima</p>
+            <p class="mono" id="accountMeta"></p>
+          </article>
+          <article class="auth-card">
+            <h2>Registrati</h2>
+            <form id="registerForm" class="auth-form">
+              <label for="registerEmail">Email</label>
+              <input id="registerEmail" type="email" autocomplete="email" placeholder="you@example.com">
+              <label for="registerPassword">Password</label>
+              <input id="registerPassword" type="password" autocomplete="new-password" placeholder="Minimo 8 caratteri">
+              <button class="primary" type="submit">Crea account</button>
+            </form>
+          </article>
+          <article class="auth-card">
+            <h2>Login</h2>
+            <form id="loginForm" class="auth-form">
+              <label for="loginEmail">Email</label>
+              <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com">
+              <label for="loginPassword">Password</label>
+              <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
+              <button class="secondary" type="submit">Accedi</button>
+            </form>
+          </article>
+        </div>
+        <div class="billing-message" id="accountMessage"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
