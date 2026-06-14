@@ -62,7 +62,6 @@ Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review e controllo ta
 ## Prossimi upgrade che aumentano il prezzo
 
 - database persistente gestito
-- cron giornaliero collegabile a `/api/cron/monitors`
 - alert webhook su cambiamenti monitor
 - export PDF vero server-side
 - workspace agency multi-cliente

@@ -51,6 +51,7 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Export report stampabile, salvabile come PDF dal browser.
 - Monitoraggio domini con limiti per piano.
 - Cron monitor protetto da secret per rieseguire controlli in batch.
+- Workflow GitHub Actions giornaliero per richiamare il cron monitor in produzione.
 - Alert webhook opzionale quando un monitor cambia o va in errore.
 - Path database configurabile via env per storage persistente.
 - Checkout Stripe tramite Payment Link configurabile con riferimento utente.
@@ -136,7 +137,7 @@ OSINTPRO_CRON_SECRET
 OSINTPRO_MONITOR_BATCH_LIMIT=20
 ```
 
-Il secret cron e configurato in produzione. Uno scheduler esterno o un workflow GitHub Actions puo richiamare questo endpoint ogni giorno.
+Il secret cron e configurato in produzione. Il repository include anche un workflow GitHub Actions giornaliero in `.github/workflows/monitor-cron.yml`.
 
 ## Alert webhook
 
@@ -160,12 +161,11 @@ Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purp
 
 Rendere OSINTPRO piu solido per uso continuativo:
 
-1. Collegare scheduler esterno o autorizzare il workflow GitHub Actions con scope `workflow`.
-2. Migrare SQLite a database persistente gestito per produzione lunga.
-3. Aggiungere backup/export operativo dei dati account.
-4. Aggiungere reset password se si introduce un canale di recupero account.
-5. Workspace agency multi-cliente.
-6. Limite anti-abuso registrazioni per IP/connessione prima del lancio pubblico.
+1. Migrare SQLite a database persistente gestito per produzione lunga.
+2. Aggiungere backup/export operativo dei dati account.
+3. Aggiungere reset password se si introduce un canale di recupero account.
+4. Workspace agency multi-cliente.
+5. Limite anti-abuso registrazioni per IP/connessione prima del lancio pubblico.
 
 ## Checklist monetizzazione
 
