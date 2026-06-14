@@ -40,6 +40,14 @@
           <button class="secondary" type="button" id="backupButton">Crea backup DB</button>
         </div>
 
+        <form id="restoreForm" class="admin-form restore-form">
+          <div>
+            <label for="restoreFile">Restore snapshot SQLite</label>
+            <input id="restoreFile" name="restoreFile" type="file" accept=".sqlite,.sqlite3,.db,application/octet-stream">
+          </div>
+          <button class="secondary" type="submit">Ripristina backup</button>
+        </form>
+
         <form id="planForm" class="admin-form inline-admin-form">
           <div>
             <label for="planNickname">Nickname utente</label>

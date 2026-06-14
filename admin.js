@@ -178,6 +178,40 @@ document.querySelector("#backupButton").addEventListener("click", async event =>
   }
 });
 
+document.querySelector("#restoreForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector("button");
+  const file = document.querySelector("#restoreFile").files[0];
+  if (!file) {
+    showMessage("Seleziona uno snapshot SQLite da ripristinare.", true);
+    return;
+  }
+  const confirmation = window.prompt("Scrivi RESTORE per sostituire il database corrente.");
+  if (confirmation !== "RESTORE") return;
+  button.disabled = true;
+  button.textContent = "Ripristino...";
+  try {
+    const response = await fetch("/api/admin/restore", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-OSINTPRO-RESTORE": "RESTORE"
+      },
+      body: file
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Restore non riuscito");
+    renderAdmin(data);
+    document.querySelector("#restoreFile").value = "";
+    showMessage(`Restore completato: ${data.restored.users} utenti, ${data.restored.reports + data.restored.social_reports} report.`);
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Ripristina backup";
+  }
+});
+
 document.addEventListener("click", event => {
   const row = event.target.closest("[data-user]");
   if (!row) return;

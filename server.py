@@ -79,6 +79,7 @@ HTTP_TIMEOUT = 5
 HTTP_LIMIT = 50000
 MAX_BODY_BYTES = 16384
 MAX_WEBHOOK_BYTES = 262144
+MAX_RESTORE_BYTES = 25 * 1024 * 1024
 DEFAULT_MONITOR_BATCH_LIMIT = 20
 DEFAULT_REGISTRATION_IP_LIMIT = 3
 DEFAULT_BACKUP_RETENTION = 14
@@ -594,6 +595,71 @@ def create_sqlite_backup(reason: str = "manual") -> dict[str, object]:
         "created_at": dt.datetime.fromtimestamp(stat.st_mtime, dt.UTC).replace(microsecond=0).isoformat(),
         "retention": backup_retention(),
     }
+
+
+def validate_sqlite_database(path: Path) -> dict[str, object]:
+    required_tables = {"users", "reports", "social_reports", "monitors", "stripe_events"}
+    try:
+        connection = sqlite3.connect(path)
+        try:
+            integrity = connection.execute("PRAGMA integrity_check").fetchone()
+            if not integrity or integrity[0] != "ok":
+                raise ValueError("Snapshot SQLite non integro.")
+            tables = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                ).fetchall()
+            }
+            missing = sorted(required_tables - tables)
+            if missing:
+                raise ValueError("Snapshot non compatibile con OSINTPRO.")
+            user_count = connection.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            report_count = connection.execute("SELECT COUNT(*) FROM reports").fetchone()[0]
+            social_count = connection.execute("SELECT COUNT(*) FROM social_reports").fetchone()[0]
+            monitor_count = connection.execute("SELECT COUNT(*) FROM monitors").fetchone()[0]
+        finally:
+            connection.close()
+    except sqlite3.DatabaseError as exc:
+        raise ValueError("File SQLite non valido.") from exc
+    return {
+        "users": user_count,
+        "reports": report_count,
+        "social_reports": social_count,
+        "monitors": monitor_count,
+    }
+
+
+def restore_sqlite_backup(payload: bytes) -> dict[str, object]:
+    if len(payload) > MAX_RESTORE_BYTES:
+        raise ValueError("Backup troppo grande.")
+    if not payload.startswith(b"SQLite format 3\x00"):
+        raise ValueError("File backup SQLite non valido.")
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    temp_path = BACKUP_DIR / f"restore-{secrets.token_hex(8)}.sqlite3"
+    temp_path.write_bytes(payload)
+    try:
+        restored_counts = validate_sqlite_database(temp_path)
+        previous_backup = create_sqlite_backup("pre-restore") if DB_PATH.exists() else None
+        for suffix in ("-wal", "-shm"):
+            try:
+                Path(str(DB_PATH) + suffix).unlink()
+            except OSError:
+                pass
+        os.replace(temp_path, DB_PATH)
+        init_db()
+        return {
+            "ok": True,
+            "restored": restored_counts,
+            "pre_restore_backup": previous_backup,
+            "admin": None,
+        }
+    finally:
+        try:
+            temp_path.unlink()
+        except OSError:
+            pass
 
 
 def send_alert(event: str, payload: dict[str, object]) -> None:
@@ -2432,6 +2498,25 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, 400, headers)
             except Exception:
                 self.send_json({"error": "Backup non completato. Nessun dettaglio interno esposto."}, 500, headers)
+            return
+
+        if parsed.path == "/api/admin/restore":
+            user, headers = self.get_or_create_user()
+            if not is_admin_user(user):
+                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                return
+            if self.headers.get("X-OSINTPRO-RESTORE") != "RESTORE":
+                self.send_json({"error": "Conferma restore mancante."}, 400, headers)
+                return
+            try:
+                payload = self.read_raw_body(MAX_RESTORE_BYTES)
+                result = restore_sqlite_backup(payload)
+                result["admin"] = self.admin_overview()
+                self.send_json(result, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            except Exception:
+                self.send_json({"error": "Restore non completato. Nessun dettaglio interno esposto."}, 500, headers)
             return
 
         if parsed.path == "/api/billing/checkout":

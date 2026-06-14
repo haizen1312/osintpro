@@ -923,6 +923,15 @@ input:focus {
   align-items: end;
 }
 
+.restore-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid rgba(255, 189, 89, .28);
+  border-radius: 8px;
+  background: rgba(255, 189, 89, .07);
+}
+
 .compact-head {
   margin-bottom: 10px;
 }
@@ -1020,6 +1029,7 @@ input:focus {
   .auth-grid,
   .admin-status-grid,
   .inline-admin-form,
+  .restore-form,
   .pricing,
   .summary-strip,
   .scan-form,

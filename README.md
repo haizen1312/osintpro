@@ -173,6 +173,19 @@ OSINTPRO_BACKUP_DIR="/path/persistente/backups"
 
 Dal pannello operativo privato puoi creare e scaricare snapshot SQLite manuali.
 
+### Restore da artifact GitHub Actions
+
+Se Render Free resetta il filesystem:
+
+1. Apri GitHub Actions nel repository.
+2. Entra nell'ultima run `OSINTPRO monitor cron` completata con successo.
+3. Scarica l'artifact `osintpro-sqlite-backup-<run_id>`.
+4. Estrai il file `osintpro.sqlite3`.
+5. Entra nel pannello operativo privato.
+6. Usa `Restore snapshot SQLite` e carica `osintpro.sqlite3`.
+
+Il restore valida lo snapshot SQLite, crea prima un backup `pre-restore` del database corrente e poi sostituisce il DB.
+
 ## Alert webhook
 
 Per ricevere alert su cambi monitor:
@@ -195,10 +208,9 @@ Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purp
 
 Rendere OSINTPRO piu solido per uso continuativo:
 
-1. Aggiungere procedura restore da artifact GitHub Actions se Render Free resetta il filesystem.
-2. Aggiungere reset password se si introduce un canale di recupero account.
-3. Workspace agency multi-cliente.
-4. Audit finale prima di rendere il repository pubblico.
+1. Aggiungere reset password se si introduce un canale di recupero account.
+2. Workspace agency multi-cliente.
+3. Audit finale prima di rendere il repository pubblico.
 
 ## Checklist monetizzazione
 
