@@ -1575,32 +1575,6 @@ class Handler(SimpleHTTPRequestHandler):
             }, headers=headers)
             return
 
-        if parsed.path == "/api/billing/simulate-upgrade":
-            user, headers = self.get_or_create_user()
-            body = self.read_json()
-            plan = str(body.get("plan", "Pro")).capitalize()
-            if plan not in {"Pro", "Agency"}:
-                plan = "Pro"
-            with db() as connection:
-                connection.execute(
-                    "UPDATE users SET plan = ?, updated_at = ? WHERE id = ?",
-                    (plan, utc_now(), user["_id"]),
-                )
-                row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
-            self.send_json({"user": row_to_user(row)}, headers=headers)
-            return
-
-        if parsed.path == "/api/billing/reset-demo":
-            user, headers = self.get_or_create_user()
-            with db() as connection:
-                connection.execute(
-                    "UPDATE users SET plan = 'Free', credits = ?, updated_at = ? WHERE id = ?",
-                    (FREE_CREDITS, utc_now(), user["_id"]),
-                )
-                row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
-            self.send_json({"user": row_to_user(row)}, headers=headers)
-            return
-
         self.send_json({"error": "Endpoint non trovato"}, 404)
 
     def do_DELETE(self) -> None:

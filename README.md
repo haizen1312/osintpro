@@ -32,7 +32,6 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Export report stampabile, salvabile come PDF dal browser.
 - Monitoraggio domini con limiti per piano.
 - Checkout Stripe tramite Payment Link configurabile.
-- Simulazione upgrade Pro/Agency per validare UX e packaging.
 - Pagina Social OSINT per analizzare nickname pubblici su social/dev platform.
 
 ## Avvio
@@ -53,7 +52,7 @@ Il database viene creato automaticamente al primo avvio.
 
 Piani implementati nella UI:
 
-- Free: 5 report e 1 dominio monitorato.
+- Free tier: 5 report iniziali e 1 dominio monitorato.
 - Pro: 19 EUR/mese, report illimitati e 5 domini monitorati.
 - Agency: 79 EUR/mese, report per clienti e 25 domini monitorati.
 
@@ -65,46 +64,7 @@ OSINTPRO_STRIPE_AGENCY_URL="https://buy.stripe.com/..." \
 python3 server.py
 ```
 
-In locale puoi usare i bottoni `Demo Pro` e `Demo Agency` per testare il paywall senza pagamento reale.
-
-## Accesso admin privato
-
-La pagina admin non e linkata nella UI pubblica:
-
-```text
-http://127.0.0.1:8765/admin.html
-```
-
-Imposta sempre il codice admin tramite variabile ambiente:
-
-```bash
-OSINTPRO_ADMIN_CODE="codice-lungo-segreto" python3 server.py
-```
-
-Se `OSINTPRO_ADMIN_CODE` non e impostata, l'accesso admin resta disabilitato.
-
-L'accesso admin porta il workspace corrente al piano `Admin`: report illimitati, monitor illimitati e nessun checkout richiesto.
-
-## Metterlo online senza comprare dominio
-
-GitHub serve per ospitare il codice e collegare deploy automatici. GitHub Pages non basta per questa app, perche Pages pubblica HTML/CSS/JS statici e non esegue il backend Python con API e SQLite.
-
-Percorso consigliato a zero dominio:
-
-1. Crea un repository GitHub privato o pubblico.
-2. Pusha questo progetto.
-3. Crea un Web Service su Render collegato al repository GitHub.
-4. Usa il blueprint `render.yaml` oppure configura:
-   - Build command: `pip install -r requirements.txt`
-   - Start command: `python3 server.py --host 0.0.0.0 --port $PORT`
-   - Health check: `/api/health`
-5. Imposta env var:
-   - `OSINTPRO_ADMIN_CODE`
-   - `OSINTPRO_SECRET_KEY`
-   - `OSINTPRO_STRIPE_PRO_URL`
-   - `OSINTPRO_STRIPE_AGENCY_URL`
-
-Render assegna un sottodominio `onrender.com`, quindi puoi validare e vendere senza comprare dominio. Un dominio custom arriva dopo, quando hai i primi utenti o le prime agency interessate.
+Il Free tier serve per valutare il prodotto. L'uso continuativo e il monitoraggio esteso sono pensati per i piani Pro e Agency.
 
 ## Export PDF
 

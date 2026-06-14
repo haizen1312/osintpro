@@ -508,7 +508,7 @@ async function checkApi() {
 async function analyze(target) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
-    showBillingMessage("Hai finito i crediti Free. Il prossimo passo monetizzabile e Pro.");
+    showBillingMessage("Hai finito i crediti Free. Passa a Pro per continuare.");
     return;
   }
 
@@ -550,7 +550,7 @@ async function analyze(target) {
 async function analyzeSocial(username) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
-    showBillingMessage("Hai finito i crediti Free. Social OSINT e incluso nei piani Pro/Agency.");
+    showBillingMessage("Hai finito i crediti Free. Social OSINT continua nei piani Pro/Agency.");
     return;
   }
   const button = document.querySelector("#socialButton");
@@ -611,17 +611,6 @@ async function checkout(plan) {
     return;
   }
   showBillingMessage(data.message);
-}
-
-async function simulateUpgrade(plan) {
-  const data = await api("/api/billing/simulate-upgrade", {
-    method: "POST",
-    body: JSON.stringify({ plan })
-  });
-  state.user = data.user;
-  updateAccount();
-  renderMonitors();
-  showBillingMessage(`Demo aggiornata a ${data.user.plan}. Ora il paywall e sbloccato localmente.`);
 }
 
 document.querySelectorAll(".nav-btn").forEach(button => {
@@ -747,19 +736,8 @@ document.querySelector("#clearReports").addEventListener("click", async () => {
   renderReports();
 });
 
-document.querySelector("#resetCredits").addEventListener("click", async () => {
-  const data = await api("/api/billing/reset-demo", { method: "POST" });
-  state.user = data.user;
-  updateAccount();
-  showBillingMessage("Demo riportata al piano Free.");
-});
-
 document.querySelectorAll("[data-checkout]").forEach(button => {
   button.addEventListener("click", () => checkout(button.dataset.checkout));
-});
-
-document.querySelectorAll("[data-demo-upgrade]").forEach(button => {
-  button.addEventListener("click", () => simulateUpgrade(button.dataset.demoUpgrade));
 });
 
 document.querySelector("#performanceToggle").addEventListener("click", () => {

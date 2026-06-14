@@ -5,7 +5,7 @@ Non posizionarlo come scanner offensivo: il valore e nel report, nel monitoraggi
 
 ## Offerta iniziale
 
-- Free: 5 report, 1 dominio monitorato.
+- Free tier: 5 report iniziali, 1 dominio monitorato.
 - Pro: 19 EUR/mese, report illimitati, 5 domini monitorati, PDF/CSV.
 - Agency: 79 EUR/mese, report per clienti, 25 domini monitorati, workflow Red/Purple Team.
 
@@ -25,23 +25,6 @@ OSINTPRO_STRIPE_AGENCY_URL="https://buy.stripe.com/..."
 Questa versione usa Payment Link per validare vendite subito.
 Il passo successivo e Stripe Checkout Sessions con webhook per attivare automaticamente il piano dopo pagamento reale.
 
-## Deploy senza comprare dominio
-
-1. Crea repository GitHub `osintpro`.
-2. Pusha il codice.
-3. Apri Render e crea un Web Service dal repository.
-4. Usa `render.yaml` oppure:
-   - Build command: `pip install -r requirements.txt`
-   - Start command: `python3 server.py --host 0.0.0.0 --port $PORT`
-   - Health check: `/api/health`
-5. Imposta queste variabili ambiente:
-   - `OSINTPRO_ADMIN_CODE`
-   - `OSINTPRO_SECRET_KEY`
-   - `OSINTPRO_STRIPE_PRO_URL`
-   - `OSINTPRO_STRIPE_AGENCY_URL`
-
-Render assegna un URL `onrender.com`, sufficiente per prime demo e primi clienti.
-
 ## Primo canale di vendita
 
 Target iniziali:
@@ -54,7 +37,7 @@ Target iniziali:
 Messaggio breve:
 
 ```text
-Ti preparo gratis un mini report OSINT passivo sul tuo dominio: DNS, TLS, email security, header, brand exposure e raccomandazioni pratiche.
+Ti preparo un mini report OSINT passivo sul tuo dominio: DNS, TLS, email security, header, brand exposure e raccomandazioni pratiche.
 Se vuoi monitoraggio mensile e report PDF per clienti, OSINTPRO parte da 19 EUR/mese.
 ```
 
