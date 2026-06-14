@@ -38,9 +38,7 @@ PLAN_LIMITS = {
     "Admin": {"credits": None, "monitors": 9999},
 }
 PAID_PLANS = {"Pro", "Agency", "Admin"}
-DEFAULT_ADMIN_CODE = "haizen-admin"
 DOMAIN_RE = re.compile(r"^(?=.{1,253}$)([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}$")
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9._-]{2,32}$")
 UUID_RE = re.compile(r"^[a-f0-9-]{36}$")
 SECRET_KEY_RE = re.compile(
@@ -200,6 +198,7 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
                 email TEXT UNIQUE,
+                nickname TEXT UNIQUE,
                 password_hash TEXT,
                 plan TEXT NOT NULL DEFAULT 'Free',
                 credits INTEGER NOT NULL DEFAULT 5,
@@ -248,8 +247,10 @@ def init_db() -> None:
             """
         )
         ensure_column(connection, "users", "email", "TEXT")
+        ensure_column(connection, "users", "nickname", "TEXT")
         ensure_column(connection, "users", "password_hash", "TEXT")
         connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+        connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_nickname ON users(nickname)")
 
 
 def ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
@@ -261,8 +262,8 @@ def ensure_column(connection: sqlite3.Connection, table: str, column: str, defin
 def row_to_user(row: sqlite3.Row) -> dict[str, object]:
     limits = PLAN_LIMITS.get(row["plan"], PLAN_LIMITS["Free"])
     return {
-        "email": row["email"],
-        "authenticated": bool(row["email"]),
+        "nickname": row["nickname"],
+        "authenticated": bool(row["nickname"]),
         "plan": row["plan"],
         "credits": row["credits"],
         "free_credits": FREE_CREDITS,
@@ -281,17 +282,17 @@ def public_user(user: dict[str, object]) -> dict[str, object]:
 
 
 def admin_code() -> str:
-    return os.getenv("OSINTPRO_ADMIN_CODE", DEFAULT_ADMIN_CODE)
+    return os.getenv("OSINTPRO_ADMIN_CODE", "")
 
 
 def is_paid_plan(plan: str) -> bool:
     return plan in PAID_PLANS
 
 
-def normalize_email(raw: str) -> str:
-    value = raw.strip().lower()
-    if not EMAIL_RE.match(value):
-        raise ValueError("Inserisci una email valida.")
+def normalize_nickname(raw: str) -> str:
+    value = raw.strip().lstrip("@").lower()
+    if not USERNAME_RE.match(value):
+        raise ValueError("Nickname non valido: usa 2-32 caratteri, lettere, numeri, punto, underscore o trattino.")
     return value
 
 
@@ -1366,17 +1367,17 @@ class Handler(SimpleHTTPRequestHandler):
             user, headers = self.get_or_create_user()
             try:
                 body = self.read_json()
-                email = normalize_email(str(body.get("email", "")))
+                nickname = normalize_nickname(str(body.get("nickname", "")))
                 hashed = password_hash(str(body.get("password", "")))
                 now = utc_now()
                 with db() as connection:
-                    existing = connection.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+                    existing = connection.execute("SELECT id FROM users WHERE nickname = ?", (nickname,)).fetchone()
                     if existing:
-                        self.send_json({"error": "Email gia registrata. Accedi con login."}, 409, headers)
+                        self.send_json({"error": "Nickname gia registrato. Accedi con login."}, 409, headers)
                         return
                     connection.execute(
-                        "UPDATE users SET email = ?, password_hash = ?, updated_at = ? WHERE id = ?",
-                        (email, hashed, now, user["_id"]),
+                        "UPDATE users SET nickname = ?, password_hash = ?, updated_at = ? WHERE id = ?",
+                        (nickname, hashed, now, user["_id"]),
                     )
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                 self.send_json({"user": row_to_user(row)}, headers=headers)
@@ -1387,10 +1388,10 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/auth/login":
             try:
                 body = self.read_json()
-                email = normalize_email(str(body.get("email", "")))
+                nickname = normalize_nickname(str(body.get("nickname", "")))
                 password = str(body.get("password", ""))
                 with db() as connection:
-                    row = connection.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+                    row = connection.execute("SELECT * FROM users WHERE nickname = ?", (nickname,)).fetchone()
                 if not row or not verify_password(password, row["password_hash"]):
                     self.send_json({"error": "Credenziali non valide."}, 403)
                     return
@@ -1538,7 +1539,8 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, 400, headers)
                 return
             code = str(body.get("code", ""))
-            if not hmac.compare_digest(code, admin_code()):
+            configured_admin_code = admin_code()
+            if not configured_admin_code or not hmac.compare_digest(code, configured_admin_code):
                 self.send_json({"error": "Codice admin non valido."}, 403, headers)
                 return
             with db() as connection:

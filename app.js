@@ -127,6 +127,11 @@ function formatDate(value) {
   return date.toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" });
 }
 
+function nicknameInitials(nickname) {
+  const clean = String(nickname || "").replace(/[^a-z0-9]/gi, "");
+  return (clean.slice(0, 2) || "?").toUpperCase();
+}
+
 function list(items) {
   if (!items || !items.length) return "<span class=\"mono\">nessun dato</span>";
   return `<div class="mono lines">${items.map(item => `<span>${escapeHtml(item)}</span>`).join("")}</div>`;
@@ -180,6 +185,8 @@ function renderOpsRows(items = [], titleKey, bodyKey, metaKey) {
 
 function updateAccount() {
   const isPaid = state.user.plan !== "Free";
+  const isAuthenticated = Boolean(state.user.authenticated);
+  const nickname = state.user.nickname || "Guest";
   const maxCredits = state.user.free_credits || 5;
   const label = isPaid ? "∞" : state.user.credits;
   const width = isPaid ? 100 : Math.max(0, Math.min(100, (state.user.credits / maxCredits) * 100));
@@ -188,9 +195,13 @@ function updateAccount() {
   document.querySelector("#creditBar").style.width = `${width}%`;
   document.querySelector("#workspacePlan").textContent = `${state.user.plan} workspace`;
   document.querySelector("#monitorUsage").textContent = `${state.monitors.length}/${state.user.monitor_limit}`;
+  document.querySelector("#userAvatar").textContent = isAuthenticated ? nicknameInitials(nickname) : "?";
+  document.querySelector("#userNickname").textContent = isAuthenticated ? `@${nickname}` : "Guest";
+  document.querySelector("#userChip").classList.toggle("guest", !isAuthenticated);
+  document.querySelector("#logoutButton").hidden = !isAuthenticated;
   document.querySelector("#accountState").textContent = state.user.authenticated
-    ? `Loggato come ${state.user.email}`
-    : "Sessione anonima: registra un account per conservare pack, crediti e acquisti.";
+    ? `Loggato come @${state.user.nickname}`
+    : "Sessione anonima: registra un account con nickname per conservare pack, crediti e acquisti.";
   document.querySelector("#accountMeta").textContent = `Piano ${state.user.plan} · Crediti ${label} · Monitor ${state.monitors.length}/${state.user.monitor_limit}`;
 }
 
@@ -643,14 +654,14 @@ document.querySelector("#registerForm").addEventListener("submit", async event =
     const data = await api("/api/auth/register", {
       method: "POST",
       body: JSON.stringify({
-        email: document.querySelector("#registerEmail").value,
+        nickname: document.querySelector("#registerNickname").value,
         password: document.querySelector("#registerPassword").value
       })
     });
     document.querySelector("#registerPassword").value = "";
     state.user = data.user;
     updateAccount();
-    showAccountMessage("Account creato. Crediti, report e piani ora sono legati alla tua email.");
+    showAccountMessage("Account creato. Crediti, report e piani ora sono legati al tuo nickname.");
   } catch (error) {
     document.querySelector("#registerPassword").value = "";
     showAccountMessage(error.message, true);
@@ -663,7 +674,7 @@ document.querySelector("#loginForm").addEventListener("submit", async event => {
     const data = await api("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({
-        email: document.querySelector("#loginEmail").value,
+        nickname: document.querySelector("#loginNickname").value,
         password: document.querySelector("#loginPassword").value
       })
     });
@@ -677,10 +688,13 @@ document.querySelector("#loginForm").addEventListener("submit", async event => {
   }
 });
 
-document.querySelector("#logoutButton").addEventListener("click", async () => {
+async function logout() {
   await api("/api/auth/logout", { method: "POST" });
   window.location.reload();
-});
+}
+
+document.querySelector("#logoutButton").addEventListener("click", logout);
+document.querySelector("#chipLogoutButton").addEventListener("click", logout);
 
 document.querySelector("#monitorForm").addEventListener("submit", event => {
   event.preventDefault();

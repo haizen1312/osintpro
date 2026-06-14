@@ -161,7 +161,51 @@ li {
 }
 
 .workspace {
+  position: relative;
   padding: 24px;
+}
+
+.user-chip {
+  position: sticky;
+  top: 14px;
+  z-index: 5;
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  margin-left: auto;
+  margin-bottom: 12px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(2, 8, 7, .92);
+  box-shadow: var(--shadow);
+}
+
+.user-chip span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(57, 255, 184, .32), rgba(98, 216, 255, .18));
+  color: var(--green);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.user-chip strong {
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-chip.guest #chipLogoutButton {
+  display: none;
 }
 
 .hero {

@@ -24,7 +24,7 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 
 - API Python locale con endpoint health, sessione, analisi e report.
 - Database SQLite in `data/osintpro.sqlite3`.
-- Account email/password con hash PBKDF2 e cookie HTTP-only.
+- Account nickname/password con hash PBKDF2 e cookie HTTP-only.
 - Crediti Free salvati lato server, non piu in `localStorage`.
 - Cookie demo HTTP-only per distinguere workspace anonimi.
 - Storico report persistente lato server.
@@ -75,17 +75,13 @@ La pagina admin non e linkata nella UI pubblica:
 http://127.0.0.1:8765/admin.html
 ```
 
-Codice locale predefinito:
-
-```text
-haizen-admin
-```
-
-Per deploy o demo pubbliche, cambialo sempre con una variabile ambiente:
+Imposta sempre il codice admin tramite variabile ambiente:
 
 ```bash
 OSINTPRO_ADMIN_CODE="codice-lungo-segreto" python3 server.py
 ```
+
+Se `OSINTPRO_ADMIN_CODE` non e impostata, l'accesso admin resta disabilitato.
 
 L'accesso admin porta il workspace corrente al piano `Admin`: report illimitati, monitor illimitati e nessun checkout richiesto.
 
@@ -129,10 +125,10 @@ Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purp
 
 Trasformare questa seed app in SaaS deployabile:
 
-1. Sostituire la sessione demo con auth reale via email magic link o OAuth.
+1. Aggiungere reset password e gestione account completa.
 2. Stripe Checkout Sessions e webhook per attivare i piani dopo pagamento reale.
 3. Job schedulati per monitorare domini nel tempo.
-4. Alert email su cambi score, SSL e header.
+4. Alert email o webhook su cambi score, SSL e header.
 5. Deploy con dominio custom.
 
 ## Checklist monetizzazione

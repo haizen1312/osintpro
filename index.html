@@ -36,6 +36,12 @@
     </aside>
 
     <main class="workspace">
+      <div class="user-chip guest" id="userChip" title="Account">
+        <span id="userAvatar">?</span>
+        <strong id="userNickname">Guest</strong>
+        <button class="secondary small" id="chipLogoutButton" type="button">Logout</button>
+      </div>
+
       <section class="hero">
         <div>
           <span class="pill">Passive reconnaissance</span>
@@ -188,7 +194,7 @@
             <span class="pill">Identity</span>
             <h2>Account e accesso</h2>
           </div>
-          <button class="secondary" id="logoutButton">Logout</button>
+          <button class="secondary" id="logoutButton" hidden>Logout</button>
         </div>
         <div class="auth-grid">
           <article class="auth-card">
@@ -199,8 +205,8 @@
           <article class="auth-card">
             <h2>Registrati</h2>
             <form id="registerForm" class="auth-form">
-              <label for="registerEmail">Email</label>
-              <input id="registerEmail" type="email" autocomplete="email" placeholder="you@example.com">
+              <label for="registerNickname">Nickname</label>
+              <input id="registerNickname" type="text" autocomplete="username" placeholder="haizen" spellcheck="false">
               <label for="registerPassword">Password</label>
               <input id="registerPassword" type="password" autocomplete="new-password" placeholder="Minimo 8 caratteri">
               <button class="primary" type="submit">Crea account</button>
@@ -209,8 +215,8 @@
           <article class="auth-card">
             <h2>Login</h2>
             <form id="loginForm" class="auth-form">
-              <label for="loginEmail">Email</label>
-              <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com">
+              <label for="loginNickname">Nickname</label>
+              <input id="loginNickname" type="text" autocomplete="username" placeholder="haizen" spellcheck="false">
               <label for="loginPassword">Password</label>
               <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
               <button class="secondary" type="submit">Accedi</button>
