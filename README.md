@@ -16,6 +16,8 @@ Analizza domini usando raccolta passiva:
 - Certificate Transparency per nomi e sottodomini osservabili
 - fingerprint tecnologico passivo da header e segnali web
 - ipotesi di vulnerabilita derivate da evidenze passive
+- DNSSEC, BIMI, well-known account/security endpoints
+- CNAME review da subdomini Certificate Transparency per possibili takeover da verificare
 - percorsi red team autorizzati e controlli purple team consigliati
 
 OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/Purple Team trasformano segnali pubblici in ipotesi, priorita e controlli operativi vendibili a clienti o agency.
@@ -28,6 +30,8 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Crediti Free salvati lato server, non piu in `localStorage`.
 - Cookie HTTP-only per distinguere workspace anonimi prima della registrazione.
 - Storico report persistente lato server.
+- Storici visibili solo dopo login e isolati per account.
+- Cancellazione storico domini, social o completa per ogni account.
 - Export CSV dello storico.
 - Export report stampabile, salvabile come PDF dal browser.
 - Monitoraggio domini con limiti per piano.
@@ -100,10 +104,10 @@ Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purp
 Trasformare questa seed app in SaaS deployabile:
 
 1. Configurare il webhook Stripe in produzione con `OSINTPRO_STRIPE_WEBHOOK_SECRET`.
-2. Aggiungere reset password e gestione account completa.
-3. Job schedulati per monitorare domini nel tempo.
-4. Alert email o webhook su cambi score, SSL e header.
-5. Migrare SQLite a database persistente gestito per produzione lunga.
+2. Migrare SQLite a database persistente gestito per produzione lunga.
+3. Aggiungere reset password e gestione account completa.
+4. Job schedulati per monitorare domini nel tempo.
+5. Alert email o webhook su cambi score, SSL e header.
 
 ## Checklist monetizzazione
 

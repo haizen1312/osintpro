@@ -7,7 +7,7 @@ Non posizionarlo come scanner offensivo: il valore e nel report, nel monitoraggi
 
 - Free tier: 5 report iniziali, 1 dominio monitorato.
 - Pro: 19 EUR/mese, report illimitati, 5 domini monitorati, PDF/CSV.
-- Agency: 79 EUR/mese, report per clienti, 25 domini monitorati, workflow Red/Purple Team.
+- Agency: 79 EUR/mese, report per clienti, 25 domini monitorati, workflow Red/Purple Team e segnali OSINT avanzati.
 
 ## Primo setup Stripe
 
@@ -44,7 +44,7 @@ Messaggio breve:
 
 ```text
 Ti preparo un mini report OSINT passivo sul tuo dominio: DNS, TLS, email security, header, brand exposure e raccomandazioni pratiche.
-Se vuoi monitoraggio mensile e report PDF per clienti, OSINTPRO parte da 19 EUR/mese.
+Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review e controllo takeover da CNAME pubblici, OSINTPRO parte da 19 EUR/mese.
 ```
 
 ## Cose da non promettere
@@ -56,6 +56,7 @@ Se vuoi monitoraggio mensile e report PDF per clienti, OSINTPRO parte da 19 EUR/
 ## Prossimi upgrade che aumentano il prezzo
 
 - configurazione webhook Stripe in produzione
+- database persistente gestito
 - cron giornaliero per monitor
 - alert email su cambiamenti
 - export PDF vero server-side

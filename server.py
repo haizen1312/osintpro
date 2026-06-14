@@ -93,6 +93,27 @@ SOCIAL_PLATFORMS = [
     {"name": "Keybase", "url": "https://keybase.io/{username}"},
     {"name": "Telegram", "url": "https://t.me/{username}"},
 ]
+TAKEOVER_CNAME_HINTS = {
+    "github.io": "GitHub Pages",
+    "herokuapp.com": "Heroku",
+    "herokudns.com": "Heroku",
+    "azurewebsites.net": "Azure App Service",
+    "cloudapp.net": "Azure Cloud App",
+    "cloudfront.net": "AWS CloudFront",
+    "s3.amazonaws.com": "AWS S3",
+    "netlify.app": "Netlify",
+    "pages.dev": "Cloudflare Pages",
+    "vercel-dns.com": "Vercel",
+    "readme.io": "ReadMe",
+    "helpscoutdocs.com": "Help Scout Docs",
+    "zendesk.com": "Zendesk",
+}
+ADVANCED_WELL_KNOWN_PATHS = {
+    "change_password": "/.well-known/change-password",
+    "openid_configuration": "/.well-known/openid-configuration",
+    "assetlinks": "/.well-known/assetlinks.json",
+    "apple_app_site_association": "/apple-app-site-association",
+}
 
 
 def utc_now() -> str:
@@ -792,6 +813,68 @@ def web_presence(domain: str) -> dict[str, object]:
     }
 
 
+def dnssec_posture(domain: str) -> dict[str, object]:
+    ds = dig(domain, "DS")
+    dnskey = dig(domain, "DNSKEY")
+    return {
+        "ds": ds,
+        "dnskey": dnskey[:6],
+        "enabled": bool(ds or dnskey),
+        "score": 100 if ds else 60 if dnskey else 0,
+    }
+
+
+def bimi_posture(domain: str) -> dict[str, object]:
+    records = [redact_dns_txt(item) for item in dig(f"default._bimi.{domain}", "TXT")]
+    joined = " ".join(records).lower()
+    return {
+        "records": records,
+        "present": "v=bimi1" in joined,
+        "has_vmc_hint": "a=" in joined or "vmc" in joined,
+    }
+
+
+def well_known_posture(domain: str) -> dict[str, object]:
+    return {name: text_probe(domain, path) for name, path in ADVANCED_WELL_KNOWN_PATHS.items()}
+
+
+def cname_takeover_hints(subdomains: list[str]) -> list[dict[str, str]]:
+    hints: list[dict[str, str]] = []
+    for subdomain in subdomains[:18]:
+        for cname in dig(subdomain, "CNAME")[:3]:
+            lower = cname.lower().rstrip(".")
+            provider = next((name for suffix, name in TAKEOVER_CNAME_HINTS.items() if suffix in lower), None)
+            if provider:
+                hints.append({
+                    "subdomain": subdomain,
+                    "cname": lower,
+                    "provider": provider,
+                    "note": "CNAME verso piattaforma gestita: verificare ownership e stato risorsa in modo autorizzato.",
+                })
+                break
+    return hints[:10]
+
+
+def advanced_passive_intel(domain: str, ct: dict[str, object]) -> dict[str, object]:
+    subdomains = [str(item) for item in ct.get("subdomains", [])] if isinstance(ct, dict) else []
+    dnssec = dnssec_posture(domain)
+    bimi = bimi_posture(domain)
+    well_known = well_known_posture(domain)
+    takeover = cname_takeover_hints(subdomains)
+    return {
+        "dnssec": dnssec,
+        "bimi": bimi,
+        "well_known": well_known,
+        "takeover_hints": takeover,
+        "signals": {
+            "dnssec_enabled": dnssec["enabled"],
+            "bimi_present": bimi["present"],
+            "well_known_count": sum(1 for item in well_known.values() if item.get("present")),
+            "takeover_hint_count": len(takeover),
+        },
+    }
+
+
 def technology_fingerprint(headers: dict[str, object], web: dict[str, object]) -> list[str]:
     tech: set[str] = set()
     server = str(headers.get("server") or "").lower()
@@ -817,6 +900,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
     https = report.get("https", {})
     email = report.get("email_security", {})
     web = report.get("web_presence", {})
+    advanced = report.get("advanced_intel", {})
     cert = https.get("certificate", {}) if isinstance(https, dict) else {}
     days = cert.get("days_remaining")
     headers = https.get("security_headers", []) if isinstance(https, dict) else []
@@ -836,6 +920,11 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
         findings.append({"level": "low", "title": "security.txt assente", "detail": "Non e stato trovato un canale pubblico standard per disclosure di sicurezza."})
     if not dns.get("caa"):
         findings.append({"level": "low", "title": "CAA assente", "detail": "Il dominio non limita pubblicamente le CA autorizzate a emettere certificati."})
+    signals = advanced.get("signals", {}) if isinstance(advanced, dict) else {}
+    if not signals.get("dnssec_enabled"):
+        findings.append({"level": "low", "title": "DNSSEC non osservato", "detail": "Non sono stati trovati DS/DNSKEY pubblici dal resolver locale."})
+    if advanced.get("takeover_hints"):
+        findings.append({"level": "high", "title": "CNAME verso provider gestiti", "detail": "Alcuni subdomini puntano a piattaforme SaaS/cloud: verificare ownership per evitare takeover."})
     return findings[:10]
 
 
@@ -844,6 +933,7 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
     email = report.get("email_security", {})
     web = report.get("web_presence", {})
     dns = report.get("dns", {})
+    advanced = report.get("advanced_intel", {})
     cert = https.get("certificate", {}) if isinstance(https, dict) else {}
     headers = {item.get("name"): item for item in https.get("security_headers", [])} if isinstance(https, dict) else {}
     flags = email.get("flags", {})
@@ -905,6 +995,23 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
             "evidence": "robots.txt o sitemap.xml disponibili pubblicamente.",
             "next_step": "Verificare che non espongano percorsi sensibili, ambienti staging o endpoint interni.",
         })
+    if advanced.get("takeover_hints"):
+        vulns.append({
+            "severity": "high",
+            "confidence": "medium",
+            "title": "Possibile subdomain takeover da verificare",
+            "evidence": "CNAME pubblici verso provider gestiti osservati in subdomini da Certificate Transparency.",
+            "next_step": "Verificare ownership delle risorse cloud/SaaS prima di ogni test tecnico.",
+        })
+    signals = advanced.get("signals", {}) if isinstance(advanced, dict) else {}
+    if not signals.get("dnssec_enabled"):
+        vulns.append({
+            "severity": "low",
+            "confidence": "medium",
+            "title": "Integrita DNS non rafforzata da DNSSEC",
+            "evidence": "DS/DNSKEY non osservati.",
+            "next_step": "Valutare DNSSEC con registrar/DNS provider se compatibile con l'operativita.",
+        })
     days = cert.get("days_remaining")
     if isinstance(days, int) and days < 45:
         vulns.append({
@@ -922,6 +1029,7 @@ def red_team_paths(report: dict[str, object]) -> list[dict[str, str]]:
     email = report.get("email_security", {})
     web = report.get("web_presence", {})
     tech = report.get("technology", [])
+    advanced = report.get("advanced_intel", {})
     flags = email.get("flags", {})
     paths: list[dict[str, str]] = []
 
@@ -948,6 +1056,12 @@ def red_team_paths(report: dict[str, object]) -> list[dict[str, str]]:
             "name": "Stack fingerprint",
             "objective": "Correlare tecnologia osservata con hardening e patch policy.",
             "signal": ", ".join(tech[:4]),
+        })
+    if advanced.get("takeover_hints"):
+        paths.append({
+            "name": "Subdomain ownership review",
+            "objective": "Verificare asset cloud/SaaS referenziati da CNAME pubblici.",
+            "signal": f"{len(advanced.get('takeover_hints', []))} CNAME da controllare.",
         })
     if not paths:
         paths.append({
@@ -979,6 +1093,11 @@ def purple_team_controls(report: dict[str, object]) -> list[dict[str, str]]:
             "control": "Web header baseline",
             "why": "CSP, HSTS, frame e MIME headers spesso regrediscono durante deploy applicativi.",
             "cadence": "per release",
+        },
+        {
+            "control": "Subdomain ownership register",
+            "why": "CNAME verso provider esterni vanno mappati a owner e contratto per prevenire takeover.",
+            "cadence": "monthly",
         },
     ]
 
@@ -1046,6 +1165,7 @@ def analyze(raw_target: str) -> dict[str, object]:
     web = web_presence(domain)
     rdap = rdap_info(domain)
     ct = certificate_transparency(domain)
+    advanced = advanced_passive_intel(domain, ct)
     tech = technology_fingerprint(https, web)
     score = score_report(addresses, cert, https["security_headers"], email, web)
 
@@ -1083,6 +1203,7 @@ def analyze(raw_target: str) -> dict[str, object]:
         "web_presence": web,
         "rdap": rdap,
         "certificate_transparency": ct,
+        "advanced_intel": advanced,
         "technology": tech,
     }
     report = redact_data(report)
@@ -1142,6 +1263,7 @@ def report_document(report: dict[str, object]) -> str:
     email = report.get("email_security", {})
     rdap = report.get("rdap", {})
     ct = report.get("certificate_transparency", {})
+    advanced = report.get("advanced_intel", {})
     web = report.get("web_presence", {})
     findings = report.get("findings", [])
     vulns = report.get("vulnerability_hypotheses", [])
@@ -1163,6 +1285,18 @@ def report_document(report: dict[str, object]) -> str:
         for item in findings
     )
     subdomain_rows = "".join(f"<li>{html.escape(item)}</li>" for item in ct.get("subdomains", [])[:25])
+    dnssec = advanced.get("dnssec", {}) if isinstance(advanced, dict) else {}
+    bimi = advanced.get("bimi", {}) if isinstance(advanced, dict) else {}
+    well_known = advanced.get("well_known", {}) if isinstance(advanced, dict) else {}
+    takeover_hints = advanced.get("takeover_hints", []) if isinstance(advanced, dict) else []
+    well_known_rows = "".join(
+        f"<tr><td>{html.escape(name)}</td><td>{'OK' if value.get('present') else 'Manca'}</td><td>{html.escape(str(value.get('status') or 'n/a'))}</td></tr>"
+        for name, value in well_known.items()
+    )
+    takeover_rows = "".join(
+        f"<tr><td>{html.escape(item.get('subdomain', ''))}</td><td>{html.escape(item.get('provider', ''))}</td><td>{html.escape(item.get('cname', ''))}</td></tr>"
+        for item in takeover_hints
+    )
     vuln_rows = "".join(
         f"<tr><td>{html.escape(item.get('severity', ''))}</td><td>{html.escape(item.get('title', ''))}</td><td>{html.escape(item.get('evidence', ''))}</td><td>{html.escape(item.get('next_step', ''))}</td></tr>"
         for item in vulns
@@ -1222,6 +1356,15 @@ def report_document(report: dict[str, object]) -> str:
       <div class="box"><h2>RDAP</h2><p>Registrar: {html.escape(str(rdap.get("registrar") or "non disponibile"))}</p><p class="meta">Creato: {html.escape(str(rdap.get("created") or "n/a"))}<br>Scade: {html.escape(str(rdap.get("expires") or "n/a"))}</p></div>
       <div class="box"><h2>Well-known</h2><p>security.txt: {web.get("security_txt", {}).get("status") or "n/a"}<br>robots.txt: {web.get("robots_txt", {}).get("status") or "n/a"}<br>sitemap.xml: {web.get("sitemap_xml", {}).get("status") or "n/a"}</p></div>
       <div class="box"><h2>Certificate Transparency</h2><ul>{subdomain_rows or "<li>nessun nome trovato</li>"}</ul></div>
+    </section>
+    <section>
+      <h2>Advanced passive OSINT</h2>
+      <div class="box">
+        <p>DNSSEC: {'OK' if dnssec.get('enabled') else 'non osservato'} | BIMI: {'OK' if bimi.get('present') else 'non osservato'}</p>
+        <table><thead><tr><th>Well-known</th><th>Stato</th><th>HTTP</th></tr></thead><tbody>{well_known_rows or "<tr><td colspan='3'>nessun dato</td></tr>"}</tbody></table>
+        <h3>CNAME takeover review</h3>
+        <table><thead><tr><th>Subdomain</th><th>Provider</th><th>CNAME</th></tr></thead><tbody>{takeover_rows or "<tr><td colspan='3'>nessun hint prioritario</td></tr>"}</tbody></table>
+      </div>
     </section>
     <section>
       <h2>Findings</h2>
@@ -1379,6 +1522,11 @@ class Handler(SimpleHTTPRequestHandler):
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def visible_reports_for_user(self, user: dict[str, object]) -> list[dict[str, object]]:
+        if not user.get("authenticated"):
+            return []
+        return self.reports_for_user(str(user["_id"]))
+
     def social_reports_for_user(self, user_id: str) -> list[dict[str, object]]:
         with db() as connection:
             rows = connection.execute(
@@ -1393,6 +1541,11 @@ class Handler(SimpleHTTPRequestHandler):
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def visible_social_reports_for_user(self, user: dict[str, object]) -> list[dict[str, object]]:
+        if not user.get("authenticated"):
+            return []
+        return self.social_reports_for_user(str(user["_id"]))
+
     def monitors_for_user(self, user_id: str) -> list[dict[str, object]]:
         with db() as connection:
             rows = connection.execute(
@@ -1405,6 +1558,11 @@ class Handler(SimpleHTTPRequestHandler):
                 (user_id,),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def visible_monitors_for_user(self, user: dict[str, object]) -> list[dict[str, object]]:
+        if not user.get("authenticated"):
+            return []
+        return self.monitors_for_user(str(user["_id"]))
 
     def fetch_report(self, user_id: str, report_id: str) -> dict[str, object] | None:
         with db() as connection:
@@ -1428,9 +1586,9 @@ class Handler(SimpleHTTPRequestHandler):
             user, headers = self.get_or_create_user()
             self.send_json({
                 "user": public_user(user),
-                "reports": self.reports_for_user(str(user["_id"])),
-                "social_reports": self.social_reports_for_user(str(user["_id"])),
-                "monitors": self.monitors_for_user(str(user["_id"])),
+                "reports": self.visible_reports_for_user(user),
+                "social_reports": self.visible_social_reports_for_user(user),
+                "monitors": self.visible_monitors_for_user(user),
                 "pricing": {
                     "pro": {"price": "19", "monitors": 5},
                     "agency": {"price": "79", "monitors": 25},
@@ -1440,15 +1598,15 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/social/reports":
             user, headers = self.get_or_create_user()
-            self.send_json({"social_reports": self.social_reports_for_user(str(user["_id"]))}, headers=headers)
+            self.send_json({"social_reports": self.visible_social_reports_for_user(user)}, headers=headers)
             return
         if parsed.path == "/api/reports":
             user, headers = self.get_or_create_user()
-            self.send_json({"reports": self.reports_for_user(str(user["_id"]))}, headers=headers)
+            self.send_json({"reports": self.visible_reports_for_user(user)}, headers=headers)
             return
         if parsed.path == "/api/monitors":
             user, headers = self.get_or_create_user()
-            self.send_json({"monitors": self.monitors_for_user(str(user["_id"]))}, headers=headers)
+            self.send_json({"monitors": self.visible_monitors_for_user(user)}, headers=headers)
             return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/html"):
             user, headers = self.get_or_create_user()
@@ -1461,7 +1619,7 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/reports.csv":
             user, headers = self.get_or_create_user()
-            reports = self.reports_for_user(str(user["_id"]))
+            reports = self.visible_reports_for_user(user)
             lines = ["domain,score,generated_at,summary"]
             for item in reports:
                 values = [item["domain"], item["score"], item["generated_at"], item["summary"]]
@@ -1561,7 +1719,8 @@ class Handler(SimpleHTTPRequestHandler):
                             "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
                             (utc_now(), user["_id"]),
                         )
-                    store_report(connection, str(user["_id"]), report)
+                    if user.get("authenticated"):
+                        store_report(connection, str(user["_id"]), report)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                 self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
@@ -1587,7 +1746,8 @@ class Handler(SimpleHTTPRequestHandler):
                             "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
                             (utc_now(), user["_id"]),
                         )
-                    store_social_report(connection, str(user["_id"]), report)
+                    if user.get("authenticated"):
+                        store_social_report(connection, str(user["_id"]), report)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                 self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
@@ -1598,6 +1758,9 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == "/api/monitors":
             user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Accedi o crea un account per salvare domini monitorati."}, 401, headers)
+                return
             try:
                 body = self.read_json()
                 domain = clean_domain(str(body.get("domain", "")))
@@ -1628,6 +1791,9 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == "/api/monitors/run":
             user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Accedi per eseguire monitor salvati."}, 401, headers)
+                return
             try:
                 with db() as connection:
                     rows = connection.execute(
@@ -1723,6 +1889,19 @@ class Handler(SimpleHTTPRequestHandler):
             with db() as connection:
                 connection.execute("DELETE FROM reports WHERE user_id = ?", (user["_id"],))
             self.send_json({"reports": []}, headers=headers)
+            return
+        if parsed.path == "/api/social/reports":
+            user, headers = self.get_or_create_user()
+            with db() as connection:
+                connection.execute("DELETE FROM social_reports WHERE user_id = ?", (user["_id"],))
+            self.send_json({"social_reports": []}, headers=headers)
+            return
+        if parsed.path == "/api/history":
+            user, headers = self.get_or_create_user()
+            with db() as connection:
+                connection.execute("DELETE FROM reports WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM social_reports WHERE user_id = ?", (user["_id"],))
+            self.send_json({"reports": [], "social_reports": []}, headers=headers)
             return
         if parsed.path.startswith("/api/monitors/"):
             user, headers = self.get_or_create_user()

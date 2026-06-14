@@ -100,13 +100,18 @@
       <section class="section" id="reports">
         <div class="section-head">
           <div>
-            <span class="pill">Local history</span>
+            <span class="pill">Account history</span>
             <h2>Report generati</h2>
           </div>
           <div class="actions">
             <a class="secondary button-link" href="/api/reports.csv">CSV</a>
-            <button class="secondary" id="clearReports">Clear</button>
+            <button class="secondary" id="clearReports" type="button">Cancella domini</button>
+            <button class="secondary" id="clearAllHistory" type="button">Cancella tutto</button>
           </div>
+        </div>
+        <div class="notice history-notice" id="historyNotice">
+          <strong>Storico privato</strong>
+          <span>Gli storici sono disponibili solo dopo login e ogni account vede esclusivamente i propri report.</span>
         </div>
         <div class="report-list" id="reportList"></div>
         <div class="section-head secondary-head">
@@ -114,6 +119,7 @@
             <span class="pill">Social history</span>
             <h2>Nickname analizzati</h2>
           </div>
+          <button class="secondary" id="clearSocialReports" type="button">Cancella social</button>
         </div>
         <div class="report-list" id="socialReportList"></div>
       </section>

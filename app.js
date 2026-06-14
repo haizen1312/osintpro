@@ -203,6 +203,10 @@ function updateAccount() {
     ? `Loggato come @${state.user.nickname}`
     : "Sessione anonima: registra un account con nickname per conservare pack, crediti e acquisti.";
   document.querySelector("#accountMeta").textContent = `Piano ${state.user.plan} · Crediti ${label} · Monitor ${state.monitors.length}/${state.user.monitor_limit}`;
+  const historyNotice = document.querySelector("#historyNotice");
+  if (historyNotice) {
+    historyNotice.classList.toggle("guest-only", !isAuthenticated);
+  }
 }
 
 function reportActions(report) {
@@ -223,6 +227,11 @@ function renderReport(report) {
   const web = report.web_presence || {};
   const rdap = report.rdap || {};
   const ct = report.certificate_transparency || {};
+  const advanced = report.advanced_intel || {};
+  const dnssec = advanced.dnssec || {};
+  const bimi = advanced.bimi || {};
+  const wellKnown = advanced.well_known || {};
+  const takeoverHints = advanced.takeover_hints || [];
   const subdomains = ct.subdomains || [];
   const tech = report.technology || [];
   const vulns = report.vulnerability_hypotheses || [];
@@ -329,6 +338,19 @@ function renderReport(report) {
       </article>
 
       <article class="intel-card">
+        <div><span class="pill">Advanced OSINT</span><strong>${takeoverHints.length}</strong></div>
+        <div class="flag-grid">
+          <span>${flag(dnssec.enabled)} DNSSEC <em>${dnssec.score ?? 0}/100</em></span>
+          <span>${flag(bimi.present)} BIMI</span>
+          <span>${flag(wellKnown.change_password?.present)} change-password <em>${escapeHtml(probeLabel(wellKnown.change_password))}</em></span>
+          <span>${flag(wellKnown.openid_configuration?.present)} OpenID config <em>${escapeHtml(probeLabel(wellKnown.openid_configuration))}</em></span>
+          <span>${flag(wellKnown.assetlinks?.present)} Android assetlinks <em>${escapeHtml(probeLabel(wellKnown.assetlinks))}</em></span>
+          <span>${flag(wellKnown.apple_app_site_association?.present)} Apple app association <em>${escapeHtml(probeLabel(wellKnown.apple_app_site_association))}</em></span>
+        </div>
+        ${takeoverHints.length ? renderOpsRows(takeoverHints, "provider", "subdomain", "cname") : `<span class="mono">nessun CNAME SaaS/cloud prioritario osservato</span>`}
+      </article>
+
+      <article class="intel-card">
         <div><span class="pill">Findings</span><strong>${(report.findings || []).length}</strong></div>
         <div class="findings">${renderFindings(report.findings)}</div>
       </article>
@@ -362,6 +384,10 @@ function renderReport(report) {
 
 function renderReports() {
   const holder = document.querySelector("#reportList");
+  if (!state.user.authenticated) {
+    holder.innerHTML = `<div class="report-row"><span>Accedi per vedere lo storico privato del tuo account</span><span></span><span></span><span></span></div>`;
+    return;
+  }
   if (!state.reports.length) {
     holder.innerHTML = `<div class="report-row"><span>Nessun report salvato</span><span></span><span></span><span></span></div>`;
     return;
@@ -378,6 +404,10 @@ function renderReports() {
 
 function renderSocialReports() {
   const holder = document.querySelector("#socialReportList");
+  if (!state.user.authenticated) {
+    holder.innerHTML = `<div class="report-row"><span>Accedi per vedere lo storico social del tuo account</span><span></span><span></span><span></span></div>`;
+    return;
+  }
   if (!state.socialReports.length) {
     holder.innerHTML = `<div class="report-row"><span>Nessun nickname analizzato</span><span></span><span></span><span></span></div>`;
     return;
@@ -600,6 +630,11 @@ async function addMonitor(domain) {
     renderMonitors();
     setSection("monitoring");
   } catch (error) {
+    if (error.status === 401) {
+      setSection("account");
+      showAccountMessage(error.message, true);
+      return;
+    }
     setSection("billing");
     showBillingMessage(error.message);
   }
@@ -663,7 +698,7 @@ document.querySelector("#registerForm").addEventListener("submit", async event =
     });
     document.querySelector("#registerPassword").value = "";
     state.user = data.user;
-    updateAccount();
+    await loadSession();
     showAccountMessage("Account creato. Crediti, report e piani ora sono legati al tuo nickname.");
   } catch (error) {
     document.querySelector("#registerPassword").value = "";
@@ -748,6 +783,20 @@ document.querySelector("#clearReports").addEventListener("click", async () => {
   const data = await api("/api/reports", { method: "DELETE" });
   state.reports = data.reports;
   renderReports();
+});
+
+document.querySelector("#clearSocialReports").addEventListener("click", async () => {
+  const data = await api("/api/social/reports", { method: "DELETE" });
+  state.socialReports = data.social_reports;
+  renderSocialReports();
+});
+
+document.querySelector("#clearAllHistory").addEventListener("click", async () => {
+  const data = await api("/api/history", { method: "DELETE" });
+  state.reports = data.reports;
+  state.socialReports = data.social_reports;
+  renderReports();
+  renderSocialReports();
 });
 
 document.querySelectorAll("[data-checkout]").forEach(button => {
