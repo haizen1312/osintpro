@@ -3,6 +3,12 @@
 OSINTPRO va venduto come intelligence passiva per domini, brand e nickname pubblici.
 Non posizionarlo come scanner offensivo: il valore e nel report, nel monitoraggio e nella priorita dei finding.
 
+Sito live:
+
+```text
+https://osintpro-48j4.onrender.com/
+```
+
 ## Offerta iniziale
 
 - Free tier: 5 report iniziali, 1 dominio monitorato.
@@ -28,7 +34,7 @@ Questa versione usa Payment Link per validare vendite subito. Il backend aggiung
 Webhook da creare in Stripe:
 
 ```text
-https://<host>/api/stripe/webhook
+https://osintpro-48j4.onrender.com/api/stripe/webhook
 ```
 
 ## Primo canale di vendita

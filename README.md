@@ -1,7 +1,20 @@
-# OSINTPRO SaaS Seed
+# OSINTPRO
 
-OSINTPRO e una base SaaS freemium per intelligence passiva su domini e brand.
-La versione attuale resta leggera e locale, ma ha gia una prima separazione tra frontend, API e stato lato server.
+OSINTPRO e un SaaS freemium per intelligence passiva su domini, brand e nickname pubblici.
+
+## Sito live
+
+```text
+https://osintpro-48j4.onrender.com/
+```
+
+Apri il sito live, crea un account con nickname/password e prova:
+
+- Domain OSINT su un dominio pubblico.
+- Social OSINT su un nickname pubblico.
+- Report PDF/CSV.
+- Monitoring domini.
+- Upgrade Pro/Agency tramite Stripe.
 
 Analizza domini usando raccolta passiva:
 
@@ -24,7 +37,9 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 
 ## Stato prodotto
 
-- API Python locale con endpoint health, sessione, analisi e report.
+- App pubblicata su Render.
+- Repository GitHub collegato al deploy automatico.
+- API Python con endpoint health, sessione, analisi e report.
 - Database SQLite in `data/osintpro.sqlite3`.
 - Account nickname/password con hash PBKDF2 e cookie HTTP-only.
 - Crediti Free salvati lato server, non piu in `localStorage`.
@@ -40,7 +55,7 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Webhook Stripe firmato per attivare Pro/Agency dopo pagamento completato.
 - Pagina Social OSINT per analizzare nickname pubblici su social/dev platform.
 
-## Avvio
+## Avvio locale
 
 ```bash
 python3 server.py
@@ -54,6 +69,12 @@ http://127.0.0.1:8765
 
 Il database viene creato automaticamente al primo avvio.
 
+Il deploy pubblico usa Render:
+
+```text
+https://osintpro-48j4.onrender.com/
+```
+
 ## Monetizzazione
 
 Piani implementati nella UI:
@@ -62,7 +83,7 @@ Piani implementati nella UI:
 - Pro: 19 EUR/mese, report illimitati e 5 domini monitorati.
 - Agency: 79 EUR/mese, report per clienti e 25 domini monitorati.
 
-Per collegare Stripe senza cambiare codice, crea due Payment Link su Stripe e avvia il server con:
+In produzione Stripe e configurato tramite variabili ambiente. In locale puoi usare:
 
 ```bash
 OSINTPRO_STRIPE_PRO_URL="https://buy.stripe.com/..." \
@@ -74,7 +95,7 @@ python3 server.py
 Endpoint webhook:
 
 ```text
-https://<host>/api/stripe/webhook
+https://osintpro-48j4.onrender.com/api/stripe/webhook
 ```
 
 Evento Stripe da collegare:
@@ -112,14 +133,14 @@ OSINTPRO_MONITOR_BATCH_LIMIT=20
 Il tab `Social` controlla passivamente la presenza pubblica di un nickname su social network e developer platform.
 Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purple Team per brand monitoring, anti-impersonation e due diligence.
 
-## Prossimo passo tecnico
+## Prossimi step tecnici
 
-Trasformare questa seed app in SaaS deployabile:
+Rendere OSINTPRO piu solido per uso continuativo:
 
-1. Configurare il webhook Stripe in produzione con `OSINTPRO_STRIPE_WEBHOOK_SECRET`.
-2. Migrare SQLite a database persistente gestito per produzione lunga.
-3. Aggiungere reset password e gestione account completa.
-4. Collegare un cron esterno o Render Cron Job a `/api/cron/monitors`.
+1. Configurare definitivamente il webhook Stripe in produzione con `OSINTPRO_STRIPE_WEBHOOK_SECRET`.
+2. Collegare un cron esterno o Render Cron Job a `/api/cron/monitors`.
+3. Migrare SQLite a database persistente gestito per produzione lunga.
+4. Aggiungere reset password e gestione account completa.
 5. Alert email o webhook su cambi score, SSL e header.
 
 ## Checklist monetizzazione
