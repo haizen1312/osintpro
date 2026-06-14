@@ -29,6 +29,12 @@ Never commit production values for:
 
 Use environment variables in production and `.env.example` as a safe template.
 
+## Admin Surface
+
+The owner/admin interface is protected by `OSINTPRO_ADMIN_CODE`.
+Do not rely on hidden URLs as a security boundary.
+Use a long random admin code in production and rotate it if exposed.
+
 ## Public OSINT Boundaries
 
 Only analyze assets you own, manage, or are authorized to assess.

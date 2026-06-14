@@ -2,6 +2,8 @@
 
 OSINTPRO e un SaaS freemium per intelligence passiva su domini, brand e nickname pubblici.
 
+Questo repository e pubblicabile per trasparenza e deploy reference, ma OSINTPRO non e open source. Vedi `LICENSE.md`.
+
 ## Sito live
 
 ```text
@@ -40,6 +42,7 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - App pubblicata su Render.
 - Repository GitHub collegato al deploy automatico.
 - `.gitignore`, `.env.example` e `SECURITY.md` pronti per audit pubblico.
+- Licenza proprietaria `All rights reserved`.
 - API Python con endpoint health, sessione, analisi e report.
 - Database SQLite in `data/osintpro.sqlite3`.
 - Account nickname/password con hash PBKDF2 e cookie HTTP-only.
@@ -90,6 +93,8 @@ https://osintpro-48j4.onrender.com/
 ```
 
 Per configurare l'ambiente, copia `.env.example` e sostituisci solo valori locali o variabili Render.
+
+Il pannello operativo e protetto da `OSINTPRO_ADMIN_CODE` e non deve essere considerato un'interfaccia pubblica.
 
 ## Monetizzazione
 
