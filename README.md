@@ -51,7 +51,6 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Export report stampabile, salvabile come PDF dal browser.
 - Monitoraggio domini con limiti per piano.
 - Cron monitor protetto da secret per rieseguire controlli in batch.
-- GitHub Actions schedulato per richiamare il cron giornaliero.
 - Alert webhook opzionale quando un monitor cambia o va in errore.
 - Path database configurabile via env per storage persistente.
 - Checkout Stripe tramite Payment Link configurabile con riferimento utente.
@@ -136,7 +135,7 @@ OSINTPRO_CRON_SECRET
 OSINTPRO_MONITOR_BATCH_LIMIT=20
 ```
 
-Il repository include anche `.github/workflows/monitor-cron.yml`, che richiama il cron ogni giorno usando il secret GitHub `OSINTPRO_CRON_SECRET`.
+Il secret cron e configurato in produzione. Uno scheduler esterno o un workflow GitHub Actions puo richiamare questo endpoint ogni giorno.
 
 ## Alert webhook
 
@@ -161,9 +160,9 @@ Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purp
 Rendere OSINTPRO piu solido per uso continuativo:
 
 1. Configurare definitivamente il webhook Stripe in produzione con `OSINTPRO_STRIPE_WEBHOOK_SECRET`.
-2. Migrare SQLite a database persistente gestito per produzione lunga.
-3. Aggiungere reset password via email se si introduce email account.
-4. Export PDF server-side.
+2. Collegare scheduler esterno o autorizzare il workflow GitHub Actions con scope `workflow`.
+3. Migrare SQLite a database persistente gestito per produzione lunga.
+4. Aggiungere reset password via email se si introduce email account.
 5. Workspace agency multi-cliente.
 
 ## Checklist monetizzazione
