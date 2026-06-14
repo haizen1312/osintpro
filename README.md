@@ -78,7 +78,7 @@ http://127.0.0.1:8765/admin.html
 Codice locale predefinito:
 
 ```text
-leonardo-admin
+haizen-admin
 ```
 
 Per deploy o demo pubbliche, cambialo sempre con una variabile ambiente:

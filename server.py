@@ -38,7 +38,7 @@ PLAN_LIMITS = {
     "Admin": {"credits": None, "monitors": 9999},
 }
 PAID_PLANS = {"Pro", "Agency", "Admin"}
-DEFAULT_ADMIN_CODE = "leonardo-admin"
+DEFAULT_ADMIN_CODE = "haizen-admin"
 DOMAIN_RE = re.compile(r"^(?=.{1,253}$)([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9._-]{2,32}$")
