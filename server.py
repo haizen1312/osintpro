@@ -316,6 +316,10 @@ def public_user(user: dict[str, object]) -> dict[str, object]:
     return {key: value for key, value in user.items() if not key.startswith("_")}
 
 
+def is_admin_user(user: dict[str, object]) -> bool:
+    return user.get("plan") == "Admin"
+
+
 def checkout_reference(user_id: str, plan: str) -> str:
     return f"osintpro_{user_id}_{plan.lower()}"
 
@@ -445,6 +449,17 @@ def cron_authorized(headers: object) -> bool:
 
 def alert_webhook_url() -> str:
     return os.getenv("OSINTPRO_ALERT_WEBHOOK_URL", "")
+
+
+def database_status() -> dict[str, object]:
+    configured_path = bool(os.getenv("OSINTPRO_DB_PATH"))
+    default_path = DATA_DIR / "osintpro.sqlite3"
+    on_default_local_path = DB_PATH.resolve() == default_path.resolve()
+    return {
+        "configured_path": configured_path,
+        "persistent_hint": configured_path and not on_default_local_path,
+        "location": "custom" if configured_path else "default",
+    }
 
 
 def send_alert(event: str, payload: dict[str, object]) -> None:
@@ -1681,6 +1696,60 @@ class Handler(SimpleHTTPRequestHandler):
             return []
         return self.monitors_for_user(str(user["_id"]))
 
+    def admin_overview(self) -> dict[str, object]:
+        with db() as connection:
+            totals = {
+                "users": connection.execute(
+                    "SELECT COUNT(*) AS count FROM users WHERE nickname IS NOT NULL"
+                ).fetchone()["count"],
+                "reports": connection.execute("SELECT COUNT(*) AS count FROM reports").fetchone()["count"],
+                "social_reports": connection.execute("SELECT COUNT(*) AS count FROM social_reports").fetchone()["count"],
+                "monitors": connection.execute("SELECT COUNT(*) AS count FROM monitors").fetchone()["count"],
+                "stripe_events": connection.execute("SELECT COUNT(*) AS count FROM stripe_events").fetchone()["count"],
+            }
+            users = connection.execute(
+                """
+                SELECT
+                    users.nickname,
+                    users.plan,
+                    users.credits,
+                    users.created_at,
+                    users.updated_at,
+                    COUNT(DISTINCT reports.id) AS report_count,
+                    COUNT(DISTINCT social_reports.id) AS social_report_count,
+                    COUNT(DISTINCT monitors.id) AS monitor_count
+                FROM users
+                LEFT JOIN reports ON reports.user_id = users.id
+                LEFT JOIN social_reports ON social_reports.user_id = users.id
+                LEFT JOIN monitors ON monitors.user_id = users.id
+                WHERE users.nickname IS NOT NULL
+                GROUP BY users.id
+                ORDER BY users.updated_at DESC
+                LIMIT 50
+                """
+            ).fetchall()
+            events = connection.execute(
+                """
+                SELECT type, status, plan, created_at
+                FROM stripe_events
+                ORDER BY created_at DESC
+                LIMIT 10
+                """
+            ).fetchall()
+        return {
+            "totals": totals,
+            "production": {
+                "stripe_pro_link": bool(os.getenv("OSINTPRO_STRIPE_PRO_URL")),
+                "stripe_agency_link": bool(os.getenv("OSINTPRO_STRIPE_AGENCY_URL")),
+                "stripe_webhook": bool(stripe_webhook_secret()),
+                "cron_secret": bool(cron_secret()),
+                "alert_webhook": bool(alert_webhook_url()),
+                "database": database_status(),
+            },
+            "users": [dict(row) for row in users],
+            "stripe_events": [dict(row) for row in events],
+        }
+
     def fetch_report(self, user_id: str, report_id: str) -> dict[str, object] | None:
         with db() as connection:
             row = connection.execute(
@@ -1724,6 +1793,13 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/monitors":
             user, headers = self.get_or_create_user()
             self.send_json({"monitors": self.visible_monitors_for_user(user)}, headers=headers)
+            return
+        if parsed.path == "/api/admin/status":
+            user, headers = self.get_or_create_user()
+            if not is_admin_user(user):
+                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                return
+            self.send_json(self.admin_overview(), headers=headers)
             return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/html"):
             user, headers = self.get_or_create_user()
@@ -2015,7 +2091,37 @@ class Handler(SimpleHTTPRequestHandler):
                 "user": row_to_user(row),
                 "reports": self.reports_for_user(str(user["_id"])),
                 "monitors": self.monitors_for_user(str(user["_id"])),
+                "admin": self.admin_overview(),
             }, headers=headers)
+            return
+
+        if parsed.path == "/api/admin/users/plan":
+            user, headers = self.get_or_create_user()
+            if not is_admin_user(user):
+                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                return
+            try:
+                body = self.read_json()
+                nickname = normalize_nickname(str(body.get("nickname", "")))
+                plan = str(body.get("plan", "")).capitalize()
+                if plan not in PLAN_LIMITS:
+                    self.send_json({"error": "Piano non valido."}, 400, headers)
+                    return
+                with db() as connection:
+                    row = connection.execute("SELECT * FROM users WHERE nickname = ?", (nickname,)).fetchone()
+                    if not row:
+                        self.send_json({"error": "Utente non trovato."}, 404, headers)
+                        return
+                    if row["id"] == user["_id"] and plan != "Admin":
+                        self.send_json({"error": "Non puoi rimuovere Admin dall'account admin corrente."}, 400, headers)
+                        return
+                    connection.execute(
+                        "UPDATE users SET plan = ?, updated_at = ? WHERE id = ?",
+                        (plan, utc_now(), row["id"]),
+                    )
+                self.send_json({"ok": True, "admin": self.admin_overview()}, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
             return
 
         if parsed.path == "/api/billing/checkout":

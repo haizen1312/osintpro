@@ -61,10 +61,10 @@ Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review e controllo ta
 
 ## Prossimi upgrade che aumentano il prezzo
 
-- configurazione webhook Stripe in produzione
 - database persistente gestito
 - cron giornaliero collegabile a `/api/cron/monitors`
 - alert webhook su cambiamenti monitor
 - export PDF vero server-side
 - workspace agency multi-cliente
-- dashboard admin utenti/piani
+- metriche admin avanzate e backup operativo
+- limiti anti-abuso sulle registrazioni prima del lancio pubblico

@@ -849,7 +849,7 @@ input:focus {
 
 .admin-panel {
   display: grid;
-  width: min(560px, 100%);
+  width: min(980px, 100%);
   gap: 24px;
   padding: 26px;
   border: 1px solid var(--line);
@@ -865,6 +865,105 @@ input:focus {
 .admin-form {
   display: grid;
   gap: 12px;
+}
+
+.admin-dashboard {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-status-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-status-card {
+  display: grid;
+  gap: 7px;
+  min-height: 76px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(12, 30, 24, .78);
+}
+
+.admin-status-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-status-card strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.admin-status-card.ok {
+  border-color: rgba(99, 255, 188, .38);
+}
+
+.admin-status-card.warn {
+  border-color: rgba(255, 189, 89, .44);
+}
+
+.admin-status-card.muted {
+  opacity: .78;
+}
+
+.inline-admin-form {
+  grid-template-columns: minmax(0, 1fr) 180px auto;
+  align-items: end;
+}
+
+.compact-head {
+  margin-bottom: 10px;
+}
+
+.compact-head h2 {
+  font-size: 22px;
+}
+
+.admin-table {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.admin-row {
+  display: grid;
+  grid-template-columns: 1.5fr .7fr .7fr .7fr .7fr;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(123, 255, 205, .12);
+  background: rgba(12, 30, 24, .56);
+  color: var(--text);
+  text-align: left;
+}
+
+.admin-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-row.header {
+  background: rgba(123, 255, 205, .09);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.user-row {
+  cursor: pointer;
+}
+
+.user-row:hover {
+  background: rgba(123, 255, 205, .1);
 }
 
 .auth-grid {
@@ -901,6 +1000,8 @@ input:focus {
   .ops-grid,
   .social-grid,
   .auth-grid,
+  .admin-status-grid,
+  .inline-admin-form,
   .pricing,
   .summary-strip,
   .scan-form,
@@ -922,6 +1023,7 @@ input:focus {
 
   .report-row,
   .monitor-row,
+  .admin-row,
   .check {
     grid-template-columns: 1fr;
   }

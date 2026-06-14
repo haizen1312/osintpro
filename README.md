@@ -55,6 +55,7 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Path database configurabile via env per storage persistente.
 - Checkout Stripe tramite Payment Link configurabile con riferimento utente.
 - Webhook Stripe firmato per attivare Pro/Agency dopo pagamento completato.
+- Pannello operativo privato per stato produzione, utenti, piani e ultimi eventi Stripe.
 - Pagina Social OSINT per analizzare nickname pubblici su social/dev platform.
 
 ## Avvio locale
@@ -159,11 +160,12 @@ Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purp
 
 Rendere OSINTPRO piu solido per uso continuativo:
 
-1. Configurare definitivamente il webhook Stripe in produzione con `OSINTPRO_STRIPE_WEBHOOK_SECRET`.
-2. Collegare scheduler esterno o autorizzare il workflow GitHub Actions con scope `workflow`.
-3. Migrare SQLite a database persistente gestito per produzione lunga.
-4. Aggiungere reset password via email se si introduce email account.
+1. Collegare scheduler esterno o autorizzare il workflow GitHub Actions con scope `workflow`.
+2. Migrare SQLite a database persistente gestito per produzione lunga.
+3. Aggiungere backup/export operativo dei dati account.
+4. Aggiungere reset password se si introduce un canale di recupero account.
 5. Workspace agency multi-cliente.
+6. Limite anti-abuso registrazioni per IP/connessione prima del lancio pubblico.
 
 ## Checklist monetizzazione
 
