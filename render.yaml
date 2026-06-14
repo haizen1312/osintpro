@@ -5,6 +5,10 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python3 server.py --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
+    disk:
+      name: osintpro-data
+      mountPath: /var/data
+      sizeGB: 5
     envVars:
       - key: OSINTPRO_ADMIN_CODE
         sync: false
@@ -25,6 +29,10 @@ services:
       - key: OSINTPRO_REGISTRATION_IP_ALLOWLIST
         sync: false
       - key: OSINTPRO_DB_PATH
-        sync: false
+        value: /var/data/osintpro.sqlite3
+      - key: OSINTPRO_BACKUP_DIR
+        value: /var/data/backups
+      - key: OSINTPRO_BACKUP_RETENTION
+        value: "30"
       - key: OSINTPRO_ALERT_WEBHOOK_URL
         sync: false

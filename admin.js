@@ -56,7 +56,8 @@ function renderAdmin(data) {
     statusCard("Cron secret", production.cron_secret ? "OK" : "Manca", production.cron_secret ? "ok" : "warn"),
     statusCard("Alert webhook", production.alert_webhook ? "Attivo" : "Opzionale", production.alert_webhook ? "ok" : "muted"),
     statusCard("Database", database.persistent_hint ? "Custom path" : "Default", database.persistent_hint ? "ok" : "warn"),
-    statusCard("Anti-abuso", production.registration_limit ? `${production.registration_limit}/connessione` : "Off", production.registration_limit ? "ok" : "warn")
+    statusCard("Anti-abuso", production.registration_limit ? `${production.registration_limit}/connessione` : "Off", production.registration_limit ? "ok" : "warn"),
+    statusCard("Backup DB", database.backup_count ? `${database.backup_count} snapshot` : "Nessuno", database.backup_count ? "ok" : "warn")
   ].join("");
 
   const users = admin.users || [];
@@ -89,6 +90,21 @@ function renderAdmin(data) {
       </div>
     `).join("")}
   ` : `<div class="empty">Nessun evento Stripe registrato.</div>`;
+
+  const backups = admin.backups || [];
+  document.querySelector("#adminBackups").innerHTML = backups.length ? `
+    <div class="admin-row backup-row header">
+      <span>File</span><span>Dimensione</span><span>Creato</span><span>Azione</span>
+    </div>
+    ${backups.map(backup => `
+      <div class="admin-row backup-row">
+        <span>${escapeHtml(backup.name)}</span>
+        <span>${escapeHtml(Math.max(1, Math.round((backup.size || 0) / 1024)))} KB</span>
+        <span>${escapeHtml(backup.created_at)}</span>
+        <span><a href="/api/admin/backups/${encodeURIComponent(backup.name)}">Scarica</a></span>
+      </div>
+    `).join("")}
+  ` : `<div class="empty">Nessun backup creato.</div>`;
 }
 
 async function loadAdminStatus() {
@@ -143,6 +159,22 @@ document.querySelector("#planForm").addEventListener("submit", async event => {
   } finally {
     button.disabled = false;
     button.textContent = "Aggiorna piano";
+  }
+});
+
+document.querySelector("#backupButton").addEventListener("click", async event => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  button.textContent = "Creo backup...";
+  try {
+    const data = await adminApi("/api/admin/backups", { method: "POST" });
+    renderAdmin(data);
+    showMessage(`Backup creato: ${data.backup.name}`);
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Crea backup DB";
   }
 });
 

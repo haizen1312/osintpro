@@ -61,9 +61,9 @@ Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review e controllo ta
 
 ## Prossimi upgrade che aumentano il prezzo
 
-- database persistente gestito
 - alert webhook su cambiamenti monitor
 - export PDF vero server-side
 - workspace agency multi-cliente
 - metriche admin avanzate e backup operativo
+- migrazione futura a Postgres gestito quando il traffico cresce
 - audit finale prima di rendere pubblico il repository

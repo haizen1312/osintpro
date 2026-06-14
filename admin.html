@@ -37,6 +37,7 @@
 
         <div class="admin-actions">
           <a class="secondary button-link" href="/api/admin/export">Scarica export operativo</a>
+          <button class="secondary" type="button" id="backupButton">Crea backup DB</button>
         </div>
 
         <form id="planForm" class="admin-form inline-admin-form">
@@ -74,6 +75,16 @@
             </div>
           </div>
           <div class="admin-table" id="adminEvents"></div>
+        </div>
+
+        <div>
+          <div class="section-head compact-head">
+            <div>
+              <span class="pill">Backup</span>
+              <h2>Snapshot database</h2>
+            </div>
+          </div>
+          <div class="admin-table" id="adminBackups"></div>
         </div>
       </section>
       <a class="secondary button-link" href="/">Torna all'app</a>

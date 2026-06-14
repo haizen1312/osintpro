@@ -26,3 +26,13 @@ jobs:
             --request POST \
             --header "Authorization: Bearer $CRON_SECRET" \
             "https://osintpro-48j4.onrender.com/api/cron/monitors"
+
+      - name: Create protected database backup
+        env:
+          CRON_SECRET: ${{ secrets.OSINTPRO_CRON_SECRET }}
+        run: |
+          test -n "$CRON_SECRET"
+          curl --fail --show-error --silent \
+            --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "https://osintpro-48j4.onrender.com/api/cron/backup"

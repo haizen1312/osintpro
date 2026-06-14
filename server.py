@@ -29,6 +29,7 @@ from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = Path(os.getenv("OSINTPRO_DATA_DIR", str(ROOT / "data"))).expanduser()
 DB_PATH = Path(os.getenv("OSINTPRO_DB_PATH", str(DATA_DIR / "osintpro.sqlite3"))).expanduser()
+BACKUP_DIR = Path(os.getenv("OSINTPRO_BACKUP_DIR", str(DATA_DIR / "backups"))).expanduser()
 SECRET_PATH = DATA_DIR / ".osintpro_secret"
 FREE_CREDITS = 5
 SESSION_COOKIE = "osintpro_session"
@@ -80,8 +81,10 @@ MAX_BODY_BYTES = 16384
 MAX_WEBHOOK_BYTES = 262144
 DEFAULT_MONITOR_BATCH_LIMIT = 20
 DEFAULT_REGISTRATION_IP_LIMIT = 3
+DEFAULT_BACKUP_RETENTION = 14
 PUBLIC_STATIC_PATHS = {"/", "/index.html", "/app.js", "/styles.css", "/admin.html", "/admin.js", "/favicon.ico"}
 CHECKOUT_REFERENCE_RE = re.compile(r"^osintpro_([a-f0-9-]{36})_(pro|agency)$")
+BACKUP_NAME_RE = re.compile(r"^osintpro-[0-9]{8}T[0-9]{6}Z-[a-z0-9-]+-[a-f0-9]{6}\.sqlite3$")
 PLAN_RANK = {"Free": 0, "Pro": 1, "Agency": 2, "Admin": 3}
 SOCIAL_PLATFORMS = [
     {"name": "GitHub", "url": "https://github.com/{username}"},
@@ -221,6 +224,9 @@ def db() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+    connection.execute("PRAGMA busy_timeout = 5000")
+    connection.execute("PRAGMA journal_mode = WAL")
     return connection
 
 
@@ -454,6 +460,13 @@ def registration_ip_limit() -> int:
         return DEFAULT_REGISTRATION_IP_LIMIT
 
 
+def backup_retention() -> int:
+    try:
+        return max(1, min(90, int(os.getenv("OSINTPRO_BACKUP_RETENTION", str(DEFAULT_BACKUP_RETENTION)))))
+    except ValueError:
+        return DEFAULT_BACKUP_RETENTION
+
+
 def registration_allowlist() -> list[str]:
     raw = os.getenv("OSINTPRO_REGISTRATION_IP_ALLOWLIST", "")
     return [item.strip() for item in raw.split(",") if item.strip()]
@@ -492,10 +505,94 @@ def database_status() -> dict[str, object]:
     configured_path = bool(os.getenv("OSINTPRO_DB_PATH"))
     default_path = DATA_DIR / "osintpro.sqlite3"
     on_default_local_path = DB_PATH.resolve() == default_path.resolve()
+    backup_count = len(list_backups())
+    latest = latest_backup()
     return {
         "configured_path": configured_path,
         "persistent_hint": configured_path and not on_default_local_path,
         "location": "custom" if configured_path else "default",
+        "backup_count": backup_count,
+        "latest_backup": latest["created_at"] if latest else None,
+    }
+
+
+def list_backups(include_internal: bool = False) -> list[dict[str, object]]:
+    if not BACKUP_DIR.exists():
+        return []
+    backups = []
+    for path in BACKUP_DIR.glob("*.sqlite3"):
+        if not BACKUP_NAME_RE.match(path.name):
+            continue
+        stat = path.stat()
+        backups.append({
+            "name": path.name,
+            "size": stat.st_size,
+            "created_at": dt.datetime.fromtimestamp(stat.st_mtime, dt.UTC).replace(microsecond=0).isoformat(),
+            "mtime": stat.st_mtime,
+        })
+    sorted_backups = sorted(backups, key=lambda item: (float(item["mtime"]), str(item["name"])), reverse=True)
+    if include_internal:
+        return sorted_backups
+    return [{key: value for key, value in item.items() if key != "mtime"} for item in sorted_backups]
+
+
+def latest_backup() -> dict[str, object] | None:
+    backups = list_backups()
+    return backups[0] if backups else None
+
+
+def backup_path(name: str) -> Path:
+    if not BACKUP_NAME_RE.match(name):
+        raise ValueError("Backup non valido.")
+    path = (BACKUP_DIR / name).resolve()
+    if BACKUP_DIR.resolve() not in path.parents:
+        raise ValueError("Backup non valido.")
+    return path
+
+
+def prune_backups(protected_name: str = "") -> None:
+    retained = 0
+    for item in list_backups(include_internal=True):
+        if item["name"] == protected_name:
+            retained += 1
+            continue
+        if retained < backup_retention():
+            retained += 1
+            continue
+        try:
+            backup_path(str(item["name"])).unlink()
+        except OSError:
+            pass
+
+
+def create_sqlite_backup(reason: str = "manual") -> dict[str, object]:
+    if not DB_PATH.exists():
+        raise ValueError("Database non ancora creato.")
+    safe_reason = re.sub(r"[^a-z0-9-]+", "-", reason.lower()).strip("-")[:32] or "manual"
+    timestamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
+    suffix = secrets.token_hex(3)
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    destination = BACKUP_DIR / f"osintpro-{timestamp}-{safe_reason}-{suffix}.sqlite3"
+    source = sqlite3.connect(DB_PATH)
+    try:
+        target = sqlite3.connect(destination)
+        try:
+            source.backup(target)
+        finally:
+            target.close()
+    finally:
+        source.close()
+    try:
+        destination.chmod(0o600)
+    except OSError:
+        pass
+    stat = destination.stat()
+    prune_backups(destination.name)
+    return {
+        "name": destination.name,
+        "size": stat.st_size,
+        "created_at": dt.datetime.fromtimestamp(stat.st_mtime, dt.UTC).replace(microsecond=0).isoformat(),
+        "retention": backup_retention(),
     }
 
 
@@ -1814,6 +1911,7 @@ class Handler(SimpleHTTPRequestHandler):
             },
             "users": [dict(row) for row in users],
             "stripe_events": [dict(row) for row in events],
+            "backups": list_backups(),
         }
 
     def admin_export(self) -> dict[str, object]:
@@ -1930,6 +2028,29 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_header(key, value)
             self.end_headers()
             self.wfile.write(body)
+            return
+        if parsed.path.startswith("/api/admin/backups/"):
+            user, headers = self.get_or_create_user()
+            if not is_admin_user(user):
+                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                return
+            try:
+                name = parsed.path.split("/")[-1]
+                path = backup_path(name)
+                if not path.exists():
+                    self.send_json({"error": "Backup non trovato."}, 404, headers)
+                    return
+                body = path.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/octet-stream")
+                self.send_header("Content-Disposition", f"attachment; filename={path.name}")
+                self.send_header("Content-Length", str(len(body)))
+                for key, value in headers.items():
+                    self.send_header(key, value)
+                self.end_headers()
+                self.wfile.write(body)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
             return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/html"):
             user, headers = self.get_or_create_user()
@@ -2210,6 +2331,20 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Cron monitor non completato. Nessun dettaglio interno esposto."}, 500)
             return
 
+        if parsed.path == "/api/cron/backup":
+            if not cron_secret():
+                self.send_json({"error": "Cron non configurato."}, 503)
+                return
+            if not cron_authorized(self.headers):
+                self.send_json({"error": "Cron non autorizzato."}, 403)
+                return
+            try:
+                backup = create_sqlite_backup("cron")
+                self.send_json({"ok": True, "backup": backup})
+            except Exception:
+                self.send_json({"error": "Backup non completato. Nessun dettaglio interno esposto."}, 500)
+            return
+
         if parsed.path == "/api/admin/login":
             user, headers = self.get_or_create_user()
             try:
@@ -2263,6 +2398,20 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"ok": True, "admin": self.admin_overview()}, headers=headers)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
+            return
+
+        if parsed.path == "/api/admin/backups":
+            user, headers = self.get_or_create_user()
+            if not is_admin_user(user):
+                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                return
+            try:
+                backup = create_sqlite_backup("manual")
+                self.send_json({"ok": True, "backup": backup, "admin": self.admin_overview()}, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            except Exception:
+                self.send_json({"error": "Backup non completato. Nessun dettaglio interno esposto."}, 500, headers)
             return
 
         if parsed.path == "/api/billing/checkout":

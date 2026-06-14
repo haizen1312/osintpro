@@ -964,6 +964,10 @@ input:focus {
   text-transform: uppercase;
 }
 
+.backup-row {
+  grid-template-columns: 1.5fr .6fr 1fr .5fr;
+}
+
 .user-row {
   cursor: pointer;
 }
