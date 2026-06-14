@@ -20,3 +20,7 @@ services:
         generateValue: true
       - key: OSINTPRO_MONITOR_BATCH_LIMIT
         value: "20"
+      - key: OSINTPRO_DB_PATH
+        sync: false
+      - key: OSINTPRO_ALERT_WEBHOOK_URL
+        sync: false

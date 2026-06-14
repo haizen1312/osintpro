@@ -63,8 +63,8 @@ Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review e controllo ta
 
 - configurazione webhook Stripe in produzione
 - database persistente gestito
-- cron giornaliero per monitor via `/api/cron/monitors`
-- alert email su cambiamenti
+- cron giornaliero GitHub Actions gia collegabile a `/api/cron/monitors`
+- alert webhook su cambiamenti monitor
 - export PDF vero server-side
 - workspace agency multi-cliente
 - dashboard admin utenti/piani

@@ -26,8 +26,8 @@ from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 
 
 ROOT = Path(__file__).resolve().parent
-DATA_DIR = ROOT / "data"
-DB_PATH = DATA_DIR / "osintpro.sqlite3"
+DATA_DIR = Path(os.getenv("OSINTPRO_DATA_DIR", str(ROOT / "data"))).expanduser()
+DB_PATH = Path(os.getenv("OSINTPRO_DB_PATH", str(DATA_DIR / "osintpro.sqlite3"))).expanduser()
 SECRET_PATH = DATA_DIR / ".osintpro_secret"
 FREE_CREDITS = 5
 SESSION_COOKIE = "osintpro_session"
@@ -57,6 +57,7 @@ RATE_LIMIT_WINDOW = 60
 RATE_LIMITS = {
     "/api/admin/login": 8,
     "/api/auth/login": 12,
+    "/api/auth/password": 8,
     "/api/auth/register": 10,
     "/api/analyze": 30,
     "/api/social/analyze": 30,
@@ -210,7 +211,7 @@ def csv_cell(value: object) -> str:
 
 
 def db() -> sqlite3.Connection:
-    DATA_DIR.mkdir(exist_ok=True)
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
     return connection
@@ -440,6 +441,31 @@ def cron_authorized(headers: object) -> bool:
     token = str(headers.get("X-OSINTPRO-CRON", ""))
     expected = f"Bearer {secret}"
     return hmac.compare_digest(bearer, expected) or hmac.compare_digest(token, secret)
+
+
+def alert_webhook_url() -> str:
+    return os.getenv("OSINTPRO_ALERT_WEBHOOK_URL", "")
+
+
+def send_alert(event: str, payload: dict[str, object]) -> None:
+    url = alert_webhook_url()
+    if not url:
+        return
+    body = json.dumps(redact_data({"event": event, "sent_at": utc_now(), **payload})).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "OSINTPRO-monitor-alert/1.0",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=4) as response:
+            response.read(1024)
+    except (OSError, urllib.error.URLError, TimeoutError):
+        pass
 
 
 def is_paid_plan(plan: str) -> bool:
@@ -1315,6 +1341,14 @@ def run_monitor_rows(connection: sqlite3.Connection, rows: list[sqlite3.Row]) ->
                 "status": "changed" if changed else "healthy",
                 "score": report["score"],
             })
+            if changed:
+                send_alert("monitor.changed", {
+                    "domain": monitor["domain"],
+                    "user_id": monitor["user_id"],
+                    "previous_score": monitor["last_score"],
+                    "score": report["score"],
+                    "summary": report["summary"],
+                })
         except Exception:
             failed += 1
             connection.execute(
@@ -1326,6 +1360,10 @@ def run_monitor_rows(connection: sqlite3.Connection, rows: list[sqlite3.Row]) ->
                 (now, now, monitor["id"], monitor["user_id"]),
             )
             results.append({"domain": monitor["domain"], "status": "error"})
+            send_alert("monitor.error", {
+                "domain": monitor["domain"],
+                "user_id": monitor["user_id"],
+            })
     return {
         "checked": checked,
         "changed": changed_count,
@@ -1779,6 +1817,30 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"ok": True}, headers={
                 "Set-Cookie": self.make_session_cookie("", max_age=0)
             })
+            return
+
+        if parsed.path == "/api/auth/password":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Accedi per cambiare password."}, 401, headers)
+                return
+            try:
+                body = self.read_json()
+                current_password = str(body.get("current_password", ""))
+                new_password = str(body.get("new_password", ""))
+                new_hash = password_hash(new_password)
+                with db() as connection:
+                    row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
+                    if not row or not verify_password(current_password, row["password_hash"]):
+                        self.send_json({"error": "Password attuale non valida."}, 403, headers)
+                        return
+                    connection.execute(
+                        "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
+                        (new_hash, utc_now(), user["_id"]),
+                    )
+                self.send_json({"ok": True}, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
             return
 
         if parsed.path == "/api/analyze":

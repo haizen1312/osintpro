@@ -726,6 +726,26 @@ document.querySelector("#loginForm").addEventListener("submit", async event => {
   }
 });
 
+document.querySelector("#passwordForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    await api("/api/auth/password", {
+      method: "POST",
+      body: JSON.stringify({
+        current_password: document.querySelector("#currentPassword").value,
+        new_password: document.querySelector("#newPassword").value
+      })
+    });
+    document.querySelector("#currentPassword").value = "";
+    document.querySelector("#newPassword").value = "";
+    showAccountMessage("Password aggiornata.");
+  } catch (error) {
+    document.querySelector("#currentPassword").value = "";
+    document.querySelector("#newPassword").value = "";
+    showAccountMessage(error.message, true);
+  }
+});
+
 async function logout() {
   await api("/api/auth/logout", { method: "POST" });
   window.location.reload();

@@ -51,6 +51,9 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Export report stampabile, salvabile come PDF dal browser.
 - Monitoraggio domini con limiti per piano.
 - Cron monitor protetto da secret per rieseguire controlli in batch.
+- GitHub Actions schedulato per richiamare il cron giornaliero.
+- Alert webhook opzionale quando un monitor cambia o va in errore.
+- Path database configurabile via env per storage persistente.
 - Checkout Stripe tramite Payment Link configurabile con riferimento utente.
 - Webhook Stripe firmato per attivare Pro/Agency dopo pagamento completato.
 - Pagina Social OSINT per analizzare nickname pubblici su social/dev platform.
@@ -68,6 +71,11 @@ http://127.0.0.1:8765
 ```
 
 Il database viene creato automaticamente al primo avvio.
+Per usare un path persistente:
+
+```bash
+OSINTPRO_DB_PATH="/path/persistente/osintpro.sqlite3" python3 server.py
+```
 
 Il deploy pubblico usa Render:
 
@@ -128,6 +136,21 @@ OSINTPRO_CRON_SECRET
 OSINTPRO_MONITOR_BATCH_LIMIT=20
 ```
 
+Il repository include anche `.github/workflows/monitor-cron.yml`, che richiama il cron ogni giorno usando il secret GitHub `OSINTPRO_CRON_SECRET`.
+
+## Alert webhook
+
+Per ricevere alert su cambi monitor:
+
+```text
+OSINTPRO_ALERT_WEBHOOK_URL="https://example.com/webhook"
+```
+
+Eventi inviati:
+
+- `monitor.changed`
+- `monitor.error`
+
 ## Social OSINT
 
 Il tab `Social` controlla passivamente la presenza pubblica di un nickname su social network e developer platform.
@@ -138,10 +161,10 @@ Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purp
 Rendere OSINTPRO piu solido per uso continuativo:
 
 1. Configurare definitivamente il webhook Stripe in produzione con `OSINTPRO_STRIPE_WEBHOOK_SECRET`.
-2. Collegare un cron esterno o Render Cron Job a `/api/cron/monitors`.
-3. Migrare SQLite a database persistente gestito per produzione lunga.
-4. Aggiungere reset password e gestione account completa.
-5. Alert email o webhook su cambi score, SSL e header.
+2. Migrare SQLite a database persistente gestito per produzione lunga.
+3. Aggiungere reset password via email se si introduce email account.
+4. Export PDF server-side.
+5. Workspace agency multi-cliente.
 
 ## Checklist monetizzazione
 
