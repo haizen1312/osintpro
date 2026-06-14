@@ -14,6 +14,8 @@ Apri il sito live, crea un account con nickname/password e prova:
 
 - Domain OSINT su un dominio pubblico.
 - Social OSINT su un nickname pubblico.
+- Schema intelligence con grafo entita e dossier persona/sito.
+- OSINT Wallet con asset, piano, crediti e superfici osservate.
 - Report PDF/CSV.
 - Monitoring domini.
 - Upgrade Pro/Agency tramite Stripe.
@@ -66,6 +68,8 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Webhook Stripe firmato per attivare Pro/Agency dopo pagamento completato.
 - Pannello operativo privato per stato produzione, utenti, piani e ultimi eventi Stripe.
 - Pagina Social OSINT per analizzare nickname pubblici su social/dev platform.
+- Pagina Schema per correlare domini, nickname, profili, DNS, email posture, finding e tecnologie in un grafo.
+- OSINT Wallet per visualizzare asset raccolti, crediti, piano, monitor e indice di esposizione per account.
 
 ## Avvio locale
 
@@ -209,13 +213,19 @@ Eventi inviati:
 Il tab `Social` controlla passivamente la presenza pubblica di un nickname su social network e developer platform.
 Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purple Team per brand monitoring, anti-impersonation e due diligence.
 
+## Schema e OSINT Wallet
+
+Il tab `Schema` crea un grafo passivo dai report salvati nell'account: siti, persone/nickname, IP, nameserver, MX, profili social, tecnologie, finding e possibili review di rischio.
+
+Il tab `Wallet` mostra il pack OSINT dell'utente: piano, crediti, monitor usati, asset raccolti, report dominio/social e indice di esposizione medio. Ogni wallet e isolato per account.
+
 ## Prossimi step tecnici
 
 Rendere OSINTPRO piu solido per uso continuativo:
 
 1. Aggiungere reset password se si introduce un canale di recupero account.
 2. Workspace agency multi-cliente.
-3. Audit finale prima di rendere il repository pubblico.
+3. Onboarding guidato per convertire utenti Free in Pro/Agency.
 
 ## Checklist monetizzazione
 

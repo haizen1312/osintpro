@@ -3,6 +3,7 @@ const state = {
   reports: [],
   socialReports: [],
   monitors: [],
+  workspace: null,
   checkoutConfigured: false
 };
 
@@ -490,6 +491,187 @@ function renderMonitors() {
   `).join("");
 }
 
+function scoreTone(score) {
+  if (score >= 80) return "ok";
+  if (score >= 55) return "warn";
+  return "bad";
+}
+
+function nodeColor(type) {
+  return {
+    site: "#39ffb8",
+    person: "#62d8ff",
+    profile: "#9de7ff",
+    ip: "#d6f7ef",
+    nameserver: "#7cffce",
+    mail: "#ffbd59",
+    email: "#ffbd59",
+    registry: "#b8ffdf",
+    technology: "#a7b8ff",
+    subdomain: "#62d8ff",
+    risk: "#ff5d6c",
+    finding: "#ffbd59"
+  }[type] || "#e9fff7";
+}
+
+function renderGraph(nodes = [], edges = []) {
+  if (!nodes.length) {
+    return `<div class="graph-empty"><strong>Nessun nodo</strong><span>Genera report dominio o social per popolare lo schema.</span></div>`;
+  }
+  const width = 920;
+  const height = 520;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const roots = nodes.filter(node => node.type === "site" || node.type === "person");
+  const others = nodes.filter(node => node.type !== "site" && node.type !== "person");
+  const ordered = [...roots, ...others];
+  const positions = new Map();
+
+  ordered.forEach((node, index) => {
+    const isRoot = node.type === "site" || node.type === "person";
+    const ring = isRoot ? 112 : 210 + ((index % 3) * 36);
+    const angle = (Math.PI * 2 * index) / Math.max(ordered.length, 1) - Math.PI / 2;
+    positions.set(node.id, {
+      x: Math.round(centerX + Math.cos(angle) * ring),
+      y: Math.round(centerY + Math.sin(angle) * ring)
+    });
+  });
+
+  const edgeMarkup = edges.map(edge => {
+    const a = positions.get(edge.from);
+    const b = positions.get(edge.to);
+    if (!a || !b) return "";
+    return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="graph-edge ${escapeHtml(edge.kind)}"><title>${escapeHtml(edge.label)}</title></line>`;
+  }).join("");
+
+  const nodeMarkup = ordered.map(node => {
+    const pos = positions.get(node.id);
+    const radius = node.type === "site" || node.type === "person" ? 20 : 12;
+    const label = node.label.length > 24 ? `${node.label.slice(0, 21)}...` : node.label;
+    return `
+      <g class="graph-node ${escapeHtml(node.type)}">
+        <circle cx="${pos.x}" cy="${pos.y}" r="${radius}" fill="${nodeColor(node.type)}">
+          <title>${escapeHtml(node.label)} · ${escapeHtml(node.type)} ${node.score !== null && node.score !== undefined ? `· ${node.score}/100` : ""}</title>
+        </circle>
+        <text x="${pos.x}" y="${pos.y + radius + 16}" text-anchor="middle">${escapeHtml(label)}</text>
+      </g>
+    `;
+  }).join("");
+
+  return `
+    <svg class="entity-graph" viewBox="0 0 ${width} ${height}" role="img" aria-label="Schema OSINT dei dati raccolti">
+      <rect width="${width}" height="${height}" rx="10"></rect>
+      ${edgeMarkup}
+      ${nodeMarkup}
+    </svg>
+  `;
+}
+
+function renderDossierCard(item, type) {
+  if (type === "site") {
+    return `
+      <article class="dossier-card ${scoreTone(item.score)}">
+        <div>
+          <span class="pill">Site dossier</span>
+          <strong>${escapeHtml(item.domain)}</strong>
+          <span class="tag">${item.score}/100</span>
+        </div>
+        <p>${escapeHtml(item.summary)}</p>
+        <div class="dossier-meta">
+          <span>Registrar <strong>${escapeHtml(item.registrar)}</strong></span>
+          <span>IP <strong>${(item.ips || []).length}</strong></span>
+          <span>MX <strong>${(item.mx || []).length}</strong></span>
+          <span>CT names <strong>${(item.subdomains || []).length}</strong></span>
+          <span>Monitor <strong>${item.monitored ? "attivo" : "off"}</strong></span>
+        </div>
+        <div class="mini-list">
+          ${(item.findings || []).slice(0, 3).map(finding => `<span>${escapeHtml(finding.title || "finding")}</span>`).join("") || "<span>Nessun finding prioritario</span>"}
+        </div>
+      </article>
+    `;
+  }
+  return `
+    <article class="dossier-card ${scoreTone(item.score)}">
+      <div>
+        <span class="pill">Person dossier</span>
+        <strong>@${escapeHtml(item.username)}</strong>
+        <span class="tag">${item.score}/100</span>
+      </div>
+      <p>${escapeHtml(item.summary)}</p>
+      <div class="dossier-meta">
+        <span>Profili <strong>${item.profiles_found}</strong></span>
+        <span>Ultimo check <strong>${escapeHtml(formatDate(item.generated_at))}</strong></span>
+      </div>
+      <div class="mini-list">
+        ${(item.profiles || []).slice(0, 5).map(profile => `<span>${escapeHtml(profile.platform)} · ${escapeHtml(profile.confidence)}</span>`).join("") || "<span>Nessun profilo confermato</span>"}
+      </div>
+    </article>
+  `;
+}
+
+function renderWorkspace() {
+  const schemaHolder = document.querySelector("#schemaResult");
+  const walletHolder = document.querySelector("#walletResult");
+  const data = state.workspace;
+  if (!data || !data.authenticated) {
+    schemaHolder.innerHTML = `<div class="result empty"><h2>Accedi per costruire lo schema</h2><p>Il grafo usa solo report e social history del tuo account.</p></div>`;
+    walletHolder.innerHTML = `<div class="result empty"><h2>Wallet privato</h2><p>Login richiesto per visualizzare crediti, asset e superfici osservate.</p></div>`;
+    return;
+  }
+
+  const sites = data.dossiers?.sites || [];
+  const people = data.dossiers?.people || [];
+  const wallet = data.wallet || {};
+  schemaHolder.innerHTML = `
+    <div class="schema-grid">
+      <article class="graph-panel">
+        ${renderGraph(data.nodes || [], data.edges || [])}
+      </article>
+      <aside class="schema-summary">
+        <article><span>Nodi</span><strong>${(data.nodes || []).length}</strong></article>
+        <article><span>Relazioni</span><strong>${(data.edges || []).length}</strong></article>
+        <article><span>Siti</span><strong>${sites.length}</strong></article>
+        <article><span>Persone</span><strong>${people.length}</strong></article>
+      </aside>
+    </div>
+    <div class="dossier-grid">
+      ${sites.map(item => renderDossierCard(item, "site")).join("")}
+      ${people.map(item => renderDossierCard(item, "person")).join("")}
+      ${!sites.length && !people.length ? `<div class="result empty"><h2>Nessun dossier</h2><p>Genera report dominio o social per popolare questa sezione.</p></div>` : ""}
+    </div>
+  `;
+
+  const creditLabel = wallet.plan === "Free" ? wallet.credits : "∞";
+  walletHolder.innerHTML = `
+    <div class="wallet-grid">
+      <article class="wallet-card hero-wallet">
+        <span class="pill">Current pack</span>
+        <strong>${escapeHtml(wallet.plan || "Free")}</strong>
+        <p>Crediti disponibili: <b>${escapeHtml(creditLabel)}</b>. Monitor: <b>${wallet.monitor_used || 0}/${wallet.monitor_limit || 1}</b>.</p>
+      </article>
+      <article class="wallet-card"><span>Exposure index</span><strong>${wallet.exposure_index || 0}/100</strong><p>Media score degli asset raccolti.</p></article>
+      <article class="wallet-card"><span>Domain report</span><strong>${wallet.domain_reports || 0}</strong><p>Siti e brand analizzati.</p></article>
+      <article class="wallet-card"><span>Social report</span><strong>${wallet.social_reports || 0}</strong><p>Nickname e profili pubblici.</p></article>
+    </div>
+    <div class="wallet-assets">
+      ${(wallet.assets || []).map(asset => `
+        <div class="asset-row">
+          <strong>${escapeHtml(asset.label)}</strong>
+          <span class="tag">${escapeHtml(asset.type)}</span>
+          <span class="mono">${asset.score}/100</span>
+          <span>${asset.monitored ? "monitor attivo" : "non monitorato"}</span>
+        </div>
+      `).join("") || `<div class="asset-row"><span>Nessun asset nel wallet</span><span></span><span></span><span></span></div>`}
+    </div>
+  `;
+}
+
+async function loadWorkspace() {
+  const data = await api("/api/intel/workspace");
+  state.workspace = data;
+  renderWorkspace();
+}
+
 function showBillingMessage(message) {
   const box = document.querySelector("#billingMessage");
   box.textContent = message;
@@ -528,6 +710,7 @@ async function loadSession() {
   renderReports();
   renderSocialReports();
   renderMonitors();
+  await loadWorkspace();
 }
 
 async function checkApi() {
@@ -572,6 +755,7 @@ async function analyze(target) {
     updateAccount();
     renderReport(data.report);
     renderReports();
+    await loadWorkspace();
   } catch (error) {
     document.querySelector("#result").className = "result empty";
     document.querySelector("#result").innerHTML = `<h2 class="error">Errore</h2><p>${escapeHtml(error.message)}</p>`;
@@ -611,6 +795,7 @@ async function analyzeSocial(username) {
     updateAccount();
     renderSocialReport(data.report);
     renderSocialReports();
+    await loadWorkspace();
   } catch (error) {
     document.querySelector("#socialResult").className = "result empty";
     document.querySelector("#socialResult").innerHTML = `<h2 class="error">Errore</h2><p>${escapeHtml(error.message)}</p>`;
@@ -629,6 +814,7 @@ async function addMonitor(domain) {
     });
     state.monitors = data.monitors;
     renderMonitors();
+    await loadWorkspace();
     setSection("monitoring");
   } catch (error) {
     if (error.status === 401) {
@@ -794,6 +980,7 @@ document.querySelector("#runMonitors").addEventListener("click", async () => {
     state.reports = data.reports;
     renderMonitors();
     renderReports();
+    await loadWorkspace();
   } finally {
     button.disabled = false;
     button.textContent = "Run checks";
@@ -804,12 +991,14 @@ document.querySelector("#clearReports").addEventListener("click", async () => {
   const data = await api("/api/reports", { method: "DELETE" });
   state.reports = data.reports;
   renderReports();
+  await loadWorkspace();
 });
 
 document.querySelector("#clearSocialReports").addEventListener("click", async () => {
   const data = await api("/api/social/reports", { method: "DELETE" });
   state.socialReports = data.social_reports;
   renderSocialReports();
+  await loadWorkspace();
 });
 
 document.querySelector("#clearAllHistory").addEventListener("click", async () => {
@@ -818,7 +1007,11 @@ document.querySelector("#clearAllHistory").addEventListener("click", async () =>
   state.socialReports = data.social_reports;
   renderReports();
   renderSocialReports();
+  await loadWorkspace();
 });
+
+document.querySelector("#refreshWorkspace").addEventListener("click", loadWorkspace);
+document.querySelector("#refreshWallet").addEventListener("click", loadWorkspace);
 
 document.querySelector("#deleteAccountButton").addEventListener("click", async () => {
   if (!state.user.authenticated) {

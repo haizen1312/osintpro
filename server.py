@@ -1923,6 +1923,217 @@ class Handler(SimpleHTTPRequestHandler):
             return []
         return self.monitors_for_user(str(user["_id"]))
 
+    def intelligence_workspace(self, user: dict[str, object]) -> dict[str, object]:
+        if not user.get("authenticated"):
+            return {
+                "authenticated": False,
+                "nodes": [],
+                "edges": [],
+                "dossiers": {"sites": [], "people": []},
+                "wallet": {
+                    "assets": [],
+                    "credits": user.get("credits", 0),
+                    "plan": user.get("plan", "Free"),
+                    "monitor_limit": user.get("monitor_limit", 1),
+                    "monitor_used": 0,
+                    "domain_reports": 0,
+                    "social_reports": 0,
+                    "exposure_index": 0,
+                },
+            }
+
+        with db() as connection:
+            report_rows = connection.execute(
+                """
+                SELECT id, domain, score, summary, generated_at, payload_json
+                FROM reports
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                LIMIT 20
+                """,
+                (user["_id"],),
+            ).fetchall()
+            social_rows = connection.execute(
+                """
+                SELECT id, username, score, summary, generated_at, payload_json
+                FROM social_reports
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                LIMIT 20
+                """,
+                (user["_id"],),
+            ).fetchall()
+            monitor_rows = connection.execute(
+                """
+                SELECT domain, status, last_score, last_checked_at
+                FROM monitors
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                """,
+                (user["_id"],),
+            ).fetchall()
+
+        nodes: dict[str, dict[str, object]] = {}
+        edges: list[dict[str, str]] = []
+        sites: list[dict[str, object]] = []
+        people: list[dict[str, object]] = []
+        assets: list[dict[str, object]] = []
+
+        def add_node(node_id: str, label: str, node_type: str, score: int | None = None, meta: str = "") -> None:
+            if not label:
+                return
+            nodes[node_id] = redact_data({
+                "id": node_id,
+                "label": label,
+                "type": node_type,
+                "score": score,
+                "meta": meta,
+            })
+
+        def add_edge(source: str, target: str, label: str, kind: str = "signal") -> None:
+            if source in nodes and target in nodes:
+                edges.append(redact_data({
+                    "from": source,
+                    "to": target,
+                    "label": label,
+                    "kind": kind,
+                }))
+
+        monitor_map = {row["domain"]: dict(row) for row in monitor_rows}
+
+        for row in report_rows:
+            try:
+                report = redact_data(json.loads(row["payload_json"]))
+            except (TypeError, json.JSONDecodeError):
+                report = dict(row)
+            domain = str(report.get("domain") or row["domain"])
+            root = f"site:{domain}"
+            score = int(report.get("score") or row["score"] or 0)
+            add_node(root, domain, "site", score, "domain dossier")
+            assets.append({"type": "site", "label": domain, "score": score, "monitored": domain in monitor_map})
+
+            dns = report.get("dns") or {}
+            email = report.get("email_security") or {}
+            rdap = report.get("rdap") or {}
+            https = report.get("https") or {}
+            advanced = report.get("advanced_intel") or {}
+            ct = report.get("certificate_transparency") or {}
+
+            for address in (dns.get("addresses") or [])[:6]:
+                node_id = f"ip:{address}"
+                add_node(node_id, str(address), "ip", None, "resolved address")
+                add_edge(root, node_id, "resolves to", "dns")
+            for ns in (dns.get("ns") or [])[:6]:
+                node_id = f"ns:{ns}"
+                add_node(node_id, str(ns), "nameserver", None, "NS")
+                add_edge(root, node_id, "nameserver", "dns")
+            for mx in (dns.get("mx") or [])[:6]:
+                node_id = f"mx:{mx}"
+                add_node(node_id, str(mx), "mail", None, "MX")
+                add_edge(root, node_id, "mail exchange", "email")
+            registrar = rdap.get("registrar")
+            if registrar:
+                node_id = f"registrar:{registrar}"
+                add_node(node_id, str(registrar), "registry", None, "registrar")
+                add_edge(root, node_id, "registered via", "registry")
+            server = https.get("server")
+            if server:
+                node_id = f"tech:{server}"
+                add_node(node_id, str(server), "technology", None, "server header")
+                add_edge(root, node_id, "exposes", "web")
+            for tech in (report.get("technology") or [])[:8]:
+                node_id = f"tech:{tech}"
+                add_node(node_id, str(tech), "technology", None, "tech signal")
+                add_edge(root, node_id, "fingerprint", "web")
+            for subdomain in (ct.get("subdomains") or [])[:12]:
+                node_id = f"subdomain:{subdomain}"
+                add_node(node_id, str(subdomain), "subdomain", None, "CT observed")
+                add_edge(root, node_id, "certificate transparency", "ct")
+            for hint in (advanced.get("takeover_hints") or [])[:5]:
+                subdomain = hint.get("subdomain")
+                provider = hint.get("provider")
+                if subdomain:
+                    node_id = f"takeover:{subdomain}"
+                    add_node(node_id, str(subdomain), "risk", None, str(provider or "takeover hint"))
+                    add_edge(root, node_id, "takeover review", "risk")
+            email_node = f"email:{domain}"
+            add_node(email_node, "Email posture", "email", int(email.get("score") or 0), "SPF/DMARC/MTA-STS")
+            add_edge(root, email_node, "email controls", "email")
+            for finding in (report.get("findings") or [])[:6]:
+                title = finding.get("title")
+                if title:
+                    node_id = f"finding:{domain}:{title}"
+                    add_node(node_id, str(title), "finding", None, str(finding.get("level") or "signal"))
+                    add_edge(root, node_id, "finding", "risk")
+
+            sites.append(redact_data({
+                "id": row["id"],
+                "domain": domain,
+                "score": score,
+                "summary": report.get("summary") or row["summary"],
+                "generated_at": report.get("generated_at") or row["generated_at"],
+                "registrar": registrar or "non disponibile",
+                "ips": (dns.get("addresses") or [])[:6],
+                "mx": (dns.get("mx") or [])[:4],
+                "subdomains": (ct.get("subdomains") or [])[:8],
+                "findings": (report.get("findings") or [])[:5],
+                "vulnerabilities": (report.get("vulnerability_hypotheses") or [])[:4],
+                "monitored": domain in monitor_map,
+            }))
+
+        for row in social_rows:
+            try:
+                report = redact_data(json.loads(row["payload_json"]))
+            except (TypeError, json.JSONDecodeError):
+                report = dict(row)
+            username = str(report.get("username") or row["username"])
+            root = f"person:{username}"
+            score = int(report.get("score") or row["score"] or 0)
+            profiles = report.get("profiles") or []
+            found = [profile for profile in profiles if profile.get("present") is True]
+            add_node(root, f"@{username}", "person", score, "nickname dossier")
+            assets.append({"type": "person", "label": f"@{username}", "score": score, "monitored": False})
+            for profile in found[:12]:
+                platform = profile.get("platform")
+                node_id = f"profile:{username}:{platform}"
+                add_node(node_id, str(platform), "profile", None, str(profile.get("confidence") or "observed"))
+                add_edge(root, node_id, "public profile", "social")
+            for finding in (report.get("findings") or [])[:5]:
+                title = finding.get("title")
+                if title:
+                    node_id = f"social-finding:{username}:{title}"
+                    add_node(node_id, str(title), "finding", None, str(finding.get("level") or "signal"))
+                    add_edge(root, node_id, "finding", "risk")
+            people.append(redact_data({
+                "id": row["id"],
+                "username": username,
+                "score": score,
+                "summary": report.get("summary") or row["summary"],
+                "generated_at": report.get("generated_at") or row["generated_at"],
+                "profiles_found": len(found),
+                "profiles": found[:10],
+                "findings": (report.get("findings") or [])[:5],
+            }))
+
+        scores = [int(row["score"] or 0) for row in report_rows] + [int(row["score"] or 0) for row in social_rows]
+        exposure_index = round(sum(scores) / len(scores)) if scores else 0
+        return redact_data({
+            "authenticated": True,
+            "nodes": list(nodes.values())[:140],
+            "edges": edges[:220],
+            "dossiers": {"sites": sites, "people": people},
+            "wallet": {
+                "assets": assets[:60],
+                "credits": user.get("credits", 0),
+                "plan": user.get("plan", "Free"),
+                "monitor_limit": user.get("monitor_limit", 1),
+                "monitor_used": len(monitor_rows),
+                "domain_reports": len(report_rows),
+                "social_reports": len(social_rows),
+                "exposure_index": exposure_index,
+            },
+        })
+
     def admin_overview(self) -> dict[str, object]:
         with db() as connection:
             totals = {
@@ -2072,6 +2283,10 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/monitors":
             user, headers = self.get_or_create_user()
             self.send_json({"monitors": self.visible_monitors_for_user(user)}, headers=headers)
+            return
+        if parsed.path == "/api/intel/workspace":
+            user, headers = self.get_or_create_user()
+            self.send_json(self.intelligence_workspace(user), headers=headers)
             return
         if parsed.path == "/api/admin/status":
             user, headers = self.get_or_create_user()

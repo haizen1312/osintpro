@@ -786,6 +786,240 @@ input:focus {
   gap: 10px;
 }
 
+.schema-layout,
+.wallet-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.schema-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.graph-panel,
+.schema-summary article,
+.dossier-card,
+.wallet-card,
+.wallet-assets {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  box-shadow: var(--shadow);
+}
+
+.graph-panel {
+  min-height: 360px;
+  padding: 12px;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.entity-graph {
+  display: block;
+  width: 100%;
+  min-height: 360px;
+  border-radius: 8px;
+}
+
+.entity-graph rect {
+  fill: rgba(0, 0, 0, .18);
+  stroke: rgba(57, 255, 184, .12);
+}
+
+.graph-edge {
+  stroke: rgba(98, 216, 255, .22);
+  stroke-width: 1.4;
+}
+
+.graph-edge.risk {
+  stroke: rgba(255, 93, 108, .42);
+}
+
+.graph-edge.email {
+  stroke: rgba(255, 189, 89, .34);
+}
+
+.graph-node circle {
+  filter: drop-shadow(0 0 9px rgba(57, 255, 184, .28));
+  stroke: rgba(3, 16, 12, .9);
+  stroke-width: 2;
+}
+
+.graph-node.risk circle,
+.graph-node.finding circle {
+  filter: drop-shadow(0 0 11px rgba(255, 93, 108, .22));
+}
+
+.graph-node text {
+  fill: #d8fff5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.graph-empty {
+  display: grid;
+  min-height: 360px;
+  place-content: center;
+  text-align: center;
+}
+
+.graph-empty span {
+  color: var(--muted);
+}
+
+.schema-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.schema-summary article {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-height: 82px;
+  padding: 12px;
+}
+
+.schema-summary span,
+.wallet-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.schema-summary strong,
+.wallet-card strong {
+  color: var(--cyan);
+  font-size: 28px;
+}
+
+.dossier-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dossier-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  contain: layout paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 260px;
+}
+
+.dossier-card > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dossier-card > div:first-child strong {
+  margin-right: auto;
+  overflow-wrap: anywhere;
+  font-size: 20px;
+}
+
+.dossier-card.warn {
+  border-color: rgba(255, 189, 89, .28);
+}
+
+.dossier-card.bad {
+  border-color: rgba(255, 93, 108, .32);
+}
+
+.dossier-meta {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dossier-meta span {
+  padding: 9px;
+  border: 1px solid rgba(98, 216, 255, .16);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dossier-meta strong {
+  display: block;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.mini-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.mini-list span {
+  max-width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #b9fff0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.wallet-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wallet-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 150px;
+  padding: 16px;
+}
+
+.hero-wallet {
+  background:
+    linear-gradient(135deg, rgba(57, 255, 184, .16), rgba(98, 216, 255, .06) 52%, transparent),
+    var(--panel-strong);
+}
+
+.hero-wallet strong {
+  font-size: 40px;
+}
+
+.wallet-card p {
+  margin-bottom: 0;
+}
+
+.wallet-assets {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.asset-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 90px 130px;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid rgba(98, 216, 255, .14);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .028);
+}
+
+.asset-row strong {
+  overflow-wrap: anywhere;
+}
+
 .report-row,
 .monitor-row {
   display: grid;
@@ -1030,6 +1264,10 @@ input:focus {
   .admin-status-grid,
   .inline-admin-form,
   .restore-form,
+  .schema-grid,
+  .dossier-grid,
+  .dossier-meta,
+  .wallet-grid,
   .pricing,
   .summary-strip,
   .scan-form,
@@ -1051,6 +1289,7 @@ input:focus {
 
   .report-row,
   .monitor-row,
+  .asset-row,
   .admin-row,
   .check {
     grid-template-columns: 1fr;

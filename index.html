@@ -22,6 +22,8 @@
       <nav class="nav" aria-label="Navigazione principale">
         <button class="nav-btn active" data-section="scan">Scan</button>
         <button class="nav-btn" data-section="social">Social</button>
+        <button class="nav-btn" data-section="schema">Schema</button>
+        <button class="nav-btn" data-section="wallet">Wallet</button>
         <button class="nav-btn" data-section="reports">Reports</button>
         <button class="nav-btn" data-section="monitoring">Monitoring</button>
         <button class="nav-btn" data-section="billing">Billing</button>
@@ -95,6 +97,42 @@
         <div id="result" class="result empty">
           <h2>Nessun report ancora</h2>
           <p>Prova con un dominio reale tipo <button class="linklike" data-example="openai.com">openai.com</button> o <button class="linklike" data-example="stripe.com">stripe.com</button>.</p>
+        </div>
+      </section>
+
+      <section class="section" id="schema">
+        <div class="section-head">
+          <div>
+            <span class="pill">Entity graph</span>
+            <h2>Schema intelligence</h2>
+          </div>
+          <button class="secondary" id="refreshWorkspace" type="button">Aggiorna schema</button>
+        </div>
+        <div class="notice">
+          <strong>Correlazione passiva</strong>
+          <span>Unisce domini, nickname, profili, DNS, email posture, tecnologie e finding gia raccolti nel tuo account.</span>
+        </div>
+        <div id="schemaResult" class="schema-layout">
+          <div class="result empty">
+            <h2>Nessuno schema ancora</h2>
+            <p>Accedi e genera almeno un report dominio o social per costruire il grafo.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="wallet">
+        <div class="section-head">
+          <div>
+            <span class="pill">OSINT Wallet</span>
+            <h2>Asset, crediti e superfici osservate</h2>
+          </div>
+          <button class="secondary" id="refreshWallet" type="button">Refresh</button>
+        </div>
+        <div id="walletResult" class="wallet-layout">
+          <div class="result empty">
+            <h2>Wallet non disponibile</h2>
+            <p>Accedi per vedere asset, crediti, monitor e report collegati al tuo account.</p>
+          </div>
         </div>
       </section>
 
