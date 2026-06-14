@@ -26,12 +26,13 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Database SQLite in `data/osintpro.sqlite3`.
 - Account nickname/password con hash PBKDF2 e cookie HTTP-only.
 - Crediti Free salvati lato server, non piu in `localStorage`.
-- Cookie demo HTTP-only per distinguere workspace anonimi.
+- Cookie HTTP-only per distinguere workspace anonimi prima della registrazione.
 - Storico report persistente lato server.
 - Export CSV dello storico.
 - Export report stampabile, salvabile come PDF dal browser.
 - Monitoraggio domini con limiti per piano.
-- Checkout Stripe tramite Payment Link configurabile.
+- Checkout Stripe tramite Payment Link configurabile con riferimento utente.
+- Webhook Stripe firmato per attivare Pro/Agency dopo pagamento completato.
 - Pagina Social OSINT per analizzare nickname pubblici su social/dev platform.
 
 ## Avvio
@@ -61,7 +62,20 @@ Per collegare Stripe senza cambiare codice, crea due Payment Link su Stripe e av
 ```bash
 OSINTPRO_STRIPE_PRO_URL="https://buy.stripe.com/..." \
 OSINTPRO_STRIPE_AGENCY_URL="https://buy.stripe.com/..." \
+OSINTPRO_STRIPE_WEBHOOK_SECRET="whsec_..." \
 python3 server.py
+```
+
+Endpoint webhook:
+
+```text
+https://<host>/api/stripe/webhook
+```
+
+Evento Stripe da collegare:
+
+```text
+checkout.session.completed
 ```
 
 Il Free tier serve per valutare il prodotto. L'uso continuativo e il monitoraggio esteso sono pensati per i piani Pro e Agency.
@@ -85,11 +99,11 @@ Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purp
 
 Trasformare questa seed app in SaaS deployabile:
 
-1. Aggiungere reset password e gestione account completa.
-2. Stripe Checkout Sessions e webhook per attivare i piani dopo pagamento reale.
+1. Configurare il webhook Stripe in produzione con `OSINTPRO_STRIPE_WEBHOOK_SECRET`.
+2. Aggiungere reset password e gestione account completa.
 3. Job schedulati per monitorare domini nel tempo.
 4. Alert email o webhook su cambi score, SSL e header.
-5. Deploy con dominio custom.
+5. Migrare SQLite a database persistente gestito per produzione lunga.
 
 ## Checklist monetizzazione
 

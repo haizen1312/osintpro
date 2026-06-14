@@ -478,7 +478,11 @@ async function api(path, options = {}) {
     ...options
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Richiesta fallita");
+  if (!response.ok) {
+    const error = new Error(data.error || "Richiesta fallita");
+    error.status = response.status;
+    throw error;
+  }
   return data;
 }
 
@@ -602,15 +606,25 @@ async function addMonitor(domain) {
 }
 
 async function checkout(plan) {
-  const data = await api("/api/billing/checkout", {
-    method: "POST",
-    body: JSON.stringify({ plan })
-  });
-  if (data.url) {
-    window.location.href = data.url;
-    return;
+  try {
+    const data = await api("/api/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify({ plan })
+    });
+    if (data.url) {
+      showBillingMessage("Redirect sicuro verso Stripe in corso...");
+      window.location.href = data.url;
+      return;
+    }
+    showBillingMessage(data.message);
+  } catch (error) {
+    if (error.status === 401) {
+      setSection("account");
+      showAccountMessage("Crea un account o accedi prima di acquistare Pro/Agency.", true);
+      return;
+    }
+    showBillingMessage(error.message);
   }
-  showBillingMessage(data.message);
 }
 
 document.querySelectorAll(".nav-btn").forEach(button => {

@@ -22,7 +22,7 @@ from email.utils import parsedate_to_datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 
 
 ROOT = Path(__file__).resolve().parent
@@ -75,7 +75,10 @@ SECURITY_HEADERS = [
 HTTP_TIMEOUT = 5
 HTTP_LIMIT = 50000
 MAX_BODY_BYTES = 16384
+MAX_WEBHOOK_BYTES = 262144
 PUBLIC_STATIC_PATHS = {"/", "/index.html", "/app.js", "/styles.css", "/admin.html", "/admin.js", "/favicon.ico"}
+CHECKOUT_REFERENCE_RE = re.compile(r"^osintpro_([a-f0-9-]{36})_(pro|agency)$")
+PLAN_RANK = {"Free": 0, "Pro": 1, "Agency": 2, "Admin": 3}
 SOCIAL_PLATFORMS = [
     {"name": "GitHub", "url": "https://github.com/{username}"},
     {"name": "GitLab", "url": "https://gitlab.com/{username}"},
@@ -244,6 +247,15 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
+
+            CREATE TABLE IF NOT EXISTS stripe_events (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                plan TEXT,
+                type TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
             """
         )
         ensure_column(connection, "users", "email", "TEXT")
@@ -279,6 +291,108 @@ def internal_user(row: sqlite3.Row) -> dict[str, object]:
 
 def public_user(user: dict[str, object]) -> dict[str, object]:
     return {key: value for key, value in user.items() if not key.startswith("_")}
+
+
+def checkout_reference(user_id: str, plan: str) -> str:
+    return f"osintpro_{user_id}_{plan.lower()}"
+
+
+def parse_checkout_reference(value: object) -> tuple[str, str] | None:
+    match = CHECKOUT_REFERENCE_RE.match(str(value or ""))
+    if not match:
+        return None
+    user_id, plan = match.groups()
+    return user_id, plan.capitalize()
+
+
+def add_checkout_reference(url: str, user_id: str, plan: str) -> str:
+    parsed = urlparse(url)
+    query = [(key, value) for key, value in parse_qsl(parsed.query, keep_blank_values=True) if key != "client_reference_id"]
+    query.append(("client_reference_id", checkout_reference(user_id, plan)))
+    return urlunparse(parsed._replace(query=urlencode(query)))
+
+
+def stripe_webhook_secret() -> str:
+    return os.getenv("OSINTPRO_STRIPE_WEBHOOK_SECRET", "")
+
+
+def verify_stripe_signature(payload: bytes, header: str) -> bool:
+    secret = stripe_webhook_secret()
+    if not secret or not header:
+        return False
+    parts: dict[str, list[str]] = {}
+    for item in header.split(","):
+        key, separator, value = item.partition("=")
+        if separator:
+            parts.setdefault(key.strip(), []).append(value.strip())
+    timestamps = parts.get("t", [])
+    signatures = parts.get("v1", [])
+    if not timestamps or not signatures:
+        return False
+    try:
+        timestamp = int(timestamps[0])
+    except ValueError:
+        return False
+    if abs(time.time() - timestamp) > 300:
+        return False
+    signed_payload = f"{timestamp}.".encode("utf-8") + payload
+    expected = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
+    return any(hmac.compare_digest(expected, signature) for signature in signatures)
+
+
+def apply_stripe_event(event: dict[str, object]) -> dict[str, object]:
+    event_id = str(event.get("id", ""))
+    event_type = str(event.get("type", ""))
+    data = event.get("data") if isinstance(event.get("data"), dict) else {}
+    session = data.get("object") if isinstance(data, dict) and isinstance(data.get("object"), dict) else {}
+    now = utc_now()
+    if not event_id:
+        raise ValueError("Evento Stripe senza id.")
+    if event_type != "checkout.session.completed":
+        with db() as connection:
+            connection.execute(
+                "INSERT OR IGNORE INTO stripe_events (id, type, status, created_at) VALUES (?, ?, 'ignored', ?)",
+                (event_id, event_type, now),
+            )
+        return {"ok": True, "status": "ignored"}
+    if session.get("status") != "complete":
+        with db() as connection:
+            connection.execute(
+                "INSERT OR IGNORE INTO stripe_events (id, type, status, created_at) VALUES (?, ?, 'incomplete', ?)",
+                (event_id, event_type, now),
+            )
+        return {"ok": True, "status": "incomplete"}
+    reference = parse_checkout_reference(session.get("client_reference_id"))
+    if not reference:
+        with db() as connection:
+            connection.execute(
+                "INSERT OR IGNORE INTO stripe_events (id, type, status, created_at) VALUES (?, ?, 'missing_reference', ?)",
+                (event_id, event_type, now),
+            )
+        return {"ok": True, "status": "missing_reference"}
+    user_id, plan = reference
+    with db() as connection:
+        duplicate = connection.execute("SELECT id FROM stripe_events WHERE id = ?", (event_id,)).fetchone()
+        if duplicate:
+            return {"ok": True, "status": "duplicate"}
+        row = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not row:
+            connection.execute(
+                "INSERT INTO stripe_events (id, user_id, plan, type, status, created_at) VALUES (?, ?, ?, ?, 'user_not_found', ?)",
+                (event_id, user_id, plan, event_type, now),
+            )
+            return {"ok": True, "status": "user_not_found"}
+        current_plan = row["plan"]
+        next_plan = plan if PLAN_RANK.get(plan, 0) > PLAN_RANK.get(current_plan, 0) else current_plan
+        connection.execute(
+            "UPDATE users SET plan = ?, updated_at = ? WHERE id = ?",
+            (next_plan, now, user_id),
+        )
+        connection.execute(
+            "INSERT INTO stripe_events (id, user_id, plan, type, status, created_at) VALUES (?, ?, ?, ?, 'activated', ?)",
+            (event_id, user_id, plan, event_type, now),
+        )
+    return {"ok": True, "status": "activated", "plan": next_plan}
 
 
 def admin_code() -> str:
@@ -1218,6 +1332,12 @@ class Handler(SimpleHTTPRequestHandler):
             raise ValueError("Payload non valido.")
         return payload
 
+    def read_raw_body(self, limit: int = MAX_BODY_BYTES) -> bytes:
+        length = int(self.headers.get("Content-Length", "0"))
+        if length > limit:
+            raise ValueError("Richiesta troppo grande.")
+        return self.rfile.read(length) if length else b""
+
     def session_id(self) -> str | None:
         cookie = self.headers.get("Cookie", "")
         for part in cookie.split(";"):
@@ -1360,6 +1480,22 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/stripe/webhook":
+            try:
+                payload = self.read_raw_body(MAX_WEBHOOK_BYTES)
+                if not verify_stripe_signature(payload, self.headers.get("Stripe-Signature", "")):
+                    self.send_json({"error": "Firma Stripe non valida."}, 400)
+                    return
+                event = json.loads(payload.decode("utf-8"))
+                if not isinstance(event, dict):
+                    raise ValueError("Evento Stripe non valido.")
+                self.send_json(apply_stripe_event(event))
+            except json.JSONDecodeError:
+                self.send_json({"error": "Evento Stripe non valido."}, 400)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400)
+            return
+
         if self.rate_limited(parsed.path):
             self.send_json({"error": "Troppe richieste. Riprova tra poco."}, 429)
             return
@@ -1416,7 +1552,7 @@ class Handler(SimpleHTTPRequestHandler):
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
-                        self.send_json({"error": "Crediti esauriti. Passa a Pro o resetta la demo."}, 402, headers)
+                        self.send_json({"error": "Crediti Free esauriti. Passa a Pro per continuare."}, 402, headers)
                         return
 
                     report = analyze(target)
@@ -1442,7 +1578,7 @@ class Handler(SimpleHTTPRequestHandler):
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
-                        self.send_json({"error": "Crediti esauriti. Passa a Pro o resetta la demo."}, 402, headers)
+                        self.send_json({"error": "Crediti Free esauriti. Passa a Pro per continuare."}, 402, headers)
                         return
 
                     report = analyze_username(target)
@@ -1563,10 +1699,13 @@ class Handler(SimpleHTTPRequestHandler):
             if plan not in {"Pro", "Agency"}:
                 self.send_json({"error": "Piano non valido."}, 400, headers)
                 return
+            if not user.get("authenticated"):
+                self.send_json({"error": "Crea un account o accedi prima di acquistare un piano."}, 401, headers)
+                return
             env_name = "OSINTPRO_STRIPE_AGENCY_URL" if plan == "Agency" else "OSINTPRO_STRIPE_PRO_URL"
             checkout_url = os.getenv(env_name)
             if checkout_url:
-                self.send_json({"url": checkout_url, "mode": "stripe"}, headers=headers)
+                self.send_json({"url": add_checkout_reference(checkout_url, str(user["_id"]), plan), "mode": "stripe"}, headers=headers)
                 return
             self.send_json({
                 "url": "",

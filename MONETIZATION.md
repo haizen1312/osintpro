@@ -20,10 +20,16 @@ Non posizionarlo come scanner offensivo: il valore e nel report, nel monitoraggi
 ```bash
 OSINTPRO_STRIPE_PRO_URL="https://buy.stripe.com/..."
 OSINTPRO_STRIPE_AGENCY_URL="https://buy.stripe.com/..."
+OSINTPRO_STRIPE_WEBHOOK_SECRET="whsec_..."
 ```
 
-Questa versione usa Payment Link per validare vendite subito.
-Il passo successivo e Stripe Checkout Sessions con webhook per attivare automaticamente il piano dopo pagamento reale.
+Questa versione usa Payment Link per validare vendite subito. Il backend aggiunge un `client_reference_id` al link Stripe, quindi il webhook `checkout.session.completed` puo riconciliare pagamento, utente e piano.
+
+Webhook da creare in Stripe:
+
+```text
+https://<host>/api/stripe/webhook
+```
 
 ## Primo canale di vendita
 
@@ -49,7 +55,7 @@ Se vuoi monitoraggio mensile e report PDF per clienti, OSINTPRO parte da 19 EUR/
 
 ## Prossimi upgrade che aumentano il prezzo
 
-- webhook Stripe per attivare piani automaticamente
+- configurazione webhook Stripe in produzione
 - cron giornaliero per monitor
 - alert email su cambiamenti
 - export PDF vero server-side

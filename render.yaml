@@ -14,3 +14,5 @@ services:
         sync: false
       - key: OSINTPRO_STRIPE_AGENCY_URL
         sync: false
+      - key: OSINTPRO_STRIPE_WEBHOOK_SECRET
+        sync: false
