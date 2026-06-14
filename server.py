@@ -76,6 +76,7 @@ HTTP_TIMEOUT = 5
 HTTP_LIMIT = 50000
 MAX_BODY_BYTES = 16384
 MAX_WEBHOOK_BYTES = 262144
+DEFAULT_MONITOR_BATCH_LIMIT = 20
 PUBLIC_STATIC_PATHS = {"/", "/index.html", "/app.js", "/styles.css", "/admin.html", "/admin.js", "/favicon.ico"}
 CHECKOUT_REFERENCE_RE = re.compile(r"^osintpro_([a-f0-9-]{36})_(pro|agency)$")
 PLAN_RANK = {"Free": 0, "Pro": 1, "Agency": 2, "Admin": 3}
@@ -418,6 +419,27 @@ def apply_stripe_event(event: dict[str, object]) -> dict[str, object]:
 
 def admin_code() -> str:
     return os.getenv("OSINTPRO_ADMIN_CODE", "")
+
+
+def cron_secret() -> str:
+    return os.getenv("OSINTPRO_CRON_SECRET", "")
+
+
+def monitor_batch_limit() -> int:
+    try:
+        return max(1, min(100, int(os.getenv("OSINTPRO_MONITOR_BATCH_LIMIT", str(DEFAULT_MONITOR_BATCH_LIMIT)))))
+    except ValueError:
+        return DEFAULT_MONITOR_BATCH_LIMIT
+
+
+def cron_authorized(headers: object) -> bool:
+    secret = cron_secret()
+    if not secret:
+        return False
+    bearer = str(headers.get("Authorization", ""))
+    token = str(headers.get("X-OSINTPRO-CRON", ""))
+    expected = f"Bearer {secret}"
+    return hmac.compare_digest(bearer, expected) or hmac.compare_digest(token, secret)
 
 
 def is_paid_plan(plan: str) -> bool:
@@ -1255,6 +1277,63 @@ def store_social_report(connection: sqlite3.Connection, user_id: str, report: di
     )
 
 
+def run_monitor_rows(connection: sqlite3.Connection, rows: list[sqlite3.Row]) -> dict[str, object]:
+    checked = 0
+    changed_count = 0
+    failed = 0
+    results: list[dict[str, object]] = []
+    for monitor in rows:
+        now = utc_now()
+        try:
+            report = analyze(monitor["domain"])
+            changed = monitor["last_score"] is not None and int(monitor["last_score"]) != int(report["score"])
+            store_report(connection, str(monitor["user_id"]), report)
+            connection.execute(
+                """
+                UPDATE monitors
+                SET status = ?, last_score = ?, last_summary = ?, last_checked_at = ?,
+                    last_changed_at = CASE WHEN ? THEN ? ELSE last_changed_at END,
+                    updated_at = ?
+                WHERE id = ? AND user_id = ?
+                """,
+                (
+                    "changed" if changed else "healthy",
+                    report["score"],
+                    report["summary"],
+                    now,
+                    1 if changed else 0,
+                    now,
+                    now,
+                    monitor["id"],
+                    monitor["user_id"],
+                ),
+            )
+            checked += 1
+            changed_count += 1 if changed else 0
+            results.append({
+                "domain": monitor["domain"],
+                "status": "changed" if changed else "healthy",
+                "score": report["score"],
+            })
+        except Exception:
+            failed += 1
+            connection.execute(
+                """
+                UPDATE monitors
+                SET status = 'error', last_checked_at = ?, updated_at = ?
+                WHERE id = ? AND user_id = ?
+                """,
+                (now, now, monitor["id"], monitor["user_id"]),
+            )
+            results.append({"domain": monitor["domain"], "status": "error"})
+    return {
+        "checked": checked,
+        "changed": changed_count,
+        "failed": failed,
+        "results": results,
+    }
+
+
 def report_document(report: dict[str, object]) -> str:
     dns = report.get("dns", {})
     https = report.get("https", {})
@@ -1800,37 +1879,56 @@ class Handler(SimpleHTTPRequestHandler):
                         "SELECT * FROM monitors WHERE user_id = ? ORDER BY created_at DESC",
                         (user["_id"],),
                     ).fetchall()
-                    for monitor in rows:
-                        report = analyze(monitor["domain"])
-                        changed = monitor["last_score"] is not None and int(monitor["last_score"]) != int(report["score"])
-                        now = utc_now()
-                        store_report(connection, str(user["_id"]), report)
-                        connection.execute(
-                            """
-                            UPDATE monitors
-                            SET status = ?, last_score = ?, last_summary = ?, last_checked_at = ?,
-                                last_changed_at = CASE WHEN ? THEN ? ELSE last_changed_at END,
-                                updated_at = ?
-                            WHERE id = ? AND user_id = ?
-                            """,
-                            (
-                                "changed" if changed else "healthy",
-                                report["score"],
-                                report["summary"],
-                                now,
-                                1 if changed else 0,
-                                now,
-                                now,
-                                monitor["id"],
-                                user["_id"],
-                            ),
-                        )
+                    summary = run_monitor_rows(connection, rows)
                 self.send_json({
                     "monitors": self.monitors_for_user(str(user["_id"])),
                     "reports": self.reports_for_user(str(user["_id"])),
+                    "summary": summary,
                 }, headers=headers)
             except Exception:
                 self.send_json({"error": "Monitor non completato. Nessun dettaglio interno esposto."}, 500, headers)
+            return
+
+        if parsed.path == "/api/cron/monitors":
+            if not cron_secret():
+                self.send_json({"error": "Cron non configurato."}, 503)
+                return
+            if not cron_authorized(self.headers):
+                self.send_json({"error": "Cron non autorizzato."}, 403)
+                return
+            try:
+                with db() as connection:
+                    rows = connection.execute(
+                        """
+                        SELECT monitors.*
+                        FROM monitors
+                        JOIN users ON users.id = monitors.user_id
+                        WHERE users.nickname IS NOT NULL
+                        ORDER BY
+                            CASE WHEN monitors.last_checked_at IS NULL THEN 0 ELSE 1 END,
+                            monitors.last_checked_at ASC,
+                            monitors.created_at ASC
+                        LIMIT ?
+                        """,
+                        (monitor_batch_limit(),),
+                    ).fetchall()
+                    summary = run_monitor_rows(connection, rows)
+                    remaining = connection.execute(
+                        """
+                        SELECT COUNT(*) AS count
+                        FROM monitors
+                        JOIN users ON users.id = monitors.user_id
+                        WHERE users.nickname IS NOT NULL
+                        """,
+                    ).fetchone()["count"]
+                self.send_json({
+                    "ok": True,
+                    "batch_limit": monitor_batch_limit(),
+                    "eligible_monitors": remaining,
+                    **summary,
+                })
+            except Exception:
+                self.send_json({"error": "Cron monitor non completato. Nessun dettaglio interno esposto."}, 500)
             return
 
         if parsed.path == "/api/admin/login":

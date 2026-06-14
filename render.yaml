@@ -16,3 +16,7 @@ services:
         sync: false
       - key: OSINTPRO_STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: OSINTPRO_CRON_SECRET
+        generateValue: true
+      - key: OSINTPRO_MONITOR_BATCH_LIMIT
+        value: "20"

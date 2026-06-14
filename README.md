@@ -35,6 +35,7 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Export CSV dello storico.
 - Export report stampabile, salvabile come PDF dal browser.
 - Monitoraggio domini con limiti per piano.
+- Cron monitor protetto da secret per rieseguire controlli in batch.
 - Checkout Stripe tramite Payment Link configurabile con riferimento utente.
 - Webhook Stripe firmato per attivare Pro/Agency dopo pagamento completato.
 - Pagina Social OSINT per analizzare nickname pubblici su social/dev platform.
@@ -92,7 +93,19 @@ Questo e il primo artefatto vendibile per agenzie e consulenti.
 ## Monitoring
 
 Il tab `Monitoring` salva domini in SQLite e `Run checks` riesegue le analisi passive.
-In produzione questo endpoint va richiamato da un cron giornaliero.
+In produzione il cron puo richiamare:
+
+```bash
+curl -X POST "https://<host>/api/cron/monitors" \
+  -H "Authorization: Bearer $OSINTPRO_CRON_SECRET"
+```
+
+Variabili:
+
+```text
+OSINTPRO_CRON_SECRET
+OSINTPRO_MONITOR_BATCH_LIMIT=20
+```
 
 ## Social OSINT
 
@@ -106,7 +119,7 @@ Trasformare questa seed app in SaaS deployabile:
 1. Configurare il webhook Stripe in produzione con `OSINTPRO_STRIPE_WEBHOOK_SECRET`.
 2. Migrare SQLite a database persistente gestito per produzione lunga.
 3. Aggiungere reset password e gestione account completa.
-4. Job schedulati per monitorare domini nel tempo.
+4. Collegare un cron esterno o Render Cron Job a `/api/cron/monitors`.
 5. Alert email o webhook su cambi score, SSL e header.
 
 ## Checklist monetizzazione
