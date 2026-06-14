@@ -20,6 +20,10 @@ services:
         generateValue: true
       - key: OSINTPRO_MONITOR_BATCH_LIMIT
         value: "20"
+      - key: OSINTPRO_REGISTRATION_IP_LIMIT
+        value: "3"
+      - key: OSINTPRO_REGISTRATION_IP_ALLOWLIST
+        sync: false
       - key: OSINTPRO_DB_PATH
         sync: false
       - key: OSINTPRO_ALERT_WEBHOOK_URL

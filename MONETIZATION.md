@@ -66,4 +66,4 @@ Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review e controllo ta
 - export PDF vero server-side
 - workspace agency multi-cliente
 - metriche admin avanzate e backup operativo
-- limiti anti-abuso sulle registrazioni prima del lancio pubblico
+- audit finale prima di rendere pubblico il repository

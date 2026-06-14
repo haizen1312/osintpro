@@ -55,7 +55,8 @@ function renderAdmin(data) {
     statusCard("Stripe webhook", production.stripe_webhook ? "OK" : "Manca", production.stripe_webhook ? "ok" : "warn"),
     statusCard("Cron secret", production.cron_secret ? "OK" : "Manca", production.cron_secret ? "ok" : "warn"),
     statusCard("Alert webhook", production.alert_webhook ? "Attivo" : "Opzionale", production.alert_webhook ? "ok" : "muted"),
-    statusCard("Database", database.persistent_hint ? "Custom path" : "Default", database.persistent_hint ? "ok" : "warn")
+    statusCard("Database", database.persistent_hint ? "Custom path" : "Default", database.persistent_hint ? "ok" : "warn"),
+    statusCard("Anti-abuso", production.registration_limit ? `${production.registration_limit}/connessione` : "Off", production.registration_limit ? "ok" : "warn")
   ].join("");
 
   const users = admin.users || [];

@@ -872,6 +872,12 @@ input:focus {
   gap: 18px;
 }
 
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .admin-status-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

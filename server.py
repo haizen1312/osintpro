@@ -16,6 +16,7 @@ import subprocess
 import threading
 import time
 import uuid
+import ipaddress
 import urllib.error
 import urllib.request
 from email.utils import parsedate_to_datetime
@@ -78,6 +79,7 @@ HTTP_LIMIT = 50000
 MAX_BODY_BYTES = 16384
 MAX_WEBHOOK_BYTES = 262144
 DEFAULT_MONITOR_BATCH_LIMIT = 20
+DEFAULT_REGISTRATION_IP_LIMIT = 3
 PUBLIC_STATIC_PATHS = {"/", "/index.html", "/app.js", "/styles.css", "/admin.html", "/admin.js", "/favicon.ico"}
 CHECKOUT_REFERENCE_RE = re.compile(r"^osintpro_([a-f0-9-]{36})_(pro|agency)$")
 PLAN_RANK = {"Free": 0, "Pro": 1, "Agency": 2, "Admin": 3}
@@ -151,6 +153,11 @@ def verify_signed_value(value: str) -> str | None:
     if hmac.compare_digest(signature, expected):
         return raw
     return None
+
+
+def stable_fingerprint(value: str) -> str:
+    normalized = value.strip().lower()
+    return hmac.new(server_secret().encode("utf-8"), normalized.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 def redact_text(value: str) -> str:
@@ -228,6 +235,7 @@ def init_db() -> None:
                 password_hash TEXT,
                 plan TEXT NOT NULL DEFAULT 'Free',
                 credits INTEGER NOT NULL DEFAULT 5,
+                signup_fingerprint TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
@@ -284,8 +292,10 @@ def init_db() -> None:
         ensure_column(connection, "users", "email", "TEXT")
         ensure_column(connection, "users", "nickname", "TEXT")
         ensure_column(connection, "users", "password_hash", "TEXT")
+        ensure_column(connection, "users", "signup_fingerprint", "TEXT")
         connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)")
         connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_nickname ON users(nickname)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_users_signup_fingerprint ON users(signup_fingerprint)")
 
 
 def ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
@@ -435,6 +445,33 @@ def monitor_batch_limit() -> int:
         return max(1, min(100, int(os.getenv("OSINTPRO_MONITOR_BATCH_LIMIT", str(DEFAULT_MONITOR_BATCH_LIMIT)))))
     except ValueError:
         return DEFAULT_MONITOR_BATCH_LIMIT
+
+
+def registration_ip_limit() -> int:
+    try:
+        return max(0, min(50, int(os.getenv("OSINTPRO_REGISTRATION_IP_LIMIT", str(DEFAULT_REGISTRATION_IP_LIMIT)))))
+    except ValueError:
+        return DEFAULT_REGISTRATION_IP_LIMIT
+
+
+def registration_allowlist() -> list[str]:
+    raw = os.getenv("OSINTPRO_REGISTRATION_IP_ALLOWLIST", "")
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def ip_allowed(ip_value: str, allowlist: list[str]) -> bool:
+    if not ip_value:
+        return False
+    for item in allowlist:
+        try:
+            if "/" in item and ipaddress.ip_address(ip_value) in ipaddress.ip_network(item, strict=False):
+                return True
+            if ip_value == item:
+                return True
+        except ValueError:
+            if ip_value == item:
+                return True
+    return False
 
 
 def cron_authorized(headers: object) -> bool:
@@ -1547,11 +1584,20 @@ class Handler(SimpleHTTPRequestHandler):
         value = "" if max_age == 0 else sign_value(user_id)
         return f"{SESSION_COOKIE}={value}; Path=/; SameSite=Strict; HttpOnly{secure}{expiry}"
 
+    def client_ip(self) -> str:
+        forwarded = self.headers.get("X-Forwarded-For", "")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        real_ip = self.headers.get("X-Real-IP", "")
+        if real_ip:
+            return real_ip.strip()
+        return self.client_address[0] if self.client_address else "unknown"
+
     def rate_limited(self, path: str) -> bool:
         limit = RATE_LIMITS.get(path)
         if not limit:
             return False
-        ip = self.client_address[0] if self.client_address else "unknown"
+        ip = self.client_ip()
         key = (ip, path)
         now = time.time()
         with RATE_LOCK:
@@ -1562,6 +1608,24 @@ class Handler(SimpleHTTPRequestHandler):
             bucket.append(now)
             RATE_BUCKETS[key] = bucket
         return False
+
+    def registration_limited(self, connection: sqlite3.Connection, user_id: str) -> bool:
+        limit = registration_ip_limit()
+        ip_value = self.client_ip()
+        if not limit or ip_allowed(ip_value, registration_allowlist()):
+            return False
+        fingerprint = stable_fingerprint(ip_value)
+        count = connection.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM users
+            WHERE signup_fingerprint = ?
+              AND nickname IS NOT NULL
+              AND id != ?
+            """,
+            (fingerprint, user_id),
+        ).fetchone()["count"]
+        return count >= limit
 
     def send_json(
         self,
@@ -1745,10 +1809,61 @@ class Handler(SimpleHTTPRequestHandler):
                 "cron_secret": bool(cron_secret()),
                 "alert_webhook": bool(alert_webhook_url()),
                 "database": database_status(),
+                "registration_limit": registration_ip_limit(),
+                "registration_allowlist": bool(registration_allowlist()),
             },
             "users": [dict(row) for row in users],
             "stripe_events": [dict(row) for row in events],
         }
+
+    def admin_export(self) -> dict[str, object]:
+        with db() as connection:
+            users = connection.execute(
+                """
+                SELECT id, nickname, plan, credits, created_at, updated_at
+                FROM users
+                WHERE nickname IS NOT NULL
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+            reports = connection.execute(
+                """
+                SELECT id, user_id, domain, score, summary, generated_at, created_at
+                FROM reports
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+            social_reports = connection.execute(
+                """
+                SELECT id, user_id, username, score, summary, generated_at, created_at
+                FROM social_reports
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+            monitors = connection.execute(
+                """
+                SELECT id, user_id, domain, status, last_score, last_summary,
+                       last_checked_at, last_changed_at, created_at, updated_at
+                FROM monitors
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+            stripe_events = connection.execute(
+                """
+                SELECT id, user_id, plan, type, status, created_at
+                FROM stripe_events
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+        return redact_data({
+            "exported_at": utc_now(),
+            "kind": "osintpro_sanitized_admin_export",
+            "users": [dict(row) for row in users],
+            "reports": [dict(row) for row in reports],
+            "social_reports": [dict(row) for row in social_reports],
+            "monitors": [dict(row) for row in monitors],
+            "stripe_events": [dict(row) for row in stripe_events],
+        })
 
     def fetch_report(self, user_id: str, report_id: str) -> dict[str, object] | None:
         with db() as connection:
@@ -1800,6 +1915,21 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Admin richiesto."}, 403, headers)
                 return
             self.send_json(self.admin_overview(), headers=headers)
+            return
+        if parsed.path == "/api/admin/export":
+            user, headers = self.get_or_create_user()
+            if not is_admin_user(user):
+                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                return
+            body = json.dumps(self.admin_export(), indent=2).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Disposition", "attachment; filename=osintpro-admin-export.json")
+            self.send_header("Content-Length", str(len(body)))
+            for key, value in headers.items():
+                self.send_header(key, value)
+            self.end_headers()
+            self.wfile.write(body)
             return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/html"):
             user, headers = self.get_or_create_user()
@@ -1862,9 +1992,20 @@ class Handler(SimpleHTTPRequestHandler):
                     if existing:
                         self.send_json({"error": "Nickname gia registrato. Accedi con login."}, 409, headers)
                         return
+                    if not is_admin_user(user) and self.registration_limited(connection, str(user["_id"])):
+                        self.send_json(
+                            {"error": "Limite account Free raggiunto per questa connessione. Accedi o passa a Pro."},
+                            429,
+                            headers,
+                        )
+                        return
                     connection.execute(
-                        "UPDATE users SET nickname = ?, password_hash = ?, updated_at = ? WHERE id = ?",
-                        (nickname, hashed, now, user["_id"]),
+                        """
+                        UPDATE users
+                        SET nickname = ?, password_hash = ?, signup_fingerprint = ?, updated_at = ?
+                        WHERE id = ?
+                        """,
+                        (nickname, hashed, stable_fingerprint(self.client_ip()), now, user["_id"]),
                     )
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                 self.send_json({"user": row_to_user(row)}, headers=headers)

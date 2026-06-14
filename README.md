@@ -48,12 +48,14 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Storici visibili solo dopo login e isolati per account.
 - Cancellazione storico domini, social o completa per ogni account.
 - Export CSV dello storico.
+- Export admin sanitizzato per backup operativo senza password hash o secret.
 - Export report stampabile, salvabile come PDF dal browser.
 - Monitoraggio domini con limiti per piano.
 - Cron monitor protetto da secret per rieseguire controlli in batch.
 - Workflow GitHub Actions giornaliero per richiamare il cron monitor in produzione.
 - Alert webhook opzionale quando un monitor cambia o va in errore.
 - Path database configurabile via env per storage persistente.
+- Limite anti multi-account Free basato su fingerprint hashato della connessione.
 - Checkout Stripe tramite Payment Link configurabile con riferimento utente.
 - Webhook Stripe firmato per attivare Pro/Agency dopo pagamento completato.
 - Pannello operativo privato per stato produzione, utenti, piani e ultimi eventi Stripe.
@@ -135,9 +137,13 @@ Variabili:
 ```text
 OSINTPRO_CRON_SECRET
 OSINTPRO_MONITOR_BATCH_LIMIT=20
+OSINTPRO_REGISTRATION_IP_LIMIT=3
+OSINTPRO_REGISTRATION_IP_ALLOWLIST="203.0.113.10,198.51.100.0/24"
 ```
 
 Il secret cron e configurato in produzione. Il repository include anche un workflow GitHub Actions giornaliero in `.github/workflows/monitor-cron.yml`.
+
+`OSINTPRO_REGISTRATION_IP_ALLOWLIST` e opzionale e serve per escludere connessioni fidate dal limite anti multi-account.
 
 ## Alert webhook
 
@@ -162,10 +168,9 @@ Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purp
 Rendere OSINTPRO piu solido per uso continuativo:
 
 1. Migrare SQLite a database persistente gestito per produzione lunga.
-2. Aggiungere backup/export operativo dei dati account.
-3. Aggiungere reset password se si introduce un canale di recupero account.
-4. Workspace agency multi-cliente.
-5. Limite anti-abuso registrazioni per IP/connessione prima del lancio pubblico.
+2. Aggiungere reset password se si introduce un canale di recupero account.
+3. Workspace agency multi-cliente.
+4. Audit finale prima di rendere il repository pubblico.
 
 ## Checklist monetizzazione
 
