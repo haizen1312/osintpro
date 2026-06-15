@@ -44,6 +44,7 @@ OSINTPRO does not run exploits, brute force, credential attacks, invasive scans,
 - Web Audit Lab guide: `docs/WEB_AUDIT_LAB.md`
 - GitHub growth playbook: `docs/GITHUB_GROWTH.md`
 - Showcase and share copy: `docs/SHOWCASE.md`
+- Sanitized example reports: `docs/EXAMPLE_REPORTS.md`
 - Product roadmap: `ROADMAP.md`
 
 ## Product Status
@@ -57,9 +58,12 @@ OSINTPRO does not run exploits, brute force, credential attacks, invasive scans,
 - Account-isolated history: users only see their own domain, social and wallet reports.
 - History deletion controls for domain, social, wallet and full workspace data.
 - Agency client folders for grouping domain, social, wallet and monitoring work by client or case.
+- Agency case summaries with asset counts, priority signals and average posture score.
+- Entity graph filters for domains, people, wallets and findings.
 - Server-side PDF export plus CSV exports for reports, wallet history and Web Audit Lab checklists.
+- Report comparison for repeated domain reports.
 - Saved Web Audit Lab playbooks for repeatable beginner-safe reviews.
-- Wallet case notes, manual tags and counterparty hop expansion for passive fraud reconstruction.
+- Wallet case notes, manual tags, transaction timeline and counterparty hop expansion for passive fraud reconstruction.
 - Stripe Payment Links and signed webhook activation for Pro/Agency plans.
 - Private operational admin panel for production status, plans, backups and Stripe events.
 - Cron-protected monitoring and backup endpoints.
@@ -156,9 +160,11 @@ OSINTPRO_DB_PATH="/path/to/osintpro.sqlite3"
 OSINTPRO_BACKUP_DIR="/path/to/backups"
 OSINTPRO_BACKUP_RETENTION=30
 OSINTPRO_ALERT_WEBHOOK_URL="https://example.com/webhook"
+OSINTPRO_REPORT_BRAND="OSINTPRO"
 ```
 
 `OSINTPRO_REGISTRATION_IP_ALLOWLIST` can exclude trusted connections from the free-account anti-abuse limit.
+`OSINTPRO_REPORT_BRAND` changes the heading used in generated HTML/PDF reports for agency delivery.
 
 ## Free Persistence Strategy
 
@@ -245,8 +251,9 @@ Near-term technical work:
 3. Free-to-Pro/Agency onboarding is built into the Billing page.
 4. Server-side PDF generation is implemented at `/api/reports/<id>/pdf`.
 5. Web Audit Lab CSV export and saved playbooks are implemented.
-6. Wallet graph improvements now include manual tags, case notes and counterparty hop expansion.
-7. PostgreSQL migration remains intentionally gated until paid usage justifies the cost.
+6. Wallet graph improvements now include manual tags, case notes, transaction timeline and counterparty hop expansion.
+7. Entity graph filters, agency case summaries, report comparison and sanitized example reports are implemented.
+8. PostgreSQL migration remains intentionally gated until paid usage justifies the cost.
 
 ## Safety Boundary
 

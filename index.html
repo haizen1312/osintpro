@@ -133,6 +133,13 @@
         </form>
         <div class="section-head secondary-head">
           <div>
+            <span class="pill">Case summaries</span>
+            <h2>Agency case summaries</h2>
+          </div>
+        </div>
+        <div class="dossier-grid" id="caseSummaryList"></div>
+        <div class="section-head secondary-head">
+          <div>
             <span class="pill">Folders</span>
             <h2>Agency folders</h2>
           </div>
@@ -270,6 +277,13 @@
           <strong>Passive correlation</strong>
           <span>Connects domains, usernames, profiles, DNS, email posture, technologies, wallets, transactions and findings collected in your account. Treat graph output as leads, not proof of identity.</span>
         </div>
+        <div class="graph-filter-bar">
+          <button class="secondary small active" type="button" data-graph-filter="all">All</button>
+          <button class="secondary small" type="button" data-graph-filter="site">Domains</button>
+          <button class="secondary small" type="button" data-graph-filter="person">People</button>
+          <button class="secondary small" type="button" data-graph-filter="wallet">Wallets</button>
+          <button class="secondary small" type="button" data-graph-filter="risk">Findings</button>
+        </div>
         <div id="schemaResult" class="schema-layout">
           <div class="result empty">
             <h2>No graph yet</h2>
@@ -328,6 +342,7 @@
           <span>History is available only after login. Each account can only see its own reports. Remove investigation data when it is no longer needed.</span>
         </div>
         <div class="report-list" id="reportList"></div>
+        <div class="billing-message" id="comparisonMessage"></div>
         <div class="section-head secondary-head">
           <div>
             <span class="pill">Social history</span>

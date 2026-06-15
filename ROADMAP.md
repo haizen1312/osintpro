@@ -23,7 +23,7 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 - Manual notes and tags for wallets, counterparties and suspicious infrastructure.
 - Better case summaries for agencies and investigators.
 
-Status: client folders, active folder routing, saved playbook organization and dual-mode Network Traffic Lab are implemented. Password reset remains gated until a trusted recovery channel exists.
+Status: client folders, active folder routing, saved playbook organization, case summaries, entity graph filters and dual-mode Network Traffic Lab are implemented. Password reset remains gated until a trusted recovery channel exists.
 
 ### Wallet OSINT
 
@@ -32,7 +32,7 @@ Status: client folders, active folder routing, saved playbook organization and d
 - CSV export for wallet transactions and counterparties.
 - Case timeline view for suspicious wallet flows.
 
-Status: wallet CSV export, manual wallet tags, case notes and counterparty hop expansion are implemented. Timeline depth can improve later with richer public-chain sources.
+Status: wallet CSV export, manual wallet tags, case notes, transaction timeline and counterparty hop expansion are implemented. Timeline depth can improve later with richer public-chain sources.
 
 ### Reporting
 
@@ -42,7 +42,7 @@ Status: wallet CSV export, manual wallet tags, case notes and counterparty hop e
 - Agency-friendly report branding.
 - Report comparison for monitored domains.
 
-Status: server-side PDF export and Web Audit Lab CSV/playbook export are implemented. Report comparison and branded templates remain future polish.
+Status: server-side PDF export, Web Audit Lab CSV/playbook export, sanitized example reports, report comparison and configurable report branding are implemented. Visual branded templates remain future polish.
 
 ### Monetization
 

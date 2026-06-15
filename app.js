@@ -9,7 +9,8 @@ const state = {
   workspace: null,
   checkoutConfigured: false,
   currentWallet: null,
-  currentWebAuditReportId: null
+  currentWebAuditReportId: null,
+  graphFilter: "all"
 };
 
 if (localStorage.getItem("op-performance-mode") === "on") {
@@ -915,11 +916,63 @@ function reportActions(report) {
   return `
     <div class="row-actions">
       <a class="secondary small button-link" href="/api/reports/${report.id}/pdf">PDF</a>
+      <button class="secondary small" type="button" data-compare-domain="${escapeHtml(report.domain)}">Compare</button>
+    </div>
+  `;
+}
+
+function renderComparison(data) {
+  const box = document.querySelector("#comparisonMessage");
+  if (!box) return;
+  box.classList.add("visible");
+  if (!data.available) {
+    box.innerHTML = `<strong>${escapeHtml(data.domain || "Domain")}</strong><br>${escapeHtml(data.message)}`;
+    return;
+  }
+  const tone = data.delta > 0 ? "improved" : data.delta < 0 ? "declined" : "unchanged";
+  box.innerHTML = `
+    <strong>${escapeHtml(data.domain)} comparison: ${escapeHtml(tone)} ${data.delta > 0 ? "+" : ""}${escapeHtml(data.delta)} points</strong>
+    <div class="comparison-grid">
+      <span>Latest <b>${escapeHtml(data.latest.score)}/100</b> · ${escapeHtml(formatDate(data.latest.generated_at))}</span>
+      <span>Previous <b>${escapeHtml(data.previous.score)}/100</b> · ${escapeHtml(formatDate(data.previous.generated_at))}</span>
+      <span>Fixed headers: <b>${escapeHtml((data.fixed_headers || []).join(", ") || "none")}</b></span>
+      <span>New missing headers: <b>${escapeHtml((data.new_missing_headers || []).join(", ") || "none")}</b></span>
+      <span>Resolved findings: <b>${escapeHtml((data.resolved_findings || []).join(", ") || "none")}</b></span>
+      <span>New findings: <b>${escapeHtml((data.new_findings || []).join(", ") || "none")}</b></span>
     </div>
   `;
 }
 
 function renderFolders() {
+  const caseSummaryList = document.querySelector("#caseSummaryList");
+  if (caseSummaryList) {
+    const summaries = state.workspace?.case_summaries || [];
+    if (!state.user.authenticated) {
+      caseSummaryList.innerHTML = `<div class="result empty"><h2>Sign in to build case summaries</h2><p>Client summaries are generated from account-scoped folders.</p></div>`;
+    } else if (!summaries.length) {
+      caseSummaryList.innerHTML = `<div class="result empty"><h2>No case summary yet</h2><p>Create a folder and run domain, social or wallet investigations inside it.</p></div>`;
+    } else {
+      caseSummaryList.innerHTML = summaries.map(item => `
+        <article class="dossier-card ${scoreTone(item.average_score)}">
+          <div>
+            <span class="pill">Case summary</span>
+            <strong>${escapeHtml(item.name)}</strong>
+            <span class="tag">${escapeHtml(item.average_score)}/100 avg</span>
+          </div>
+          <p>${escapeHtml(item.assets)} assets · ${escapeHtml(item.findings)} findings · ${escapeHtml(item.high_risk)} high-priority assets</p>
+          <div class="dossier-meta">
+            <span>Domains <strong>${escapeHtml(item.domains)}</strong></span>
+            <span>People <strong>${escapeHtml(item.people)}</strong></span>
+            <span>Wallets <strong>${escapeHtml(item.wallets)}</strong></span>
+            <span>Latest <strong>${escapeHtml(formatDate(item.latest_activity))}</strong></span>
+          </div>
+          <div class="mini-list">
+            ${(item.top_signals || []).map(signal => `<span>${escapeHtml(signal)}</span>`).join("") || "<span>No priority signal yet</span>"}
+          </div>
+        </article>
+      `).join("");
+    }
+  }
   const select = document.querySelector("#activeFolder");
   if (select) {
     const current = select.value;
@@ -1436,6 +1489,15 @@ function renderDossierCard(item, type) {
           ${(item.annotation?.tags || []).map(tag => `<span>#${escapeHtml(tag)}</span>`).join("") || "<span>No manual tag</span>"}
           ${item.annotation?.notes ? `<span>${escapeHtml(item.annotation.notes.slice(0, 120))}</span>` : ""}
         </div>
+        <div class="timeline-list">
+          ${(item.timeline || []).slice(0, 4).map(tx => `
+            <a href="${escapeHtml(tx.url || "#")}" target="_blank" rel="noreferrer">
+              <strong>${escapeHtml(tx.direction || "tx")}</strong>
+              <span>${escapeHtml(tx.value ?? "n/a")} ${escapeHtml(item.asset || "")}</span>
+              <small>${escapeHtml(formatDate(tx.timestamp))} · ${escapeHtml(tx.short || "")}</small>
+            </a>
+          `).join("") || "<span class=\"mono\">No transaction timeline from source.</span>"}
+        </div>
         ${item.explorer_url ? `<a class="secondary button-link small" href="${escapeHtml(item.explorer_url)}" target="_blank" rel="noreferrer">Open explorer</a>` : ""}
       </article>
     `;
@@ -1496,27 +1558,45 @@ function renderWorkspace() {
   const sites = data.dossiers?.sites || [];
   const people = data.dossiers?.people || [];
   const wallets = data.dossiers?.wallets || [];
+  const filter = state.graphFilter || "all";
+  const sourceNodes = data.nodes || [];
+  const sourceEdges = data.edges || [];
+  const visibleNodes = filter === "all"
+    ? sourceNodes
+    : sourceNodes.filter(node => {
+      if (filter === "risk") return ["risk", "finding", "tag"].includes(node.type);
+      if (filter === "wallet") return ["wallet", "counterparty", "transaction", "tag", "finding"].includes(node.type);
+      if (filter === "site") return ["site", "ip", "nameserver", "mail", "email", "registry", "technology", "subdomain", "risk", "finding"].includes(node.type);
+      if (filter === "person") return ["person", "profile", "finding"].includes(node.type);
+      return true;
+    });
+  const visibleIds = new Set(visibleNodes.map(node => node.id));
+  const visibleEdges = sourceEdges.filter(edge => visibleIds.has(edge.from) && visibleIds.has(edge.to));
+  const visibleSites = filter === "all" || filter === "site" || filter === "risk" ? sites : [];
+  const visiblePeople = filter === "all" || filter === "person" || filter === "risk" ? people : [];
+  const visibleWallets = filter === "all" || filter === "wallet" || filter === "risk" ? wallets : [];
   state.folders = data.folders || state.folders;
   state.playbooks = data.playbooks || state.playbooks;
   const wallet = data.wallet || {};
   schemaHolder.innerHTML = `
     <div class="schema-grid">
       <article class="graph-panel">
-        ${renderGraph(data.nodes || [], data.edges || [])}
+        ${renderGraph(visibleNodes, visibleEdges)}
       </article>
       <aside class="schema-summary">
-        <article><span>Nodes</span><strong>${(data.nodes || []).length}</strong></article>
-        <article><span>Edges</span><strong>${(data.edges || []).length}</strong></article>
-        <article><span>Sites</span><strong>${sites.length}</strong></article>
-        <article><span>People</span><strong>${people.length}</strong></article>
-        <article><span>Wallet</span><strong>${wallets.length}</strong></article>
+        <article><span>Filter</span><strong>${escapeHtml(filter)}</strong></article>
+        <article><span>Nodes</span><strong>${visibleNodes.length}</strong></article>
+        <article><span>Edges</span><strong>${visibleEdges.length}</strong></article>
+        <article><span>Sites</span><strong>${visibleSites.length}</strong></article>
+        <article><span>People</span><strong>${visiblePeople.length}</strong></article>
+        <article><span>Wallet</span><strong>${visibleWallets.length}</strong></article>
       </aside>
     </div>
     <div class="dossier-grid">
-      ${sites.map(item => renderDossierCard(item, "site")).join("")}
-      ${people.map(item => renderDossierCard(item, "person")).join("")}
-      ${wallets.map(item => renderDossierCard(item, "wallet")).join("")}
-      ${!sites.length && !people.length && !wallets.length ? `<div class="result empty"><h2>No dossier</h2><p>Generate a domain, social or wallet report to populate this section.</p></div>` : ""}
+      ${visibleSites.map(item => renderDossierCard(item, "site")).join("")}
+      ${visiblePeople.map(item => renderDossierCard(item, "person")).join("")}
+      ${visibleWallets.map(item => renderDossierCard(item, "wallet")).join("")}
+      ${!visibleSites.length && !visiblePeople.length && !visibleWallets.length ? `<div class="result empty"><h2>No dossier for this filter</h2><p>Switch graph filter or generate more reports.</p></div>` : ""}
     </div>
   `;
 
@@ -2078,6 +2158,17 @@ document.addEventListener("click", async event => {
     return;
   }
 
+  const compareDomain = event.target.closest("[data-compare-domain]");
+  if (compareDomain) {
+    try {
+      const data = await api(`/api/reports/compare?domain=${encodeURIComponent(compareDomain.dataset.compareDomain)}`);
+      renderComparison(data);
+    } catch (error) {
+      renderComparison({ available: false, domain: compareDomain.dataset.compareDomain, message: error.message });
+    }
+    return;
+  }
+
   const expandWallet = event.target.closest("[data-expand-wallet]");
   if (expandWallet) {
     document.querySelector("#walletAddress").value = expandWallet.dataset.expandWallet;
@@ -2164,6 +2255,13 @@ document.querySelector("#clearAllHistory").addEventListener("click", async () =>
 });
 
 document.querySelector("#refreshWorkspace").addEventListener("click", loadWorkspace);
+document.querySelectorAll("[data-graph-filter]").forEach(button => {
+  button.addEventListener("click", () => {
+    state.graphFilter = button.dataset.graphFilter;
+    document.querySelectorAll("[data-graph-filter]").forEach(item => item.classList.toggle("active", item === button));
+    renderWorkspace();
+  });
+});
 document.querySelector("#refreshWallet").addEventListener("click", loadWorkspace);
 
 document.querySelector("#deleteAccountButton").addEventListener("click", async () => {

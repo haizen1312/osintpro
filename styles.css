@@ -514,12 +514,54 @@ textarea:focus {
   color: var(--green);
 }
 
+.graph-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 14px;
+}
+
+.graph-filter-bar .active {
+  border-color: rgba(57, 255, 184, .65);
+  background: rgba(57, 255, 184, .16);
+  color: var(--green);
+}
+
 .network-mode {
   display: none;
 }
 
 .network-mode.active {
   display: block;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.timeline-list a,
+.timeline-list > span {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, .16);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.timeline-list strong {
+  color: var(--green);
 }
 
 .result {

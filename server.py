@@ -517,6 +517,10 @@ def cron_secret() -> str:
     return os.getenv("OSINTPRO_CRON_SECRET", "")
 
 
+def report_brand() -> str:
+    return redact_text(os.getenv("OSINTPRO_REPORT_BRAND", "OSINTPRO")).strip()[:64] or "OSINTPRO"
+
+
 def monitor_batch_limit() -> int:
     try:
         return max(1, min(100, int(os.getenv("OSINTPRO_MONITOR_BATCH_LIMIT", str(DEFAULT_MONITOR_BATCH_LIMIT)))))
@@ -2165,6 +2169,7 @@ def run_monitor_rows(connection: sqlite3.Connection, rows: list[sqlite3.Row]) ->
 
 
 def report_document(report: dict[str, object]) -> str:
+    brand = report_brand()
     dns = report.get("dns", {})
     https = report.get("https", {})
     cert = https.get("certificate", {}) if isinstance(https, dict) else {}
@@ -2222,7 +2227,7 @@ def report_document(report: dict[str, object]) -> str:
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>OSINTPRO report - {html.escape(str(report.get("domain", "")))}</title>
+  <title>{html.escape(brand)} report - {html.escape(str(report.get("domain", "")))}</title>
   <style>
     body {{ margin: 0; padding: 38px; color: #17201b; font-family: Inter, Arial, sans-serif; }}
     header {{ border-bottom: 2px solid #17201b; margin-bottom: 28px; padding-bottom: 18px; }}
@@ -2244,7 +2249,7 @@ def report_document(report: dict[str, object]) -> str:
   <button class="no-print" onclick="window.print()">Save as PDF</button>
   <header>
     <div class="score"><span>Score</span><strong>{int(report.get("score", 0))}</strong></div>
-    <p class="meta">OSINTPRO passive domain intelligence</p>
+    <p class="meta">{html.escape(brand)} passive domain intelligence</p>
     <h1>{html.escape(str(report.get("domain", "")))}</h1>
     <p>{html.escape(str(report.get("summary", "")))}</p>
     <p class="meta">Generated: {html.escape(str(report.get("generated_at", "")))}</p>
@@ -2301,7 +2306,7 @@ def pdf_escape(value: str) -> str:
 
 
 def report_pdf(report: dict[str, object]) -> bytes:
-    title = f"OSINTPRO Report - {report.get('domain', 'target')}"
+    title = f"{report_brand()} Report - {report.get('domain', 'target')}"
     text_lines = [
         title,
         f"Generated: {report.get('generated_at', '')}",
@@ -2681,6 +2686,57 @@ class Handler(SimpleHTTPRequestHandler):
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def report_comparison(self, user_id: str, domain: str) -> dict[str, object]:
+        clean = clean_domain(domain)
+        with db() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, domain, score, summary, generated_at, payload_json
+                FROM reports
+                WHERE user_id = ? AND domain = ?
+                ORDER BY created_at DESC
+                LIMIT 2
+                """,
+                (user_id, clean),
+            ).fetchall()
+        if len(rows) < 2:
+            return {"domain": clean, "available": False, "message": "At least two reports are required for comparison."}
+        latest = redact_data(json.loads(rows[0]["payload_json"]))
+        previous = redact_data(json.loads(rows[1]["payload_json"]))
+
+        def missing_headers(report: dict[str, object]) -> set[str]:
+            headers = report.get("https", {}).get("security_headers", [])
+            return {str(item.get("name")) for item in headers if not item.get("present")}
+
+        def finding_titles(report: dict[str, object]) -> set[str]:
+            return {str(item.get("title")) for item in report.get("findings", []) if item.get("title")}
+
+        latest_missing = missing_headers(latest)
+        previous_missing = missing_headers(previous)
+        latest_findings = finding_titles(latest)
+        previous_findings = finding_titles(previous)
+        return redact_data({
+            "domain": clean,
+            "available": True,
+            "latest": {
+                "id": rows[0]["id"],
+                "score": latest.get("score", rows[0]["score"]),
+                "generated_at": latest.get("generated_at", rows[0]["generated_at"]),
+                "summary": latest.get("summary", rows[0]["summary"]),
+            },
+            "previous": {
+                "id": rows[1]["id"],
+                "score": previous.get("score", rows[1]["score"]),
+                "generated_at": previous.get("generated_at", rows[1]["generated_at"]),
+                "summary": previous.get("summary", rows[1]["summary"]),
+            },
+            "delta": int(latest.get("score", 0)) - int(previous.get("score", 0)),
+            "fixed_headers": sorted(previous_missing - latest_missing),
+            "new_missing_headers": sorted(latest_missing - previous_missing),
+            "resolved_findings": sorted(previous_findings - latest_findings),
+            "new_findings": sorted(latest_findings - previous_findings),
+        })
+
     def intelligence_workspace(self, user: dict[str, object]) -> dict[str, object]:
         if not user.get("authenticated"):
             return {
@@ -2689,6 +2745,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "edges": [],
                 "dossiers": {"sites": [], "people": [], "wallets": []},
                 "folders": [],
+                "case_summaries": [],
                 "playbooks": [],
                 "wallet": {
                     "assets": [],
@@ -2760,7 +2817,51 @@ class Handler(SimpleHTTPRequestHandler):
         assets: list[dict[str, object]] = []
         folders = [dict(row) for row in folder_rows]
         folder_names = {row["id"]: row["name"] for row in folder_rows}
+        case_index: dict[str, dict[str, object]] = {
+            str(row["id"]): {
+                "id": row["id"],
+                "name": row["name"],
+                "assets": 0,
+                "domains": 0,
+                "people": 0,
+                "wallets": 0,
+                "findings": 0,
+                "high_risk": 0,
+                "scores": [],
+                "latest_activity": row["created_at"],
+                "top_signals": [],
+            }
+            for row in folder_rows
+        }
         wallet_annotations = self.wallet_annotations_for_user(str(user["_id"]))
+
+        def touch_case(
+            folder_id: str | None,
+            kind: str,
+            posture_score: int,
+            findings: list[object],
+            latest: str,
+            signals: list[str],
+        ) -> None:
+            if not folder_id or folder_id not in case_index:
+                return
+            item = case_index[folder_id]
+            item["assets"] = int(item["assets"]) + 1
+            item["scores"].append(posture_score)
+            if kind == "domain":
+                item["domains"] = int(item["domains"]) + 1
+            if kind == "person":
+                item["people"] = int(item["people"]) + 1
+            if kind == "wallet":
+                item["wallets"] = int(item["wallets"]) + 1
+            item["findings"] = int(item["findings"]) + len(findings)
+            if posture_score < 55:
+                item["high_risk"] = int(item["high_risk"]) + 1
+            if latest and latest > str(item["latest_activity"]):
+                item["latest_activity"] = latest
+            for signal in signals:
+                if signal and signal not in item["top_signals"]:
+                    item["top_signals"].append(signal)
 
         def add_node(node_id: str, label: str, node_type: str, score: int | None = None, meta: str = "") -> None:
             if not label:
@@ -2871,6 +2972,14 @@ class Handler(SimpleHTTPRequestHandler):
                 "folder_id": folder_id,
                 "folder": folder_name,
             }))
+            touch_case(
+                folder_id,
+                "domain",
+                score,
+                report.get("findings") or [],
+                str(report.get("generated_at") or row["generated_at"]),
+                [str(item.get("title")) for item in (report.get("findings") or [])[:3] if item.get("title")],
+            )
 
         for row in social_rows:
             try:
@@ -2913,6 +3022,14 @@ class Handler(SimpleHTTPRequestHandler):
                 "folder_id": folder_id,
                 "folder": folder_name,
             }))
+            touch_case(
+                folder_id,
+                "person",
+                score,
+                report.get("findings") or [],
+                str(report.get("generated_at") or row["generated_at"]),
+                [str(profile.get("platform")) for profile in found[:3] if profile.get("platform")],
+            )
 
         for row in wallet_rows:
             try:
@@ -2958,6 +3075,21 @@ class Handler(SimpleHTTPRequestHandler):
                     add_node(node_id, str(title), "finding", None, str(finding.get("level") or "signal"))
                     add_edge(root, node_id, "wallet finding", "risk")
 
+            tx_timeline = sorted(
+                [
+                    {
+                        "timestamp": tx.get("timestamp"),
+                        "direction": tx.get("direction"),
+                        "value": tx.get("value"),
+                        "hash": tx.get("hash"),
+                        "short": tx.get("short") or compact_address(str(tx.get("hash") or "")),
+                        "url": tx.get("url"),
+                    }
+                    for tx in (report.get("transactions") or [])[:12]
+                ],
+                key=lambda item: str(item.get("timestamp") or ""),
+                reverse=True,
+            )
             wallets.append(redact_data({
                 "id": row["id"],
                 "chain": chain,
@@ -2971,11 +3103,20 @@ class Handler(SimpleHTTPRequestHandler):
                 "tx_count": report.get("tx_count"),
                 "counterparties": (report.get("counterparties") or [])[:8],
                 "findings": (report.get("findings") or [])[:5],
+                "timeline": tx_timeline,
                 "explorer_url": report.get("explorer_url"),
                 "folder_id": folder_id,
                 "folder": folder_name,
                 "annotation": annotation,
             }))
+            touch_case(
+                folder_id,
+                "wallet",
+                100 - risk_score,
+                report.get("findings") or [],
+                str(report.get("generated_at") or row["generated_at"]),
+                [str(item.get("title")) for item in (report.get("findings") or [])[:3] if item.get("title")],
+            )
 
         scores = (
             [int(row["score"] or 0) for row in report_rows]
@@ -2983,12 +3124,19 @@ class Handler(SimpleHTTPRequestHandler):
             + [100 - int(row["risk_score"] or 0) for row in wallet_rows]
         )
         exposure_index = round(sum(scores) / len(scores)) if scores else 0
+        case_summaries = []
+        for item in case_index.values():
+            score_values = item.pop("scores")
+            item["average_score"] = round(sum(score_values) / len(score_values)) if score_values else 0
+            item["top_signals"] = item["top_signals"][:5]
+            case_summaries.append(item)
         return redact_data({
             "authenticated": True,
             "nodes": list(nodes.values())[:140],
             "edges": edges[:220],
             "dossiers": {"sites": sites, "people": people, "wallets": wallets},
             "folders": self.folders_for_user(str(user["_id"])),
+            "case_summaries": sorted(case_summaries, key=lambda item: str(item["latest_activity"]), reverse=True),
             "playbooks": self.playbooks_for_user(str(user["_id"])),
             "wallet": {
                 "assets": assets[:60],
@@ -3204,6 +3352,17 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/reports":
             user, headers = self.get_or_create_user()
             self.send_json({"reports": self.visible_reports_for_user(user)}, headers=headers)
+            return
+        if parsed.path == "/api/reports/compare":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to compare reports."}, 401, headers)
+                return
+            query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            try:
+                self.send_json(self.report_comparison(str(user["_id"]), str(query.get("domain", ""))), headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
             return
         if parsed.path == "/api/monitors":
             user, headers = self.get_or_create_user()
