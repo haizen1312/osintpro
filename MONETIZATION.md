@@ -14,7 +14,7 @@ https://osintpro-48j4.onrender.com/
 
 - Free: 5 starter reports and 1 monitored domain.
 - Pro: 19 EUR/month, unlimited reports, 5 monitored domains, PDF/CSV and wallet OSINT.
-- Agency: 79 EUR/month, client reporting workflows, 25 monitored domains, Red/Purple Team guidance, wallet OSINT and entity graph.
+- Agency: 79 EUR/month, client reporting workflows, 25 monitored domains, Red/Purple Team guidance, Web Audit Lab, wallet OSINT and entity graph.
 
 ## Stripe Setup
 
@@ -64,7 +64,7 @@ I can prepare a passive OSINT report for your domain, brand, public username or 
 
 It covers DNS/TLS/email posture, public brand exposure, social username presence, or blockchain balance, movements and counterparties.
 
-If you want recurring monitoring, client-ready PDF/CSV exports and an investigation graph, OSINTPRO starts at 19 EUR/month.
+If you want recurring monitoring, beginner-friendly web audit playbooks, client-ready PDF/CSV exports and an investigation graph, OSINTPRO starts at 19 EUR/month.
 ```
 
 ## What Not To Promise
@@ -99,6 +99,7 @@ Free channels:
 - true server-side PDF export
 - agency client folders
 - saved investigation notes
+- Web Audit Lab exports and saved playbooks
 - wallet graph hop expansion
 - manual wallet tags such as exchange, scam, victim, mixer, bridge or unknown
 - alerting on monitor changes

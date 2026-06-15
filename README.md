@@ -22,6 +22,7 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 - Certificate Transparency: observable names and subdomains from public CT logs.
 - Passive technology fingerprinting from headers and web signals.
 - Risk findings, vulnerability hypotheses and Red/Purple Team recommendations derived only from passive evidence.
+- Web Audit Lab: Burp-style beginner workflow with safe commands, evidence checklist and technical glossary.
 - Social OSINT: public username presence checks across social, developer and community platforms.
 - Wallet OSINT: public Bitcoin and Ethereum/EVM balance, recent movements, counterparties and explorer links.
 - Entity graph: a workspace view that connects domains, usernames, profiles, DNS, findings, technologies, wallets, transactions and counterparties.
@@ -44,6 +45,7 @@ OSINTPRO does not run exploits, brute force, credential attacks, invasive scans 
 - Private operational admin panel for production status, plans, backups and Stripe events.
 - Cron-protected monitoring and backup endpoints.
 - GitHub Actions workflow for free scheduled monitor runs and SQLite backup artifacts.
+- Beginner-friendly Web Audit Lab for authorized passive web review.
 - Security-conscious repository hygiene: `.gitignore`, `.env.example`, `SECURITY.md`, no committed secrets.
 
 ## Local Development
@@ -174,6 +176,17 @@ Wallet OSINT accepts public Bitcoin or Ethereum/EVM addresses and returns:
 
 This feature is designed for authorized fraud reconstruction, scam wallet triage and compliance-style case mapping. It does not move funds, deanonymize private users, bypass mixers or provide evasion guidance.
 
+## Web Audit Lab Scope
+
+The Web Audit Lab translates Burp Suite-style concepts into a beginner-friendly workflow:
+
+- proxy, request, response, headers, cookies, CSP and HSTS explained in plain English
+- safe terminal checks using `curl`, `openssl` and `dig`
+- evidence checklist for headers, `security.txt`, `robots.txt` and `sitemap.xml`
+- passive findings converted into client-ready next steps
+
+It does not run exploit payloads, automated fuzzing, brute force, credential attacks or invasive crawling. It is designed for domains the user owns or is explicitly authorized to review.
+
 ## GitHub Discovery Plan
 
 Free ways to improve repository traffic:
@@ -196,8 +209,9 @@ Near-term technical work:
 2. Agency workspaces with client folders.
 3. Better onboarding from Free to Pro/Agency.
 4. Server-side PDF generation.
-5. Wallet graph improvements with manual tags, case notes and hop expansion.
-6. PostgreSQL migration only when paid usage justifies the cost.
+5. Web Audit Lab export and saved playbooks.
+6. Wallet graph improvements with manual tags, case notes and hop expansion.
+7. PostgreSQL migration only when paid usage justifies the cost.
 
 ## Safety Boundary
 

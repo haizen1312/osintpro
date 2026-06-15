@@ -8,6 +8,7 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 - Improve account-level workspace organization.
 - Expand passive wallet OSINT for fraud reconstruction.
 - Strengthen exports and case-ready reporting.
+- Expand beginner-friendly Web Audit Lab workflows without adding invasive scanning.
 - Keep hosting costs at zero until paid usage justifies infrastructure spend.
 
 ## Near-Term Milestones
@@ -15,6 +16,7 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 ### Intelligence Workspace
 
 - Cleaner dashboard for choosing domain, social or wallet investigations.
+- Web Audit Lab for guided passive web review, beginner commands and technical explanations.
 - Entity graph with stronger filtering by domain, person, wallet and finding type.
 - Manual notes and tags for wallets, counterparties and suspicious infrastructure.
 - Better case summaries for agencies and investigators.
@@ -29,6 +31,7 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 ### Reporting
 
 - Server-side PDF generation.
+- Web Audit Lab export with evidence checklist and glossary.
 - Sanitized example reports for public marketing.
 - Agency-friendly report branding.
 - Report comparison for monitored domains.

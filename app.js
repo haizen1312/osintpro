@@ -185,6 +185,189 @@ function renderOpsRows(items = [], titleKey, bodyKey, metaKey) {
   `).join("");
 }
 
+function shellCommand(command) {
+  return `<pre class="command-block"><code>${escapeHtml(command)}</code></pre>`;
+}
+
+function renderTerm(term, definition) {
+  return `
+    <article class="term-card">
+      <strong>${escapeHtml(term)}</strong>
+      <p>${escapeHtml(definition)}</p>
+    </article>
+  `;
+}
+
+function webAuditCommands(domain) {
+  const safe = String(domain || "example.com").replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  return [
+    {
+      title: "Headers baseline",
+      command: `curl -I https://${safe}`,
+      explain: "Reads only response headers. It does not submit forms, fuzz parameters or attack the server."
+    },
+    {
+      title: "Security disclosure file",
+      command: `curl https://${safe}/.well-known/security.txt`,
+      explain: "Checks whether researchers have a responsible disclosure contact."
+    },
+    {
+      title: "Crawler hints",
+      command: `curl https://${safe}/robots.txt && curl https://${safe}/sitemap.xml`,
+      explain: "Shows public crawler instructions and URLs intentionally exposed for indexing."
+    },
+    {
+      title: "TLS certificate dates",
+      command: `echo | openssl s_client -servername ${safe} -connect ${safe}:443 2>/dev/null | openssl x509 -noout -issuer -subject -dates`,
+      explain: "Reads certificate metadata so you can verify issuer, subject and expiry."
+    },
+    {
+      title: "Email spoofing posture",
+      command: `dig TXT ${safe} +short && dig TXT _dmarc.${safe} +short`,
+      explain: "Checks SPF and DMARC DNS records without sending any email."
+    },
+    {
+      title: "Certificate authority policy",
+      command: `dig CAA ${safe} +short`,
+      explain: "Checks whether the domain restricts which certificate authorities can issue TLS certificates."
+    }
+  ];
+}
+
+function webAuditStatus(report) {
+  const headers = report.https?.security_headers || [];
+  const web = report.web_presence || {};
+  const required = headers.map(item => ({
+    label: item.name,
+    ok: Boolean(item.present),
+    detail: item.present ? item.value : item.reason
+  }));
+  [
+    ["security.txt", web.security_txt],
+    ["robots.txt", web.robots_txt],
+    ["sitemap.xml", web.sitemap_xml]
+  ].forEach(([label, value]) => {
+    required.push({
+      label,
+      ok: Boolean(value?.present),
+      detail: value?.status ? `HTTP ${value.status}` : "not observed"
+    });
+  });
+  return required;
+}
+
+function renderWebAuditLab(report) {
+  const domain = report.domain;
+  const missingHeaders = (report.https?.security_headers || []).filter(item => !item.present);
+  const findings = report.findings || [];
+  const commands = webAuditCommands(domain);
+  const statuses = webAuditStatus(report);
+  const glossary = [
+    ["Proxy", "A tool that sits between your browser and the website so you can inspect requests and responses."],
+    ["Request", "The message your browser sends to a server, usually containing a method, path, headers and sometimes a body."],
+    ["Response", "The message the server sends back, including status code, headers and page/API content."],
+    ["Header", "A key-value line that controls browser behavior, caching, security policy or metadata."],
+    ["Cookie", "A small value stored by the browser and sent back to the same site, often used for sessions."],
+    ["CSP", "Content-Security-Policy. A browser rule that limits where scripts, frames, images and connections can load from."],
+    ["HSTS", "Strict-Transport-Security. A rule telling browsers to always use HTTPS for the domain."],
+    ["Repeater", "A Burp Suite feature for manually resending one request to understand how the server responds."],
+    ["Scanner", "An automated testing feature. OSINTPRO does not run invasive scanner traffic; it turns passive evidence into a checklist."],
+    ["Intruder", "A Burp Suite feature often used for repeated payloads. OSINTPRO does not include this because it can become brute force."]
+  ];
+
+  document.querySelector("#webAuditResult").className = "result";
+  document.querySelector("#webAuditResult").innerHTML = `
+    <div class="result-head">
+      <div>
+        <span class="pill">Web Audit Lab</span>
+        <h2>${escapeHtml(domain)}</h2>
+        <p>${escapeHtml(report.summary)}</p>
+      </div>
+      <strong class="score">${escapeHtml(report.score)}/100</strong>
+    </div>
+
+    <div class="lab-grid">
+      <article class="lab-card lab-hero">
+        <span class="pill">Burp-style map</span>
+        <h3>Beginner workflow</h3>
+        <ol class="step-list">
+          <li><strong>Scope:</strong> write down the exact domain you are allowed to test.</li>
+          <li><strong>Proxy:</strong> inspect one normal browser request before changing anything.</li>
+          <li><strong>Repeater:</strong> resend only safe GET requests such as the homepage or public metadata files.</li>
+          <li><strong>Evidence:</strong> save headers, status codes and screenshots for the client report.</li>
+          <li><strong>Fix:</strong> prioritize missing headers, disclosure files, TLS expiry and email spoofing posture.</li>
+        </ol>
+      </article>
+
+      <article class="lab-card">
+        <span>Header posture</span>
+        <strong>${missingHeaders.length ? `${missingHeaders.length} missing` : "ready"}</strong>
+        <p>${missingHeaders.length ? missingHeaders.map(item => item.name).join(", ") : "Main browser security headers are present."}</p>
+      </article>
+
+      <article class="lab-card">
+        <span>Findings</span>
+        <strong>${findings.length}</strong>
+        <p>${findings.length ? "Review the prioritized issues below before touching any tooling." : "No priority passive findings."}</p>
+      </article>
+    </div>
+
+    <div class="lab-columns">
+      <section class="lab-panel">
+        <div class="mini-head">
+          <span class="pill">Evidence checklist</span>
+          <h3>What to verify</h3>
+        </div>
+        <div class="check-list">
+          ${statuses.map(item => `
+            <div class="check">
+              <span>${flag(item.ok)}</span>
+              <strong>${escapeHtml(item.label)}</strong>
+              <em>${escapeHtml(item.detail || "")}</em>
+            </div>
+          `).join("")}
+        </div>
+      </section>
+
+      <section class="lab-panel">
+        <div class="mini-head">
+          <span class="pill">Safe commands</span>
+          <h3>Copy-friendly terminal checks</h3>
+        </div>
+        <div class="command-list">
+          ${commands.map(item => `
+            <article class="command-card">
+              <strong>${escapeHtml(item.title)}</strong>
+              ${shellCommand(item.command)}
+              <p>${escapeHtml(item.explain)}</p>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    </div>
+
+    <section class="lab-panel">
+      <div class="mini-head">
+        <span class="pill">Passive findings</span>
+        <h3>What the lab found</h3>
+      </div>
+      <div class="ops-grid">
+        ${renderFindings(findings)}
+      </div>
+    </section>
+
+    <section class="lab-panel">
+      <div class="mini-head">
+        <span class="pill">Glossary</span>
+        <h3>Technical terms explained</h3>
+      </div>
+      <div class="term-grid">
+        ${glossary.map(([term, definition]) => renderTerm(term, definition)).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function updateAccount() {
   const isPaid = state.user.plan !== "Free";
   const isAuthenticated = Boolean(state.user.authenticated);
@@ -889,6 +1072,48 @@ async function analyze(target) {
   }
 }
 
+async function buildWebAuditLab(target) {
+  if (state.user.plan === "Free" && state.user.credits <= 0) {
+    setSection("billing");
+    showBillingMessage("You have used all Free credits. Web Audit Lab continues on Pro/Agency.");
+    return;
+  }
+
+  const button = document.querySelector("#webAuditButton");
+  button.disabled = true;
+  button.textContent = "Building...";
+  setLiveSignal(`building beginner web audit lab for ${target}`);
+  document.querySelector("#webAuditResult").className = "result empty";
+  document.querySelector("#webAuditResult").innerHTML = `<h2>Building Web Audit Lab</h2><p>Collecting passive evidence and converting it into a beginner-friendly workflow.</p>`;
+
+  try {
+    const data = await api("/api/analyze", {
+      method: "POST",
+      body: JSON.stringify({ target })
+    });
+    state.user = data.user;
+    state.reports.unshift({
+      id: data.report.id,
+      domain: data.report.domain,
+      score: data.report.score,
+      summary: data.report.summary,
+      generated_at: data.report.generated_at
+    });
+    state.reports = state.reports.slice(0, 50);
+    updateAccount();
+    renderWebAuditLab(data.report);
+    renderReports();
+    await loadWorkspace();
+  } catch (error) {
+    document.querySelector("#webAuditResult").className = "result empty";
+    document.querySelector("#webAuditResult").innerHTML = `<h2 class="error">Error</h2><p>${escapeHtml(error.message)}</p>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Build lab";
+    setLiveSignal("passive sensors idle");
+  }
+}
+
 async function analyzeSocial(username) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
@@ -1035,6 +1260,21 @@ document.querySelector("#socialForm").addEventListener("submit", event => {
     return;
   }
   analyzeSocial(username);
+});
+
+document.querySelector("#webAuditForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const target = document.querySelector("#webAuditTarget").value.trim();
+  if (!target) {
+    document.querySelector("#webAuditTarget").focus();
+    return;
+  }
+  buildWebAuditLab(target);
+});
+
+document.querySelector("#loadOwnAudit").addEventListener("click", () => {
+  document.querySelector("#webAuditTarget").value = "osintpro-48j4.onrender.com";
+  buildWebAuditLab("osintpro-48j4.onrender.com");
 });
 
 document.querySelector("#walletForm").addEventListener("submit", event => {

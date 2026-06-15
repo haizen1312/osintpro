@@ -1061,6 +1061,140 @@ input:focus {
   margin-bottom: 0;
 }
 
+.lab-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, .75fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.lab-card,
+.lab-panel,
+.command-card,
+.term-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  box-shadow: var(--shadow);
+}
+
+.lab-card {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  min-height: 165px;
+  padding: 16px;
+}
+
+.lab-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.lab-card strong {
+  color: var(--cyan);
+  font-size: 30px;
+}
+
+.lab-hero {
+  background:
+    linear-gradient(135deg, rgba(98, 216, 255, .13), rgba(57, 255, 184, .07) 48%, transparent),
+    var(--panel-strong);
+}
+
+.lab-hero h3 {
+  font-size: 28px;
+}
+
+.step-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.step-list li {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.step-list strong {
+  color: var(--ink);
+  font-size: inherit;
+}
+
+.lab-columns {
+  display: grid;
+  grid-template-columns: minmax(280px, .9fr) minmax(0, 1.1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.lab-panel {
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.lab-columns .lab-panel {
+  margin-top: 0;
+}
+
+.mini-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mini-head h3 {
+  margin: 0;
+}
+
+.check-list,
+.command-list,
+.term-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.command-card,
+.term-card {
+  padding: 13px;
+  background: rgba(255, 255, 255, .028);
+}
+
+.command-card strong,
+.term-card strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.command-block {
+  margin: 9px 0;
+  padding: 12px;
+  border: 1px solid rgba(98, 216, 255, .16);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, .35);
+  color: #b9fff0;
+  overflow-x: auto;
+}
+
+.command-block code {
+  white-space: pre;
+}
+
+.term-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.term-card p,
+.command-card p {
+  margin-bottom: 0;
+}
+
 .wallet-assets {
   display: grid;
   gap: 8px;
@@ -1327,6 +1461,9 @@ input:focus {
   .inline-admin-form,
   .restore-form,
   .dashboard-grid,
+  .lab-grid,
+  .lab-columns,
+  .term-grid,
   .schema-grid,
   .dossier-grid,
   .dossier-meta,

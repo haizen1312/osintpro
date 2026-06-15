@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="index,follow">
-  <meta name="description" content="OSINTPRO is a passive OSINT workspace for domain intelligence, brand monitoring, social username checks and blockchain wallet tracing.">
-  <meta name="keywords" content="passive OSINT, domain intelligence, brand monitoring, wallet OSINT, blockchain tracing, threat intelligence">
+  <meta name="description" content="OSINTPRO is a passive OSINT workspace for domain intelligence, web audit workflows, brand monitoring, social username checks and blockchain wallet tracing.">
+  <meta name="keywords" content="passive OSINT, domain intelligence, web audit, brand monitoring, wallet OSINT, blockchain tracing, threat intelligence">
   <title>OSINTPRO Intelligence Workspace</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -28,6 +28,7 @@
         <button class="nav-btn" data-section="scan">Domain Intel</button>
         <button class="nav-btn" data-section="social">Social Intel</button>
         <button class="nav-btn" data-section="wallet">Wallet Trace</button>
+        <button class="nav-btn" data-section="web-audit">Web Audit Lab</button>
         <span class="nav-label">Workspace</span>
         <button class="nav-btn" data-section="schema">Entity Graph</button>
         <button class="nav-btn" data-section="reports">History</button>
@@ -77,6 +78,7 @@
               <button class="primary" type="button" data-section-jump="scan">Domain</button>
               <button class="secondary" type="button" data-section-jump="social">Social</button>
               <button class="secondary" type="button" data-section-jump="wallet">Wallet</button>
+              <button class="secondary" type="button" data-section-jump="web-audit">Web audit</button>
             </div>
           </article>
           <article class="dash-card">
@@ -134,6 +136,34 @@
         <div id="result" class="result empty">
           <h2>No domain report yet</h2>
           <p>Try a public domain such as <button class="linklike" data-example="openai.com">openai.com</button> or <button class="linklike" data-example="stripe.com">stripe.com</button>.</p>
+        </div>
+      </section>
+
+      <section class="section" id="web-audit">
+        <div class="section-head">
+          <div>
+            <span class="pill">Burp-style workflow</span>
+            <h2>Web Audit Lab</h2>
+          </div>
+          <button class="secondary" id="loadOwnAudit" type="button">Audit OSINTPRO</button>
+        </div>
+
+        <form id="webAuditForm" class="scan-form">
+          <div class="target-field">
+            <label for="webAuditTarget">Authorized domain</label>
+            <input id="webAuditTarget" name="webAuditTarget" placeholder="example.com" autocomplete="off" spellcheck="false">
+          </div>
+          <button class="primary" type="submit" id="webAuditButton">Build lab</button>
+        </form>
+
+        <div class="notice">
+          <strong>Beginner-safe web testing</strong>
+          <span>Organizes passive checks, beginner commands and Burp Suite concepts without exploit automation, brute force or invasive scanning.</span>
+        </div>
+
+        <div id="webAuditResult" class="result empty">
+          <h2>No web audit lab yet</h2>
+          <p>Enter a domain you own or are authorized to test. The lab explains each technical term before asking you to use it.</p>
         </div>
       </section>
 
