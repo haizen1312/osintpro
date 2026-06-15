@@ -9,6 +9,7 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 - Expand passive wallet OSINT for fraud reconstruction.
 - Strengthen exports and case-ready reporting.
 - Expand beginner-friendly Web Audit Lab workflows without adding invasive scanning.
+- Add beginner-friendly network traffic analysis without unauthorized packet capture.
 - Keep hosting costs at zero until paid usage justifies infrastructure spend.
 
 ## Near-Term Milestones
@@ -17,11 +18,12 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 
 - Cleaner dashboard for choosing domain, social or wallet investigations.
 - Web Audit Lab for guided passive web review, beginner commands and technical explanations.
+- Network Traffic Lab for Wireshark-style DNS, TCP/TLS and HTTP interpretation.
 - Entity graph with stronger filtering by domain, person, wallet and finding type.
 - Manual notes and tags for wallets, counterparties and suspicious infrastructure.
 - Better case summaries for agencies and investigators.
 
-Status: client folders, active folder routing and saved playbook organization are implemented. Password reset remains gated until a trusted recovery channel exists.
+Status: client folders, active folder routing, saved playbook organization and Network Traffic Lab are implemented. Password reset remains gated until a trusted recovery channel exists.
 
 ### Wallet OSINT
 
@@ -62,3 +64,4 @@ Status: SQLite remains the default zero-cost database. PostgreSQL is intentional
 ## Safety Boundary
 
 OSINTPRO will remain a passive OSINT product. It will not add exploit execution, brute force, credential attacks, invasive scanning, wallet movement, mixing, obfuscation or evasion tooling.
+Network analysis will remain limited to authorized traffic interpretation, passive evidence and beginner education.

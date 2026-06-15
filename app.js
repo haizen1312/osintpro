@@ -271,6 +271,249 @@ function webAuditStatus(report) {
   return required;
 }
 
+function networkLabCommands(domain) {
+  const safe = String(domain || "example.com").replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  return [
+    {
+      title: "Resolve the host",
+      command: `dig A ${safe} +short`,
+      explain: "Shows the IP addresses your machine may connect to before HTTPS starts."
+    },
+    {
+      title: "Read the HTTPS response headers",
+      command: `curl -I https://${safe}`,
+      explain: "Creates one normal request and prints readable response headers."
+    },
+    {
+      title: "Inspect the certificate",
+      command: `echo | openssl s_client -servername ${safe} -connect ${safe}:443 2>/dev/null | openssl x509 -noout -issuer -subject -dates`,
+      explain: "Shows certificate issuer, subject and expiry without logging into the site."
+    }
+  ];
+}
+
+function networkLabFilters(domain, ips = []) {
+  const safe = String(domain || "example.com");
+  const firstIp = ips[0] || "203.0.113.10";
+  return [
+    { filter: `dns.qry.name == "${safe}"`, use: "Find DNS questions for the domain." },
+    { filter: `ip.addr == ${firstIp}`, use: "Show packets between your device and the resolved server IP." },
+    { filter: `tcp.port == 443`, use: "Focus on HTTPS transport traffic." },
+    { filter: `tls.handshake.extensions_server_name == "${safe}"`, use: "Find the TLS Client Hello that contains the public SNI host name." },
+    { filter: `http.host == "${safe}"`, use: "Useful only for plain HTTP traffic. HTTPS content stays encrypted." }
+  ];
+}
+
+function networkPackets(report) {
+  const domain = report.domain;
+  const ips = report.dns?.addresses || [];
+  const firstIp = ips[0] || "resolved server";
+  const cert = report.https?.certificate || {};
+  const headers = report.https?.security_headers || [];
+  const presentHeaders = headers.filter(item => item.present).map(item => item.name);
+  const missingHeaders = headers.filter(item => !item.present).map(item => item.name);
+  const rows = [
+    {
+      no: 1,
+      protocol: "DNS",
+      source: "analyst workstation",
+      destination: "recursive resolver",
+      summary: `Query A record for ${domain}`,
+      detail: "The browser needs an IP address before it can connect to a domain."
+    },
+    {
+      no: 2,
+      protocol: "DNS",
+      source: "recursive resolver",
+      destination: "analyst workstation",
+      summary: ips.length ? `Answer: ${ips.join(", ")}` : "No A answer observed",
+      detail: "These are the public addresses OSINTPRO resolved from passive DNS lookup."
+    },
+    {
+      no: 3,
+      protocol: "TCP",
+      source: "analyst workstation",
+      destination: `${firstIp}:443`,
+      summary: "HTTPS connection opens on TCP/443",
+      detail: "Wireshark would show SYN, SYN-ACK and ACK packets before encrypted TLS begins."
+    },
+    {
+      no: 4,
+      protocol: "TLS",
+      source: "analyst workstation",
+      destination: domain,
+      summary: `Client Hello with SNI ${domain}`,
+      detail: "SNI tells the server which certificate to present. It is host metadata, not a password."
+    },
+    {
+      no: 5,
+      protocol: "TLS",
+      source: domain,
+      destination: "analyst workstation",
+      summary: cert.issuer ? `Certificate issuer: ${cert.issuer}` : "Certificate metadata not available",
+      detail: cert.expires ? `Subject: ${cert.subject || "not available"}. Expires: ${cert.expires}.` : "Certificate details could not be collected from the public endpoint."
+    },
+    {
+      no: 6,
+      protocol: "HTTP",
+      source: "analyst workstation",
+      destination: domain,
+      summary: "HEAD / request for public headers",
+      detail: "This is equivalent to curl -I. It reads headers without submitting forms or sending credentials."
+    },
+    {
+      no: 7,
+      protocol: "HTTP",
+      source: domain,
+      destination: "analyst workstation",
+      summary: `Response ${report.https?.status || "n/a"}${report.https?.server ? ` from ${report.https.server}` : ""}`,
+      detail: presentHeaders.length ? `Observed security headers: ${presentHeaders.join(", ")}.` : "No major browser security headers were observed."
+    },
+    {
+      no: 8,
+      protocol: "Security",
+      source: "OSINTPRO parser",
+      destination: "case report",
+      summary: missingHeaders.length ? `Missing headers: ${missingHeaders.join(", ")}` : "No priority missing security headers",
+      detail: "This is a readable interpretation layer, not an exploit or invasive scan."
+    }
+  ];
+  const mx = report.dns?.mx || [];
+  if (mx.length) {
+    rows.push({
+      no: rows.length + 1,
+      protocol: "DNS",
+      source: "recursive resolver",
+      destination: "case report",
+      summary: `MX records: ${mx.slice(0, 3).join(", ")}`,
+      detail: "Mail exchange records explain which public systems receive email for the domain."
+    });
+  }
+  return rows;
+}
+
+function renderNetworkLab(report) {
+  const domain = report.domain;
+  const ips = report.dns?.addresses || [];
+  const packets = networkPackets(report);
+  const filters = networkLabFilters(domain, ips);
+  const commands = networkLabCommands(domain);
+  const glossary = [
+    ["Packet", "A small unit of network data. Wireshark lists packets in the order they were observed."],
+    ["DNS", "The lookup step that turns a domain name into one or more IP addresses."],
+    ["TCP", "The transport protocol that opens a reliable connection before HTTPS data moves."],
+    ["TLS", "The encryption layer used by HTTPS. It protects page content and credentials."],
+    ["SNI", "Server Name Indication. A TLS field that tells the server which public host name is being requested."],
+    ["HTTP header", "Readable metadata sent before the page body, such as security policy and server hints."],
+    ["Display filter", "A Wireshark search expression that hides unrelated packets without changing the capture."]
+  ];
+
+  document.querySelector("#networkLabResult").className = "result";
+  document.querySelector("#networkLabResult").innerHTML = `
+    <div class="result-head">
+      <div>
+        <span class="pill">Network Traffic Lab</span>
+        <h2>${escapeHtml(domain)}</h2>
+        <p>${escapeHtml(report.summary)}</p>
+      </div>
+      <strong class="score">${escapeHtml(report.score)}/100</strong>
+    </div>
+
+    <div class="lab-grid">
+      <article class="lab-card lab-hero">
+        <span class="pill">Wireshark simple mode</span>
+        <h3>Readable traffic story</h3>
+        <ol class="step-list">
+          <li><strong>DNS:</strong> the domain is translated into public IP addresses.</li>
+          <li><strong>TCP:</strong> the browser opens a connection to port 443.</li>
+          <li><strong>TLS:</strong> certificate metadata confirms who presented HTTPS.</li>
+          <li><strong>HTTP:</strong> response headers show browser-side security posture.</li>
+          <li><strong>Report:</strong> OSINTPRO turns the evidence into plain-language findings.</li>
+        </ol>
+      </article>
+      <article class="lab-card">
+        <span>Resolved IPs</span>
+        <strong>${ips.length}</strong>
+        <p>${ips.length ? ips.join(", ") : "No public A records observed."}</p>
+      </article>
+      <article class="lab-card">
+        <span>HTTP status</span>
+        <strong>${escapeHtml(report.https?.status || "n/a")}</strong>
+        <p>${escapeHtml(report.https?.server || "Server header not observed.")}</p>
+      </article>
+    </div>
+
+    <section class="lab-panel disclaimer-panel">
+      <div class="mini-head">
+        <span class="pill">Authorized use only</span>
+        <h3>Capture boundary</h3>
+      </div>
+      <p>This lab explains what Wireshark would help you understand when you inspect your own traffic. Do not capture traffic from networks, devices, accounts or users you do not own or have explicit permission to monitor.</p>
+    </section>
+
+    <section class="lab-panel">
+      <div class="mini-head">
+        <span class="pill">Packet list</span>
+        <h3>Human-readable packets</h3>
+      </div>
+      <div class="packet-table">
+        ${packets.map(packet => `
+          <article class="packet-row">
+            <span class="mono">#${packet.no}</span>
+            <strong>${escapeHtml(packet.protocol)}</strong>
+            <span>${escapeHtml(packet.source)} → ${escapeHtml(packet.destination)}</span>
+            <p>${escapeHtml(packet.summary)}</p>
+            <small>${escapeHtml(packet.detail)}</small>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+
+    <div class="lab-columns">
+      <section class="lab-panel">
+        <div class="mini-head">
+          <span class="pill">Display filters</span>
+          <h3>Copy into Wireshark</h3>
+        </div>
+        <div class="command-list">
+          ${filters.map(item => `
+            <article class="command-card">
+              ${shellCommand(item.filter)}
+              <p>${escapeHtml(item.use)}</p>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+
+      <section class="lab-panel">
+        <div class="mini-head">
+          <span class="pill">Safe terminal checks</span>
+          <h3>Readable evidence</h3>
+        </div>
+        <div class="command-list">
+          ${commands.map(item => `
+            <article class="command-card">
+              <strong>${escapeHtml(item.title)}</strong>
+              ${shellCommand(item.command)}
+              <p>${escapeHtml(item.explain)}</p>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    </div>
+
+    <section class="lab-panel">
+      <div class="mini-head">
+        <span class="pill">Glossary</span>
+        <h3>Network terms explained</h3>
+      </div>
+      <div class="term-grid">
+        ${glossary.map(([term, definition]) => renderTerm(term, definition)).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderWebAuditLab(report) {
   const domain = report.domain;
   state.currentWebAuditReportId = report.id;
@@ -1307,6 +1550,48 @@ async function buildWebAuditLab(target) {
   }
 }
 
+async function buildNetworkLab(target) {
+  if (state.user.plan === "Free" && state.user.credits <= 0) {
+    setSection("billing");
+    showBillingMessage("You have used all Free credits. Network Traffic Lab continues on Pro/Agency.");
+    return;
+  }
+
+  const button = document.querySelector("#networkLabButton");
+  button.disabled = true;
+  button.textContent = "Building...";
+  setLiveSignal(`building readable network traffic view for ${target}`);
+  document.querySelector("#networkLabResult").className = "result empty";
+  document.querySelector("#networkLabResult").innerHTML = `<h2>Building Network Traffic Lab</h2><p>Converting DNS, TLS and HTTP evidence into a Wireshark-style packet timeline.</p>`;
+
+  try {
+    const data = await api("/api/analyze", {
+      method: "POST",
+      body: JSON.stringify({ target, folder_id: activeFolderId() })
+    });
+    state.user = data.user;
+    state.reports.unshift({
+      id: data.report.id,
+      domain: data.report.domain,
+      score: data.report.score,
+      summary: data.report.summary,
+      generated_at: data.report.generated_at
+    });
+    state.reports = state.reports.slice(0, 50);
+    updateAccount();
+    renderNetworkLab(data.report);
+    renderReports();
+    await loadWorkspace();
+  } catch (error) {
+    document.querySelector("#networkLabResult").className = "result empty";
+    document.querySelector("#networkLabResult").innerHTML = `<h2 class="error">Error</h2><p>${escapeHtml(error.message)}</p>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Build traffic view";
+    setLiveSignal("passive sensors idle");
+  }
+}
+
 async function analyzeSocial(username) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
@@ -1468,6 +1753,21 @@ document.querySelector("#webAuditForm").addEventListener("submit", event => {
 document.querySelector("#loadOwnAudit").addEventListener("click", () => {
   document.querySelector("#webAuditTarget").value = "osintpro-48j4.onrender.com";
   buildWebAuditLab("osintpro-48j4.onrender.com");
+});
+
+document.querySelector("#networkLabForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const target = document.querySelector("#networkLabTarget").value.trim();
+  if (!target) {
+    document.querySelector("#networkLabTarget").focus();
+    return;
+  }
+  buildNetworkLab(target);
+});
+
+document.querySelector("#loadOwnNetworkLab").addEventListener("click", () => {
+  document.querySelector("#networkLabTarget").value = "osintpro-48j4.onrender.com";
+  buildNetworkLab("osintpro-48j4.onrender.com");
 });
 
 document.querySelector("#walletForm").addEventListener("submit", event => {

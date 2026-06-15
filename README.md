@@ -29,13 +29,14 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 - Passive technology fingerprinting from headers and web signals.
 - Risk findings, vulnerability hypotheses and Red/Purple Team recommendations derived only from passive evidence.
 - Web Audit Lab: Burp-style beginner workflow with safe commands, evidence checklist and technical glossary.
+- Network Traffic Lab: Wireshark-style readable packet timeline for DNS, TCP/TLS and HTTP evidence.
 - Social OSINT: public username presence checks across social, developer and community platforms.
 - Wallet OSINT: public Bitcoin and Ethereum/EVM balance, recent movements, counterparties and explorer links.
 - Entity graph: a workspace view that connects domains, usernames, profiles, DNS, findings, technologies, wallets, transactions and counterparties.
 - Monitoring: saved domains can be rechecked for public drift.
 - PDF/CSV exports for client delivery and internal case notes.
 
-OSINTPRO does not run exploits, brute force, credential attacks, invasive scans or wallet transactions. Wallet analysis is limited to public blockchain data and investigative visualization.
+OSINTPRO does not run exploits, brute force, credential attacks, invasive scans, unauthorized packet capture or wallet transactions. Wallet analysis is limited to public blockchain data and investigative visualization.
 
 ## Quick Links
 
@@ -63,7 +64,7 @@ OSINTPRO does not run exploits, brute force, credential attacks, invasive scans 
 - Private operational admin panel for production status, plans, backups and Stripe events.
 - Cron-protected monitoring and backup endpoints.
 - GitHub Actions workflow for free scheduled monitor runs and SQLite backup artifacts.
-- Beginner-friendly Web Audit Lab for authorized passive web review.
+- Beginner-friendly Web Audit Lab and Network Traffic Lab for authorized passive review.
 - Security-conscious repository hygiene: `.gitignore`, `.env.example`, `SECURITY.md`, no committed secrets.
 
 ## Local Development
@@ -207,11 +208,24 @@ The Web Audit Lab translates Burp Suite-style concepts into a beginner-friendly 
 
 It does not provide exploit payloads, automated fuzzing, brute force, credential attacks, callback exploitation or invasive crawling. It is designed for domains the user owns or is explicitly authorized to review.
 
+## Network Traffic Lab Scope
+
+The Network Traffic Lab translates Wireshark-style packet analysis into a simple, readable workflow:
+
+- DNS query and answer story for the authorized domain
+- TCP and TLS connection timeline in beginner language
+- certificate issuer, subject and expiry explained without raw noise
+- HTTP response status, server hint and security headers
+- copy-friendly Wireshark display filters for authorized local captures
+- safe terminal checks using `dig`, `curl` and `openssl`
+
+It does not secretly sniff traffic, capture other users' packets, decode private sessions or bypass encryption. Real packet capture should only be performed on devices and networks the operator owns or is explicitly authorized to inspect.
+
 ## GitHub Discovery Plan
 
 Free ways to improve repository traffic:
 
-- Keep the README in English with clear keywords: passive OSINT, domain intelligence, brand monitoring, crypto wallet OSINT, blockchain tracing, fraud investigation, threat intelligence.
+- Keep the README in English with clear keywords: passive OSINT, domain intelligence, brand monitoring, crypto wallet OSINT, blockchain tracing, fraud investigation, network traffic analysis, Wireshark workflow, threat intelligence.
 - Use GitHub topics that match real search intent.
 - Keep the live demo URL in the repository homepage.
 - Maintain `docs/SHOWCASE.md` with copy/paste launch posts and sanitized workflows.

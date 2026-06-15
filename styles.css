@@ -1332,6 +1332,32 @@ textarea:focus {
   font-size: 18px;
 }
 
+.packet-table {
+  display: grid;
+  gap: 10px;
+}
+
+.packet-row {
+  display: grid;
+  grid-template-columns: 54px 92px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .035);
+}
+
+.packet-row p,
+.packet-row small {
+  grid-column: 3;
+  margin: 0;
+}
+
+.packet-row strong {
+  color: var(--green);
+}
+
 .billing-message {
   display: none;
   margin-bottom: 14px;
