@@ -31,7 +31,7 @@ This is the free traffic plan for OSINTPRO.
 
 Share only with a passive/intelligence framing:
 
-- indie hacker communities
+- indie builder communities
 - web agency communities
 - blue-team and threat intelligence communities
 - OSINT learning groups

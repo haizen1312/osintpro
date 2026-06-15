@@ -1,9 +1,8 @@
 # OSINTPRO
 
-[![Live Demo](https://img.shields.io/badge/live-demo-39ffb8?style=for-the-badge)](https://osintpro-48j4.onrender.com/)
-[![Passive OSINT](https://img.shields.io/badge/passive-OSINT-62d8ff?style=for-the-badge)](#safety-boundary)
-[![Web Audit Lab](https://img.shields.io/badge/web-audit_lab-ffbd59?style=for-the-badge)](#web-audit-lab-scope)
-[![Wallet OSINT](https://img.shields.io/badge/wallet-OSINT-b8ffdf?style=for-the-badge)](#wallet-osint-scope)
+Live demo: https://osintpro-48j4.onrender.com/
+
+Sections: [Passive OSINT](#safety-boundary) | [Web Audit Lab](#web-audit-lab-scope) | [Wallet OSINT](#wallet-osint-scope) | [GitHub Growth](docs/GITHUB_GROWTH.md)
 
 OSINTPRO is a freemium passive OSINT SaaS for domain intelligence, brand monitoring, social username checks and blockchain wallet tracing.
 

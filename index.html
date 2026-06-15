@@ -69,6 +69,10 @@
       </section>
 
       <section class="section active" id="dashboard">
+        <div class="notice boundary-notice">
+          <strong>Authorized passive intelligence</strong>
+          <span>Use OSINTPRO only on assets, brands, public profiles and wallets you own, manage, investigate with permission or review for legitimate public-interest defense.</span>
+        </div>
         <div class="dashboard-grid">
           <article class="dash-card primary-dash">
             <span class="pill">Start here</span>
@@ -110,7 +114,7 @@
 
         <div class="notice">
           <strong>Social OSINT</strong>
-          <span>Passively checks public handles across social and developer platforms for brand monitoring, impersonation and due diligence.</span>
+          <span>Passively checks public handles across social and developer platforms for brand monitoring, impersonation and due diligence. Do not use it for harassment, stalking or unauthorized profiling.</span>
         </div>
 
         <div id="socialResult" class="result empty">
@@ -130,7 +134,7 @@
 
         <div class="notice">
           <strong>Product boundary</strong>
-          <span>Passive collection only: DNS, TLS certificate, public web posture and security headers. No aggressive scanning.</span>
+          <span>Passive collection only: DNS, TLS certificate, public web posture and security headers. No aggressive scanning, exploit execution, credential attacks or brute force.</span>
         </div>
 
         <div id="result" class="result empty">
@@ -158,7 +162,7 @@
 
         <div class="notice">
           <strong>Beginner-safe web testing</strong>
-          <span>Organizes passive checks, beginner commands and Burp Suite concepts without exploit automation, brute force or invasive scanning.</span>
+          <span>Organizes Burp Suite concepts, OWASP vulnerability classes, passive evidence and beginner commands without exploit automation, brute force or invasive scanning.</span>
         </div>
 
         <div id="webAuditResult" class="result empty">
@@ -177,7 +181,7 @@
         </div>
         <div class="notice">
           <strong>Passive correlation</strong>
-          <span>Connects domains, usernames, profiles, DNS, email posture, technologies, wallets, transactions and findings collected in your account.</span>
+          <span>Connects domains, usernames, profiles, DNS, email posture, technologies, wallets, transactions and findings collected in your account. Treat graph output as leads, not proof of identity.</span>
         </div>
         <div id="schemaResult" class="schema-layout">
           <div class="result empty">
@@ -204,7 +208,7 @@
         </form>
         <div class="notice">
           <strong>Fraud reconstruction</strong>
-          <span>Collects balance, recent movements, counterparties and fan-in/fan-out patterns from public blockchain sources for authorized investigations.</span>
+          <span>Collects balance, recent movements, counterparties and fan-in/fan-out patterns from public blockchain sources for authorized investigations. No wallet movement, deanonymization guarantee or evasion guidance.</span>
         </div>
         <div id="walletResult" class="result empty">
           <h2>No wallet analyzed yet</h2>
@@ -234,7 +238,7 @@
         </div>
         <div class="notice history-notice" id="historyNotice">
           <strong>Private history</strong>
-          <span>History is available only after login. Each account can only see its own reports.</span>
+          <span>History is available only after login. Each account can only see its own reports. Remove investigation data when it is no longer needed.</span>
         </div>
         <div class="report-list" id="reportList"></div>
         <div class="section-head secondary-head">
@@ -264,13 +268,17 @@
         </form>
         <div class="notice">
           <strong>Monetization</strong>
-          <span>Free monitors 1 domain. Pro monitors 5 domains. Agency monitors 25 client domains.</span>
+          <span>Free monitors 1 domain. Pro monitors 5 domains. Agency monitors 25 authorized client domains. Monitoring remains passive and public-signal based.</span>
         </div>
         <div class="monitor-list" id="monitorList"></div>
       </section>
 
       <section class="section" id="billing">
         <div class="billing-message" id="billingMessage"></div>
+        <div class="notice boundary-notice">
+          <strong>What paid plans unlock</strong>
+          <span>Paid plans increase reporting, retention and monitoring capacity. They do not unlock offensive payloads, brute force, credential attacks or invasive scanning.</span>
+        </div>
         <div class="pricing">
           <article>
             <span class="pill">Free</span>
