@@ -1071,7 +1071,9 @@ input:focus {
 .lab-card,
 .lab-panel,
 .command-card,
-.term-card {
+.term-card,
+.feature-card,
+.concept-card {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel-strong);
@@ -1155,19 +1157,25 @@ input:focus {
 
 .check-list,
 .command-list,
-.term-grid {
+.term-grid,
+.feature-grid,
+.concept-grid {
   display: grid;
   gap: 10px;
 }
 
 .command-card,
-.term-card {
+.term-card,
+.feature-card,
+.concept-card {
   padding: 13px;
   background: rgba(255, 255, 255, .028);
 }
 
 .command-card strong,
-.term-card strong {
+.term-card strong,
+.feature-card strong,
+.concept-card strong {
   display: block;
   margin-bottom: 8px;
 }
@@ -1190,9 +1198,34 @@ input:focus {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.feature-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.concept-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.disclaimer-panel {
+  border-color: rgba(255, 189, 89, .35);
+  background:
+    linear-gradient(135deg, rgba(255, 189, 89, .1), rgba(57, 255, 184, .035)),
+    var(--panel-strong);
+}
+
+.disclaimer-panel p {
+  margin: 0;
+}
+
 .term-card p,
-.command-card p {
+.command-card p,
+.feature-card p,
+.concept-card p {
   margin-bottom: 0;
+}
+
+.concept-card p + p {
+  margin-top: 8px;
 }
 
 .wallet-assets {
@@ -1464,6 +1497,8 @@ input:focus {
   .lab-grid,
   .lab-columns,
   .term-grid,
+  .feature-grid,
+  .concept-grid,
   .schema-grid,
   .dossier-grid,
   .dossier-meta,

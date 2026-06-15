@@ -262,6 +262,68 @@ function renderWebAuditLab(report) {
   const findings = report.findings || [];
   const commands = webAuditCommands(domain);
   const statuses = webAuditStatus(report);
+  const burpFeatures = [
+    ["Target", "Builds a site map and scope. In OSINTPRO this becomes a clear list of authorized domains and public evidence."],
+    ["Proxy", "Captures browser traffic so a tester can understand requests and responses before changing anything."],
+    ["Repeater", "Lets a tester manually resend one request. OSINTPRO recommends it for safe GET requests and evidence capture only."],
+    ["Decoder", "Helps read encoded values such as URL encoding or base64. Useful for understanding, not bypassing."],
+    ["Comparer", "Shows differences between two responses, for example before and after a security header fix."],
+    ["Logger", "Keeps a timeline of requests and responses. OSINTPRO maps this idea to report evidence."],
+    ["Sequencer", "Evaluates randomness of tokens. OSINTPRO explains the concept but does not collect sensitive tokens."],
+    ["Scanner", "Automates checks in Burp Suite. OSINTPRO does not run invasive scanning; it converts passive signals into a manual checklist."],
+    ["Intruder", "Repeats requests with many inputs. OSINTPRO does not provide payload automation because it can become brute force or abuse."],
+    ["Collaborator", "Detects out-of-band interactions. OSINTPRO does not run callback-based tests on third-party systems."]
+  ];
+  const exploitConcepts = [
+    {
+      title: "Cross-Site Scripting (XSS)",
+      risk: "Untrusted input can run script in a user's browser.",
+      safe: "Check whether CSP exists, identify input surfaces manually, and document where output encoding should be reviewed.",
+      blocked: "No ready-to-run script payloads or automated injection."
+    },
+    {
+      title: "SQL Injection",
+      risk: "Untrusted input can alter database queries.",
+      safe: "List forms, filters and API parameters that need server-side validation and prepared statements.",
+      blocked: "No database error probing, UNION payloads or automated parameter fuzzing."
+    },
+    {
+      title: "Access Control / IDOR",
+      risk: "A user may access another user's object by changing an identifier.",
+      safe: "Create a checklist for role boundaries, object ownership checks and audit evidence to collect in an authorized test account.",
+      blocked: "No attempts against real user data or unauthorized accounts."
+    },
+    {
+      title: "Authentication And Sessions",
+      risk: "Weak login, cookies or session handling can expose accounts.",
+      safe: "Review cookie flags, rate limits, logout behavior and password-change flows.",
+      blocked: "No password guessing, credential stuffing or token theft."
+    },
+    {
+      title: "Server-Side Request Forgery (SSRF)",
+      risk: "A server may fetch attacker-controlled URLs or internal resources.",
+      safe: "Identify features that accept URLs and document allowlist, timeout and metadata-IP protections to verify.",
+      blocked: "No internal network probes or callback exploitation."
+    },
+    {
+      title: "File Upload Risk",
+      risk: "Unsafe uploads can lead to malware hosting or code execution.",
+      safe: "Checklist allowed MIME types, extension validation, storage isolation, antivirus hooks and download headers.",
+      blocked: "No malicious file generation or upload bypass payloads."
+    },
+    {
+      title: "Command Injection",
+      risk: "User input may reach shell commands on the server.",
+      safe: "Identify input paths that trigger backend operations and require strict allowlists and no-shell execution.",
+      blocked: "No shell metacharacter payloads or execution attempts."
+    },
+    {
+      title: "CSRF",
+      risk: "A third-party site may trigger state-changing actions in a logged-in browser.",
+      safe: "Check SameSite cookies, CSRF tokens and whether state-changing routes require POST plus server-side validation.",
+      blocked: "No cross-site proof-of-concept pages."
+    }
+  ];
   const glossary = [
     ["Proxy", "A tool that sits between your browser and the website so you can inspect requests and responses."],
     ["Request", "The message your browser sends to a server, usually containing a method, path, headers and sometimes a body."],
@@ -311,6 +373,46 @@ function renderWebAuditLab(report) {
         <p>${findings.length ? "Review the prioritized issues below before touching any tooling." : "No priority passive findings."}</p>
       </article>
     </div>
+
+    <section class="lab-panel disclaimer-panel">
+      <div class="mini-head">
+        <span class="pill">Authorized use only</span>
+        <h3>Legal and safety boundary</h3>
+      </div>
+      <p>Use this lab only on domains, apps and accounts you own or are explicitly authorized to test. OSINTPRO provides passive evidence, beginner education and documentation workflows. Misuse against third-party systems is prohibited and remains the responsibility of the operator.</p>
+    </section>
+
+    <section class="lab-panel">
+      <div class="mini-head">
+        <span class="pill">Burp Suite map</span>
+        <h3>What each Burp-style feature means</h3>
+      </div>
+      <div class="feature-grid">
+        ${burpFeatures.map(([name, detail]) => `
+          <article class="feature-card">
+            <strong>${escapeHtml(name)}</strong>
+            <p>${escapeHtml(detail)}</p>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+
+    <section class="lab-panel">
+      <div class="mini-head">
+        <span class="pill">Exploit concepts</span>
+        <h3>Vulnerability classes explained safely</h3>
+      </div>
+      <div class="concept-grid">
+        ${exploitConcepts.map(item => `
+          <article class="concept-card">
+            <strong>${escapeHtml(item.title)}</strong>
+            <p><b>Risk:</b> ${escapeHtml(item.risk)}</p>
+            <p><b>Beginner-safe review:</b> ${escapeHtml(item.safe)}</p>
+            <p><b>Not automated here:</b> ${escapeHtml(item.blocked)}</p>
+          </article>
+        `).join("")}
+      </div>
+    </section>
 
     <div class="lab-columns">
       <section class="lab-panel">

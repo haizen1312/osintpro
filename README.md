@@ -1,8 +1,15 @@
 # OSINTPRO
 
+[![Live Demo](https://img.shields.io/badge/live-demo-39ffb8?style=for-the-badge)](https://osintpro-48j4.onrender.com/)
+[![Passive OSINT](https://img.shields.io/badge/passive-OSINT-62d8ff?style=for-the-badge)](#safety-boundary)
+[![Web Audit Lab](https://img.shields.io/badge/web-audit_lab-ffbd59?style=for-the-badge)](#web-audit-lab-scope)
+[![Wallet OSINT](https://img.shields.io/badge/wallet-OSINT-b8ffdf?style=for-the-badge)](#wallet-osint-scope)
+
 OSINTPRO is a freemium passive OSINT SaaS for domain intelligence, brand monitoring, social username checks and blockchain wallet tracing.
 
-It is built for consultants, small agencies, fraud analysts and security-minded founders who need fast, readable intelligence from public sources without running aggressive scans.
+It is built for consultants, small agencies, fraud analysts, security-minded founders and learners who need fast, readable intelligence from public sources without running aggressive scans.
+
+If this project is useful, star the repository and share the live demo. That helps the project reach more builders, investigators and defenders.
 
 Live app:
 
@@ -30,6 +37,14 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 - PDF/CSV exports for client delivery and internal case notes.
 
 OSINTPRO does not run exploits, brute force, credential attacks, invasive scans or wallet transactions. Wallet analysis is limited to public blockchain data and investigative visualization.
+
+## Quick Links
+
+- Live demo: `https://osintpro-48j4.onrender.com/`
+- Web Audit Lab guide: `docs/WEB_AUDIT_LAB.md`
+- GitHub growth playbook: `docs/GITHUB_GROWTH.md`
+- Showcase and share copy: `docs/SHOWCASE.md`
+- Product roadmap: `ROADMAP.md`
 
 ## Product Status
 
@@ -178,14 +193,16 @@ This feature is designed for authorized fraud reconstruction, scam wallet triage
 
 ## Web Audit Lab Scope
 
-The Web Audit Lab translates Burp Suite-style concepts into a beginner-friendly workflow:
+The Web Audit Lab translates Burp Suite-style concepts into a beginner-friendly authorized testing workflow:
 
 - proxy, request, response, headers, cookies, CSP and HSTS explained in plain English
 - safe terminal checks using `curl`, `openssl` and `dig`
 - evidence checklist for headers, `security.txt`, `robots.txt` and `sitemap.xml`
+- Burp feature map covering Target, Proxy, Repeater, Decoder, Comparer, Logger, Sequencer, Scanner, Intruder and Collaborator
+- vulnerability classes explained safely: XSS, SQL injection, IDOR, authentication/session risk, SSRF, file upload risk, command injection and CSRF
 - passive findings converted into client-ready next steps
 
-It does not run exploit payloads, automated fuzzing, brute force, credential attacks or invasive crawling. It is designed for domains the user owns or is explicitly authorized to review.
+It does not provide exploit payloads, automated fuzzing, brute force, credential attacks, callback exploitation or invasive crawling. It is designed for domains the user owns or is explicitly authorized to review.
 
 ## GitHub Discovery Plan
 
@@ -194,7 +211,7 @@ Free ways to improve repository traffic:
 - Keep the README in English with clear keywords: passive OSINT, domain intelligence, brand monitoring, crypto wallet OSINT, blockchain tracing, fraud investigation, threat intelligence.
 - Use GitHub topics that match real search intent.
 - Keep the live demo URL in the repository homepage.
-- Add screenshots or short demo GIFs after the UI stabilizes.
+- Maintain `docs/SHOWCASE.md` with copy/paste launch posts and sanitized workflows.
 - Publish small example reports with sanitized public targets.
 - Open roadmap issues for high-value features so GitHub has searchable project activity.
 - Share the live demo in relevant communities only with a passive/intelligence framing, not as an offensive scanner.
