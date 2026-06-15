@@ -44,6 +44,8 @@ body {
 
 button,
 input,
+select,
+textarea,
 a {
   font: inherit;
 }
@@ -411,9 +413,11 @@ label {
   font-weight: 900;
 }
 
-input {
+input,
+select,
+textarea {
   width: 100%;
-  height: 48px;
+  min-height: 48px;
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -422,7 +426,15 @@ input {
   outline: none;
 }
 
-input:focus {
+textarea {
+  min-height: 120px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
   border-color: var(--green);
   box-shadow: 0 0 0 3px rgba(15, 107, 87, .16);
 }
@@ -475,6 +487,18 @@ input:focus {
 
 .notice span {
   color: #d9bc8b;
+}
+
+.folder-picker {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(9, 18, 15, .72);
 }
 
 .result {
@@ -1288,6 +1312,26 @@ input:focus {
   border-color: rgba(15, 107, 87, .45);
 }
 
+.onboarding-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.onboarding-strip article {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(9, 18, 15, .74);
+}
+
+.onboarding-strip strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
 .billing-message {
   display: none;
   margin-bottom: 14px;
@@ -1494,6 +1538,8 @@ input:focus {
   .inline-admin-form,
   .restore-form,
   .dashboard-grid,
+  .folder-picker,
+  .onboarding-strip,
   .lab-grid,
   .lab-columns,
   .term-grid,

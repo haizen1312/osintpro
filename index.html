@@ -30,6 +30,7 @@
         <button class="nav-btn" data-section="wallet">Wallet Trace</button>
         <button class="nav-btn" data-section="web-audit">Web Audit Lab</button>
         <span class="nav-label">Workspace</span>
+        <button class="nav-btn" data-section="cases">Cases</button>
         <button class="nav-btn" data-section="schema">Entity Graph</button>
         <button class="nav-btn" data-section="reports">History</button>
         <button class="nav-btn" data-section="monitoring">Monitoring</button>
@@ -73,6 +74,13 @@
           <strong>Authorized passive intelligence</strong>
           <span>Use OSINTPRO only on assets, brands, public profiles and wallets you own, manage, investigate with permission or review for legitimate public-interest defense.</span>
         </div>
+        <div class="folder-picker">
+          <label for="activeFolder">Active client folder</label>
+          <select id="activeFolder">
+            <option value="">No client folder</option>
+          </select>
+          <button class="secondary small" type="button" data-section-jump="cases">Manage cases</button>
+        </div>
         <div class="dashboard-grid">
           <article class="dash-card primary-dash">
             <span class="pill">Start here</span>
@@ -101,6 +109,40 @@
             <p>Saved domains checked over time.</p>
           </article>
         </div>
+      </section>
+
+      <section class="section" id="cases">
+        <div class="section-head">
+          <div>
+            <span class="pill">Agency workspace</span>
+            <h2>Client folders and saved playbooks</h2>
+          </div>
+        </div>
+        <div class="notice">
+          <strong>Case organization</strong>
+          <span>Create a folder per client, investigation or retainer. New domain, social, wallet and monitoring items are saved into the active folder selected on the dashboard.</span>
+        </div>
+        <form id="folderForm" class="scan-form compact">
+          <div class="target-field">
+            <label for="folderName">Client or case name</label>
+            <input id="folderName" name="folderName" placeholder="Acme Q3 audit" autocomplete="off" spellcheck="false">
+          </div>
+          <button class="secondary" type="submit">Create folder</button>
+        </form>
+        <div class="section-head secondary-head">
+          <div>
+            <span class="pill">Folders</span>
+            <h2>Agency folders</h2>
+          </div>
+        </div>
+        <div class="report-list" id="folderList"></div>
+        <div class="section-head secondary-head">
+          <div>
+            <span class="pill">Playbooks</span>
+            <h2>Saved Web Audit Lab playbooks</h2>
+          </div>
+        </div>
+        <div class="report-list" id="playbookList"></div>
       </section>
 
       <section class="panel section" id="social">
@@ -279,6 +321,23 @@
           <strong>What paid plans unlock</strong>
           <span>Paid plans increase reporting, retention and monitoring capacity. They do not unlock offensive payloads, brute force, credential attacks or invasive scanning.</span>
         </div>
+        <div class="onboarding-strip">
+          <article>
+            <span class="pill">Free</span>
+            <strong>Validate one workflow</strong>
+            <p>Use starter credits to test domain, social, wallet and Web Audit Lab reports.</p>
+          </article>
+          <article>
+            <span class="pill">Pro</span>
+            <strong>Start recurring delivery</strong>
+            <p>Unlimited reports, PDF/CSV exports, saved playbooks and 5 monitored domains.</p>
+          </article>
+          <article>
+            <span class="pill">Agency</span>
+            <strong>Sell client folders</strong>
+            <p>Organize investigations by client, keep wallet notes and monitor up to 25 domains.</p>
+          </article>
+        </div>
         <div class="pricing">
           <article>
             <span class="pill">Free</span>
@@ -294,7 +353,7 @@
           </article>
           <article class="pro">
             <span class="pill">Pro</span>
-            <h2>€19/mese</h2>
+            <h2>€19/month</h2>
             <p>For founders, consultants and small teams that need continuous visibility.</p>
             <ul>
               <li>Unlimited reports</li>
@@ -308,7 +367,7 @@
           </article>
           <article class="agency">
             <span class="pill">Agency</span>
-            <h2>€79/mese</h2>
+            <h2>€79/month</h2>
             <p>For agencies selling client reporting and recurring monitoring.</p>
             <ul>
               <li>25 monitored domains</li>
@@ -359,6 +418,7 @@
           </article>
           <article class="auth-card">
             <h2>Change password</h2>
+            <p>Password reset is intentionally disabled until a trusted recovery channel is added. For now, signed-in users can change password with the current password.</p>
             <form id="passwordForm" class="auth-form">
               <label for="currentPassword">Current password</label>
               <input id="currentPassword" type="password" autocomplete="current-password" placeholder="Current password">

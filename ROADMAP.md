@@ -21,12 +21,16 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 - Manual notes and tags for wallets, counterparties and suspicious infrastructure.
 - Better case summaries for agencies and investigators.
 
+Status: client folders, active folder routing and saved playbook organization are implemented. Password reset remains gated until a trusted recovery channel exists.
+
 ### Wallet OSINT
 
 - Hop expansion for selected counterparties.
 - Manual labels such as exchange, scam, victim, bridge, mixer, service or unknown.
 - CSV export for wallet transactions and counterparties.
 - Case timeline view for suspicious wallet flows.
+
+Status: wallet CSV export, manual wallet tags, case notes and counterparty hop expansion are implemented. Timeline depth can improve later with richer public-chain sources.
 
 ### Reporting
 
@@ -36,6 +40,8 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 - Agency-friendly report branding.
 - Report comparison for monitored domains.
 
+Status: server-side PDF export and Web Audit Lab CSV/playbook export are implemented. Report comparison and branded templates remain future polish.
+
 ### Monetization
 
 - Better Free-to-Pro onboarding.
@@ -43,11 +49,15 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 - Billing status visibility after Stripe checkout.
 - Paid plan value messaging inside the app.
 
+Status: Free-to-Pro/Agency onboarding, billing status messaging and agency client folder value are implemented in the app.
+
 ### Infrastructure
 
 - Continue with SQLite and free Render/GitHub Actions backup artifacts while traffic is early.
 - Add PostgreSQL only after revenue supports persistent managed hosting.
 - Keep secrets in environment variables and out of GitHub.
+
+Status: SQLite remains the default zero-cost database. PostgreSQL is intentionally deferred until paid usage justifies managed infrastructure.
 
 ## Safety Boundary
 

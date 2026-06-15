@@ -321,15 +321,58 @@ def init_db() -> None:
                 status TEXT NOT NULL,
                 created_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS client_folders (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(user_id, name),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS wallet_annotations (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                chain TEXT NOT NULL,
+                address TEXT NOT NULL,
+                tags_json TEXT NOT NULL DEFAULT '[]',
+                notes TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(user_id, chain, address),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS web_audit_playbooks (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                report_id TEXT NOT NULL,
+                domain TEXT NOT NULL,
+                title TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
             """
         )
         ensure_column(connection, "users", "email", "TEXT")
         ensure_column(connection, "users", "nickname", "TEXT")
         ensure_column(connection, "users", "password_hash", "TEXT")
         ensure_column(connection, "users", "signup_fingerprint", "TEXT")
+        ensure_column(connection, "reports", "folder_id", "TEXT")
+        ensure_column(connection, "social_reports", "folder_id", "TEXT")
+        ensure_column(connection, "wallet_reports", "folder_id", "TEXT")
+        ensure_column(connection, "monitors", "folder_id", "TEXT")
         connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)")
         connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_nickname ON users(nickname)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_users_signup_fingerprint ON users(signup_fingerprint)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_reports_folder ON reports(user_id, folder_id)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_social_reports_folder ON social_reports(user_id, folder_id)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_wallet_reports_folder ON wallet_reports(user_id, folder_id)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_monitors_folder ON monitors(user_id, folder_id)")
 
 
 def ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
@@ -648,7 +691,7 @@ def validate_sqlite_database(path: Path) -> dict[str, object]:
         finally:
             connection.close()
     except sqlite3.DatabaseError as exc:
-        raise ValueError("File SQLite non valido.") from exc
+        raise ValueError("Invalid SQLite file.") from exc
     return {
         "users": user_count,
         "reports": report_count,
@@ -661,7 +704,7 @@ def restore_sqlite_backup(payload: bytes) -> dict[str, object]:
     if len(payload) > MAX_RESTORE_BYTES:
         raise ValueError("Backup is too large.")
     if not payload.startswith(b"SQLite format 3\x00"):
-        raise ValueError("File backup SQLite non valido.")
+        raise ValueError("Invalid SQLite backup file.")
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     temp_path = BACKUP_DIR / f"restore-{secrets.token_hex(8)}.sqlite3"
@@ -717,7 +760,7 @@ def is_paid_plan(plan: str) -> bool:
 def normalize_nickname(raw: str) -> str:
     value = raw.strip().lstrip("@").lower()
     if not USERNAME_RE.match(value):
-        raise ValueError("Nickname non valido: usa 2-32 caratteri, lettere, numeri, punto, underscore o trattino.")
+        raise ValueError("Invalid nickname: use 2-32 characters with letters, numbers, dot, underscore or dash.")
     return value
 
 
@@ -762,6 +805,44 @@ def clean_username(raw: str) -> str:
     if not USERNAME_RE.match(value):
         raise ValueError("Enter a valid username: 2-32 characters, letters, numbers, dot, underscore or dash.")
     return value
+
+
+def clean_folder_name(raw: str) -> str:
+    value = re.sub(r"\s+", " ", raw.strip())
+    if not 2 <= len(value) <= 64:
+        raise ValueError("Folder name must be 2-64 characters.")
+    if re.search(r"[<>]", value):
+        raise ValueError("Folder name contains unsupported characters.")
+    return value
+
+
+def clean_folder_id(raw: object) -> str | None:
+    value = str(raw or "").strip()
+    if not value:
+        return None
+    if not UUID_RE.match(value):
+        raise ValueError("Invalid client folder.")
+    return value
+
+
+def clean_tags(raw: object) -> list[str]:
+    if isinstance(raw, str):
+        items = raw.split(",")
+    elif isinstance(raw, list):
+        items = [str(item) for item in raw]
+    else:
+        items = []
+    tags = []
+    for item in items:
+        tag = re.sub(r"[^a-zA-Z0-9 _.-]+", "", item).strip().lower()
+        tag = re.sub(r"\s+", "-", tag)[:28]
+        if tag and tag not in tags:
+            tags.append(tag)
+    return tags[:12]
+
+
+def clean_case_note(raw: object) -> str:
+    return redact_text(str(raw or "").strip())[:1600]
 
 
 def clean_wallet_address(raw: str) -> tuple[str, str]:
@@ -1873,12 +1954,27 @@ def analyze(raw_target: str) -> dict[str, object]:
     return report
 
 
-def store_report(connection: sqlite3.Connection, user_id: str, report: dict[str, object]) -> None:
+def folder_exists(connection: sqlite3.Connection, user_id: str, folder_id: str | None) -> bool:
+    if not folder_id:
+        return True
+    row = connection.execute(
+        "SELECT id FROM client_folders WHERE user_id = ? AND id = ?",
+        (user_id, folder_id),
+    ).fetchone()
+    return bool(row)
+
+
+def store_report(
+    connection: sqlite3.Connection,
+    user_id: str,
+    report: dict[str, object],
+    folder_id: str | None = None,
+) -> None:
     report = redact_data(report)
     connection.execute(
         """
-        INSERT INTO reports (id, user_id, domain, score, summary, generated_at, payload_json, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO reports (id, user_id, domain, score, summary, generated_at, payload_json, created_at, folder_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             report["id"],
@@ -1889,16 +1985,22 @@ def store_report(connection: sqlite3.Connection, user_id: str, report: dict[str,
             report["generated_at"],
             json.dumps(report),
             utc_now(),
+            folder_id,
         ),
     )
 
 
-def store_social_report(connection: sqlite3.Connection, user_id: str, report: dict[str, object]) -> None:
+def store_social_report(
+    connection: sqlite3.Connection,
+    user_id: str,
+    report: dict[str, object],
+    folder_id: str | None = None,
+) -> None:
     report = redact_data(report)
     connection.execute(
         """
-        INSERT INTO social_reports (id, user_id, username, score, summary, generated_at, payload_json, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO social_reports (id, user_id, username, score, summary, generated_at, payload_json, created_at, folder_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             report["id"],
@@ -1909,16 +2011,22 @@ def store_social_report(connection: sqlite3.Connection, user_id: str, report: di
             report["generated_at"],
             json.dumps(report),
             utc_now(),
+            folder_id,
         ),
     )
 
 
-def store_wallet_report(connection: sqlite3.Connection, user_id: str, report: dict[str, object]) -> None:
+def store_wallet_report(
+    connection: sqlite3.Connection,
+    user_id: str,
+    report: dict[str, object],
+    folder_id: str | None = None,
+) -> None:
     report = redact_data(report)
     connection.execute(
         """
-        INSERT INTO wallet_reports (id, user_id, chain, address, risk_score, summary, generated_at, payload_json, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO wallet_reports (id, user_id, chain, address, risk_score, summary, generated_at, payload_json, created_at, folder_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             report["id"],
@@ -1930,6 +2038,7 @@ def store_wallet_report(connection: sqlite3.Connection, user_id: str, report: di
             report["generated_at"],
             json.dumps(report),
             utc_now(),
+            folder_id,
         ),
     )
 
@@ -2122,9 +2231,9 @@ def report_document(report: dict[str, object]) -> str:
       <h2>Red/Purple Team</h2>
       <table><thead><tr><th>Severity</th><th>Hypothesis</th><th>Evidence</th><th>Next step</th></tr></thead><tbody>{vuln_rows or "<tr><td>ok</td><td>No priority hypotheses</td><td></td><td></td></tr>"}</tbody></table>
       <h2>Red team paths</h2>
-      <table><thead><tr><th>Path</th><th>Obiettivo</th><th>Segnale</th></tr></thead><tbody>{red_rows}</tbody></table>
+      <table><thead><tr><th>Path</th><th>Objective</th><th>Signal</th></tr></thead><tbody>{red_rows}</tbody></table>
       <h2>Purple team controls</h2>
-      <table><thead><tr><th>Controllo</th><th>Perche</th><th>Cadenza</th></tr></thead><tbody>{purple_rows}</tbody></table>
+      <table><thead><tr><th>Control</th><th>Reason</th><th>Cadence</th></tr></thead><tbody>{purple_rows}</tbody></table>
     </section>
     <section>
       <h2>Security header</h2>
@@ -2133,6 +2242,100 @@ def report_document(report: dict[str, object]) -> str:
   </main>
 </body>
 </html>"""
+
+
+def pdf_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def report_pdf(report: dict[str, object]) -> bytes:
+    title = f"OSINTPRO Report - {report.get('domain', 'target')}"
+    text_lines = [
+        title,
+        f"Generated: {report.get('generated_at', '')}",
+        f"Score: {report.get('score', 0)}/100",
+        "",
+        str(report.get("summary", "")),
+        "",
+        "Recommendations",
+        *[f"- {item}" for item in recommendations(report)[:8]],
+        "",
+        "Findings",
+        *[
+            f"- {item.get('level', 'info')}: {item.get('title', '')} - {item.get('detail', '')}"
+            for item in (report.get("findings") or [])[:10]
+        ],
+        "",
+        "Passive boundary",
+        "This report uses passive public signals only. It does not prove identity and does not include exploit payloads, brute force or invasive scanning.",
+    ]
+    y = 760
+    stream_lines = ["BT", "/F1 11 Tf", "50 790 Td"]
+    for raw_line in text_lines:
+        line = re.sub(r"\s+", " ", redact_text(str(raw_line)))[:110]
+        if y < 70:
+            break
+        stream_lines.append(f"({pdf_escape(line)}) Tj")
+        stream_lines.append("0 -17 Td")
+        y -= 17
+    stream_lines.append("ET")
+    stream = "\n".join(stream_lines).encode("latin-1", "replace")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream",
+    ]
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for index, obj in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{index} 0 obj\n".encode("ascii"))
+        pdf.extend(obj)
+        pdf.extend(b"\nendobj\n")
+    xref = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode("ascii"))
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    pdf.extend(
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode("ascii")
+    )
+    return bytes(pdf)
+
+
+def web_audit_playbook_payload(report: dict[str, object]) -> dict[str, object]:
+    headers = report.get("https", {}).get("security_headers", []) if isinstance(report.get("https"), dict) else []
+    web = report.get("web_presence", {}) if isinstance(report.get("web_presence"), dict) else {}
+    checklist = [
+        {"item": item.get("name", ""), "status": "ok" if item.get("present") else "missing", "evidence": item.get("value") or item.get("reason") or ""}
+        for item in headers
+    ]
+    for label in ("security_txt", "robots_txt", "sitemap_xml", "mta_sts_policy"):
+        value = web.get(label, {}) if isinstance(web.get(label), dict) else {}
+        checklist.append({
+            "item": label.replace("_", "."),
+            "status": "ok" if value.get("present") else "missing",
+            "evidence": f"HTTP {value.get('status')}" if value.get("status") else "not observed",
+        })
+    return redact_data({
+        "domain": report.get("domain"),
+        "report_id": report.get("id"),
+        "generated_at": utc_now(),
+        "summary": report.get("summary"),
+        "checklist": checklist,
+        "glossary": [
+            {"term": "Scope", "definition": "The exact assets the operator is authorized to review."},
+            {"term": "Evidence", "definition": "Headers, status codes, DNS records and screenshots that support the finding."},
+            {"term": "Finding", "definition": "A passive signal that should be reviewed or remediated by the owner."},
+        ],
+        "safe_workflow": [
+            "Confirm authorization and write scope.",
+            "Collect passive DNS, TLS, headers and public files.",
+            "Document evidence without exploit payloads or brute force.",
+            "Prioritize fixes and retest passively.",
+        ],
+    })
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -2364,13 +2567,77 @@ class Handler(SimpleHTTPRequestHandler):
             return []
         return self.monitors_for_user(str(user["_id"]))
 
+    def folders_for_user(self, user_id: str) -> list[dict[str, object]]:
+        with db() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    client_folders.id,
+                    client_folders.name,
+                    client_folders.created_at,
+                    COUNT(DISTINCT reports.id) AS domain_reports,
+                    COUNT(DISTINCT social_reports.id) AS social_reports,
+                    COUNT(DISTINCT wallet_reports.id) AS wallet_reports,
+                    COUNT(DISTINCT monitors.id) AS monitors
+                FROM client_folders
+                LEFT JOIN reports ON reports.folder_id = client_folders.id AND reports.user_id = client_folders.user_id
+                LEFT JOIN social_reports ON social_reports.folder_id = client_folders.id AND social_reports.user_id = client_folders.user_id
+                LEFT JOIN wallet_reports ON wallet_reports.folder_id = client_folders.id AND wallet_reports.user_id = client_folders.user_id
+                LEFT JOIN monitors ON monitors.folder_id = client_folders.id AND monitors.user_id = client_folders.user_id
+                WHERE client_folders.user_id = ?
+                GROUP BY client_folders.id
+                ORDER BY client_folders.updated_at DESC
+                """,
+                (user_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def wallet_annotations_for_user(self, user_id: str) -> dict[str, dict[str, object]]:
+        with db() as connection:
+            rows = connection.execute(
+                """
+                SELECT chain, address, tags_json, notes, updated_at
+                FROM wallet_annotations
+                WHERE user_id = ?
+                """,
+                (user_id,),
+            ).fetchall()
+        annotations = {}
+        for row in rows:
+            try:
+                tags = json.loads(row["tags_json"])
+            except json.JSONDecodeError:
+                tags = []
+            annotations[f"{row['chain']}:{row['address']}"] = {
+                "tags": tags if isinstance(tags, list) else [],
+                "notes": row["notes"],
+                "updated_at": row["updated_at"],
+            }
+        return annotations
+
+    def playbooks_for_user(self, user_id: str) -> list[dict[str, object]]:
+        with db() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, report_id, domain, title, created_at, updated_at
+                FROM web_audit_playbooks
+                WHERE user_id = ?
+                ORDER BY updated_at DESC
+                LIMIT 50
+                """,
+                (user_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def intelligence_workspace(self, user: dict[str, object]) -> dict[str, object]:
         if not user.get("authenticated"):
             return {
                 "authenticated": False,
                 "nodes": [],
                 "edges": [],
-                "dossiers": {"sites": [], "people": []},
+                "dossiers": {"sites": [], "people": [], "wallets": []},
+                "folders": [],
+                "playbooks": [],
                 "wallet": {
                     "assets": [],
                     "credits": user.get("credits", 0),
@@ -2386,7 +2653,7 @@ class Handler(SimpleHTTPRequestHandler):
         with db() as connection:
             report_rows = connection.execute(
                 """
-                SELECT id, domain, score, summary, generated_at, payload_json
+                SELECT id, domain, score, summary, generated_at, payload_json, folder_id
                 FROM reports
                 WHERE user_id = ?
                 ORDER BY created_at DESC
@@ -2396,7 +2663,7 @@ class Handler(SimpleHTTPRequestHandler):
             ).fetchall()
             social_rows = connection.execute(
                 """
-                SELECT id, username, score, summary, generated_at, payload_json
+                SELECT id, username, score, summary, generated_at, payload_json, folder_id
                 FROM social_reports
                 WHERE user_id = ?
                 ORDER BY created_at DESC
@@ -2406,7 +2673,7 @@ class Handler(SimpleHTTPRequestHandler):
             ).fetchall()
             wallet_rows = connection.execute(
                 """
-                SELECT id, chain, address, risk_score, summary, generated_at, payload_json
+                SELECT id, chain, address, risk_score, summary, generated_at, payload_json, folder_id
                 FROM wallet_reports
                 WHERE user_id = ?
                 ORDER BY created_at DESC
@@ -2416,10 +2683,19 @@ class Handler(SimpleHTTPRequestHandler):
             ).fetchall()
             monitor_rows = connection.execute(
                 """
-                SELECT domain, status, last_score, last_checked_at
+                SELECT domain, status, last_score, last_checked_at, folder_id
                 FROM monitors
                 WHERE user_id = ?
                 ORDER BY created_at DESC
+                """,
+                (user["_id"],),
+            ).fetchall()
+            folder_rows = connection.execute(
+                """
+                SELECT id, name, created_at
+                FROM client_folders
+                WHERE user_id = ?
+                ORDER BY updated_at DESC
                 """,
                 (user["_id"],),
             ).fetchall()
@@ -2430,6 +2706,9 @@ class Handler(SimpleHTTPRequestHandler):
         people: list[dict[str, object]] = []
         wallets: list[dict[str, object]] = []
         assets: list[dict[str, object]] = []
+        folders = [dict(row) for row in folder_rows]
+        folder_names = {row["id"]: row["name"] for row in folder_rows}
+        wallet_annotations = self.wallet_annotations_for_user(str(user["_id"]))
 
         def add_node(node_id: str, label: str, node_type: str, score: int | None = None, meta: str = "") -> None:
             if not label:
@@ -2463,6 +2742,12 @@ class Handler(SimpleHTTPRequestHandler):
             score = int(report.get("score") or row["score"] or 0)
             add_node(root, domain, "site", score, "domain dossier")
             assets.append({"type": "site", "label": domain, "score": score, "monitored": domain in monitor_map})
+            folder_id = row["folder_id"]
+            folder_name = folder_names.get(folder_id, "") if folder_id else ""
+            if folder_name:
+                folder_node = f"folder:{folder_id}"
+                add_node(folder_node, folder_name, "folder", None, "client folder")
+                add_edge(folder_node, root, "contains", "case")
 
             dns = report.get("dns") or {}
             email = report.get("email_security") or {}
@@ -2531,6 +2816,8 @@ class Handler(SimpleHTTPRequestHandler):
                 "findings": (report.get("findings") or [])[:5],
                 "vulnerabilities": (report.get("vulnerability_hypotheses") or [])[:4],
                 "monitored": domain in monitor_map,
+                "folder_id": folder_id,
+                "folder": folder_name,
             }))
 
         for row in social_rows:
@@ -2545,6 +2832,12 @@ class Handler(SimpleHTTPRequestHandler):
             found = [profile for profile in profiles if profile.get("present") is True]
             add_node(root, f"@{username}", "person", score, "nickname dossier")
             assets.append({"type": "person", "label": f"@{username}", "score": score, "monitored": False})
+            folder_id = row["folder_id"]
+            folder_name = folder_names.get(folder_id, "") if folder_id else ""
+            if folder_name:
+                folder_node = f"folder:{folder_id}"
+                add_node(folder_node, folder_name, "folder", None, "client folder")
+                add_edge(folder_node, root, "contains", "case")
             for profile in found[:12]:
                 platform = profile.get("platform")
                 node_id = f"profile:{username}:{platform}"
@@ -2565,6 +2858,8 @@ class Handler(SimpleHTTPRequestHandler):
                 "profiles_found": len(found),
                 "profiles": found[:10],
                 "findings": (report.get("findings") or [])[:5],
+                "folder_id": folder_id,
+                "folder": folder_name,
             }))
 
         for row in wallet_rows:
@@ -2578,6 +2873,17 @@ class Handler(SimpleHTTPRequestHandler):
             risk_score = int(report.get("risk_score") or row["risk_score"] or 0)
             add_node(root, compact_address(address), "wallet", risk_score, chain)
             assets.append({"type": "wallet", "label": compact_address(address), "score": risk_score, "monitored": False})
+            folder_id = row["folder_id"]
+            folder_name = folder_names.get(folder_id, "") if folder_id else ""
+            annotation = wallet_annotations.get(f"{chain}:{address}", {"tags": [], "notes": ""})
+            if folder_name:
+                folder_node = f"folder:{folder_id}"
+                add_node(folder_node, folder_name, "folder", None, "client folder")
+                add_edge(folder_node, root, "contains", "case")
+            for tag in annotation.get("tags", [])[:8]:
+                tag_node = f"wallet-tag:{tag}"
+                add_node(tag_node, str(tag), "tag", None, "manual label")
+                add_edge(root, tag_node, "manual tag", "case")
 
             for tx in (report.get("transactions") or [])[:10]:
                 tx_hash = str(tx.get("hash") or "")
@@ -2614,6 +2920,9 @@ class Handler(SimpleHTTPRequestHandler):
                 "counterparties": (report.get("counterparties") or [])[:8],
                 "findings": (report.get("findings") or [])[:5],
                 "explorer_url": report.get("explorer_url"),
+                "folder_id": folder_id,
+                "folder": folder_name,
+                "annotation": annotation,
             }))
 
         scores = (
@@ -2627,6 +2936,8 @@ class Handler(SimpleHTTPRequestHandler):
             "nodes": list(nodes.values())[:140],
             "edges": edges[:220],
             "dossiers": {"sites": sites, "people": people, "wallets": wallets},
+            "folders": self.folders_for_user(str(user["_id"])),
+            "playbooks": self.playbooks_for_user(str(user["_id"])),
             "wallet": {
                 "assets": assets[:60],
                 "credits": user.get("credits", 0),
@@ -2746,6 +3057,27 @@ class Handler(SimpleHTTPRequestHandler):
                 ORDER BY created_at ASC
                 """
             ).fetchall()
+            folders = connection.execute(
+                """
+                SELECT id, user_id, name, created_at, updated_at
+                FROM client_folders
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+            wallet_annotations = connection.execute(
+                """
+                SELECT id, user_id, chain, address, tags_json, notes, created_at, updated_at
+                FROM wallet_annotations
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+            playbooks = connection.execute(
+                """
+                SELECT id, user_id, report_id, domain, title, created_at, updated_at
+                FROM web_audit_playbooks
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
         return redact_data({
             "exported_at": utc_now(),
             "kind": "osintpro_sanitized_admin_export",
@@ -2755,6 +3087,9 @@ class Handler(SimpleHTTPRequestHandler):
             "wallet_reports": [dict(row) for row in wallet_reports],
             "monitors": [dict(row) for row in monitors],
             "stripe_events": [dict(row) for row in stripe_events],
+            "client_folders": [dict(row) for row in folders],
+            "wallet_annotations": [dict(row) for row in wallet_annotations],
+            "web_audit_playbooks": [dict(row) for row in playbooks],
         })
 
     def fetch_report(self, user_id: str, report_id: str) -> dict[str, object] | None:
@@ -2783,6 +3118,8 @@ class Handler(SimpleHTTPRequestHandler):
                 "social_reports": self.visible_social_reports_for_user(user),
                 "wallet_reports": self.visible_wallet_reports_for_user(user),
                 "monitors": self.visible_monitors_for_user(user),
+                "folders": self.folders_for_user(str(user["_id"])) if user.get("authenticated") else [],
+                "playbooks": self.playbooks_for_user(str(user["_id"])) if user.get("authenticated") else [],
                 "pricing": {
                     "pro": {"price": "19", "monitors": 5},
                     "agency": {"price": "79", "monitors": 25},
@@ -2797,6 +3134,20 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/wallet/reports":
             user, headers = self.get_or_create_user()
             self.send_json({"wallet_reports": self.visible_wallet_reports_for_user(user)}, headers=headers)
+            return
+        if parsed.path == "/api/client-folders":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"folders": []}, headers=headers)
+                return
+            self.send_json({"folders": self.folders_for_user(str(user["_id"]))}, headers=headers)
+            return
+        if parsed.path == "/api/web-audit/playbooks":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"playbooks": []}, headers=headers)
+                return
+            self.send_json({"playbooks": self.playbooks_for_user(str(user["_id"]))}, headers=headers)
             return
         if parsed.path == "/api/reports":
             user, headers = self.get_or_create_user()
@@ -2884,6 +3235,44 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             self.send_html(report_document(report), headers=headers)
             return
+        if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/pdf"):
+            user, headers = self.get_or_create_user()
+            report_id = parsed.path.split("/")[3]
+            report = self.fetch_report(str(user["_id"]), report_id)
+            if not report:
+                self.send_json({"error": "Report not found"}, 404, headers)
+                return
+            body = report_pdf(report)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/pdf")
+            self.send_header("Content-Disposition", f"attachment; filename=osintpro-{report_id}.pdf")
+            self.send_header("Content-Length", str(len(body)))
+            for key, value in headers.items():
+                self.send_header(key, value)
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/web-audit.csv"):
+            user, headers = self.get_or_create_user()
+            report_id = parsed.path.split("/")[3]
+            report = self.fetch_report(str(user["_id"]), report_id)
+            if not report:
+                self.send_json({"error": "Report not found"}, 404, headers)
+                return
+            payload = web_audit_playbook_payload(report)
+            lines = ["item,status,evidence"]
+            for item in payload["checklist"]:
+                lines.append(",".join(csv_cell(item.get(key, "")) for key in ("item", "status", "evidence")))
+            body = ("\n".join(lines) + "\n").encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition", f"attachment; filename=osintpro-web-audit-{report_id}.csv")
+            self.send_header("Content-Length", str(len(body)))
+            for key, value in headers.items():
+                self.send_header(key, value)
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if parsed.path == "/api/reports.csv":
             user, headers = self.get_or_create_user()
             reports = self.visible_reports_for_user(user)
@@ -2895,6 +3284,23 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/csv; charset=utf-8")
             self.send_header("Content-Disposition", "attachment; filename=osintpro-reports.csv")
+            self.send_header("Content-Length", str(len(body)))
+            for key, value in headers.items():
+                self.send_header(key, value)
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/api/wallet/reports.csv":
+            user, headers = self.get_or_create_user()
+            reports = self.visible_wallet_reports_for_user(user)
+            lines = ["chain,address,risk_score,generated_at,summary"]
+            for item in reports:
+                values = [item["chain"], item["address"], item["risk_score"], item["generated_at"], item["summary"]]
+                lines.append(",".join(csv_cell(value) for value in values))
+            body = ("\n".join(lines) + "\n").encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition", "attachment; filename=osintpro-wallet-reports.csv")
             self.send_header("Content-Length", str(len(body)))
             for key, value in headers.items():
                 self.send_header(key, value)
@@ -3004,13 +3410,109 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, 400, headers)
             return
 
+        if parsed.path == "/api/client-folders":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to create client folders."}, 401, headers)
+                return
+            try:
+                body = self.read_json()
+                name = clean_folder_name(str(body.get("name", "")))
+                now = utc_now()
+                with db() as connection:
+                    connection.execute(
+                        """
+                        INSERT INTO client_folders (id, user_id, name, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (str(uuid.uuid4()), user["_id"], name, now, now),
+                    )
+                self.send_json({"folders": self.folders_for_user(str(user["_id"]))}, status=201, headers=headers)
+            except sqlite3.IntegrityError:
+                self.send_json({"error": "Client folder already exists."}, 409, headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            return
+
+        if parsed.path == "/api/wallet/annotations":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to save wallet notes."}, 401, headers)
+                return
+            try:
+                body = self.read_json()
+                chain, address = clean_wallet_address(str(body.get("address", "")))
+                tags = clean_tags(body.get("tags", []))
+                notes = clean_case_note(body.get("notes", ""))
+                now = utc_now()
+                with db() as connection:
+                    connection.execute(
+                        """
+                        INSERT INTO wallet_annotations (id, user_id, chain, address, tags_json, notes, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(user_id, chain, address)
+                        DO UPDATE SET tags_json = excluded.tags_json, notes = excluded.notes, updated_at = excluded.updated_at
+                        """,
+                        (str(uuid.uuid4()), user["_id"], chain, address, json.dumps(tags), notes, now, now),
+                    )
+                self.send_json({
+                    "ok": True,
+                    "annotation": {"chain": chain, "address": address, "tags": tags, "notes": notes, "updated_at": now},
+                    "workspace": self.intelligence_workspace(user),
+                }, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            return
+
+        if parsed.path == "/api/web-audit/playbooks":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to save Web Audit playbooks."}, 401, headers)
+                return
+            try:
+                body = self.read_json()
+                report_id = str(body.get("report_id", ""))
+                if not UUID_RE.match(report_id):
+                    raise ValueError("Invalid report.")
+                report = self.fetch_report(str(user["_id"]), report_id)
+                if not report:
+                    self.send_json({"error": "Report not found."}, 404, headers)
+                    return
+                payload = web_audit_playbook_payload(report)
+                now = utc_now()
+                with db() as connection:
+                    connection.execute(
+                        """
+                        INSERT INTO web_audit_playbooks (id, user_id, report_id, domain, title, payload_json, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            str(uuid.uuid4()),
+                            user["_id"],
+                            report_id,
+                            report.get("domain", ""),
+                            f"Web Audit Lab - {report.get('domain', '')}",
+                            json.dumps(payload),
+                            now,
+                            now,
+                        ),
+                    )
+                self.send_json({"playbooks": self.playbooks_for_user(str(user["_id"]))}, status=201, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            return
+
         if parsed.path == "/api/analyze":
             user, headers = self.get_or_create_user()
             try:
                 body = self.read_json()
                 target = str(body.get("target", ""))
+                folder_id = clean_folder_id(body.get("folder_id"))
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
+                    if not folder_exists(connection, str(user["_id"]), folder_id):
+                        self.send_json({"error": "Client folder not found."}, 404, headers)
+                        return
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
                         self.send_json({"error": "Free credits exhausted. Upgrade to Pro to continue."}, 402, headers)
                         return
@@ -3022,7 +3524,7 @@ class Handler(SimpleHTTPRequestHandler):
                             (utc_now(), user["_id"]),
                         )
                     if user.get("authenticated"):
-                        store_report(connection, str(user["_id"]), report)
+                        store_report(connection, str(user["_id"]), report, folder_id)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                 self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
@@ -3036,8 +3538,12 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 body = self.read_json()
                 target = str(body.get("username", ""))
+                folder_id = clean_folder_id(body.get("folder_id"))
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
+                    if not folder_exists(connection, str(user["_id"]), folder_id):
+                        self.send_json({"error": "Client folder not found."}, 404, headers)
+                        return
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
                         self.send_json({"error": "Free credits exhausted. Upgrade to Pro to continue."}, 402, headers)
                         return
@@ -3049,7 +3555,7 @@ class Handler(SimpleHTTPRequestHandler):
                             (utc_now(), user["_id"]),
                         )
                     if user.get("authenticated"):
-                        store_social_report(connection, str(user["_id"]), report)
+                        store_social_report(connection, str(user["_id"]), report, folder_id)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                 self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
@@ -3063,8 +3569,12 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 body = self.read_json()
                 address = str(body.get("address", ""))
+                folder_id = clean_folder_id(body.get("folder_id"))
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
+                    if not folder_exists(connection, str(user["_id"]), folder_id):
+                        self.send_json({"error": "Client folder not found."}, 404, headers)
+                        return
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
                         self.send_json({"error": "Free credits exhausted. Upgrade to Pro to continue."}, 402, headers)
                         return
@@ -3076,7 +3586,7 @@ class Handler(SimpleHTTPRequestHandler):
                             (utc_now(), user["_id"]),
                         )
                     if user.get("authenticated"):
-                        store_wallet_report(connection, str(user["_id"]), report)
+                        store_wallet_report(connection, str(user["_id"]), report, folder_id)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                 self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
@@ -3093,8 +3603,12 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 body = self.read_json()
                 domain = clean_domain(str(body.get("domain", "")))
+                folder_id = clean_folder_id(body.get("folder_id"))
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
+                    if not folder_exists(connection, str(user["_id"]), folder_id):
+                        self.send_json({"error": "Client folder not found."}, 404, headers)
+                        return
                     current_count = connection.execute(
                         "SELECT COUNT(*) AS count FROM monitors WHERE user_id = ?",
                         (user["_id"],),
@@ -3106,10 +3620,10 @@ class Handler(SimpleHTTPRequestHandler):
                     now = utc_now()
                     connection.execute(
                         """
-                        INSERT INTO monitors (id, user_id, domain, status, created_at, updated_at)
-                        VALUES (?, ?, ?, 'pending', ?, ?)
+                        INSERT INTO monitors (id, user_id, domain, status, created_at, updated_at, folder_id)
+                        VALUES (?, ?, ?, 'pending', ?, ?, ?)
                         """,
-                        (str(uuid.uuid4()), user["_id"], domain, now, now),
+                        (str(uuid.uuid4()), user["_id"], domain, now, now, folder_id),
                     )
                 self.send_json({"monitors": self.monitors_for_user(str(user["_id"]))}, status=201, headers=headers)
             except sqlite3.IntegrityError:
@@ -3333,6 +3847,8 @@ class Handler(SimpleHTTPRequestHandler):
                 connection.execute("DELETE FROM reports WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM social_reports WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM wallet_reports WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM wallet_annotations WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM web_audit_playbooks WHERE user_id = ?", (user["_id"],))
             self.send_json({"reports": [], "social_reports": [], "wallet_reports": []}, headers=headers)
             return
         if parsed.path == "/api/account":
@@ -3347,6 +3863,9 @@ class Handler(SimpleHTTPRequestHandler):
                 connection.execute("DELETE FROM reports WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM social_reports WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM wallet_reports WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM wallet_annotations WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM web_audit_playbooks WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM client_folders WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM monitors WHERE user_id = ?", (user["_id"],))
                 connection.execute("UPDATE stripe_events SET user_id = NULL WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM users WHERE id = ?", (user["_id"],))
@@ -3361,6 +3880,23 @@ class Handler(SimpleHTTPRequestHandler):
             with db() as connection:
                 connection.execute("DELETE FROM monitors WHERE user_id = ? AND id = ?", (user["_id"], monitor_id))
             self.send_json({"monitors": self.monitors_for_user(str(user["_id"]))}, headers=headers)
+            return
+        if parsed.path.startswith("/api/client-folders/"):
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to manage client folders."}, 401, headers)
+                return
+            folder_id = parsed.path.split("/")[-1]
+            if not UUID_RE.match(folder_id):
+                self.send_json({"error": "Invalid client folder."}, 400, headers)
+                return
+            with db() as connection:
+                connection.execute("UPDATE reports SET folder_id = NULL WHERE user_id = ? AND folder_id = ?", (user["_id"], folder_id))
+                connection.execute("UPDATE social_reports SET folder_id = NULL WHERE user_id = ? AND folder_id = ?", (user["_id"], folder_id))
+                connection.execute("UPDATE wallet_reports SET folder_id = NULL WHERE user_id = ? AND folder_id = ?", (user["_id"], folder_id))
+                connection.execute("UPDATE monitors SET folder_id = NULL WHERE user_id = ? AND folder_id = ?", (user["_id"], folder_id))
+                connection.execute("DELETE FROM client_folders WHERE user_id = ? AND id = ?", (user["_id"], folder_id))
+            self.send_json({"folders": self.folders_for_user(str(user["_id"]))}, headers=headers)
             return
         self.send_json({"error": "Endpoint not found"}, 404)
 

@@ -4,8 +4,12 @@ const state = {
   socialReports: [],
   walletReports: [],
   monitors: [],
+  folders: [],
+  playbooks: [],
   workspace: null,
-  checkoutConfigured: false
+  checkoutConfigured: false,
+  currentWallet: null,
+  currentWebAuditReportId: null
 };
 
 if (localStorage.getItem("op-performance-mode") === "on") {
@@ -143,6 +147,17 @@ function flag(value) {
   return `<span class="tag ${value ? "" : "missing"}">${value ? "OK" : "Missing"}</span>`;
 }
 
+function folderOptions(selected = "") {
+  return `<option value="">No client folder</option>${state.folders.map(folder => `
+    <option value="${escapeHtml(folder.id)}" ${folder.id === selected ? "selected" : ""}>${escapeHtml(folder.name)}</option>
+  `).join("")}`;
+}
+
+function activeFolderId() {
+  const node = document.querySelector("#activeFolder");
+  return node ? node.value : "";
+}
+
 function probeLabel(probe) {
   if (!probe) return "not available";
   return probe.present ? `HTTP ${probe.status}` : (probe.status ? `HTTP ${probe.status}` : "not found");
@@ -258,6 +273,7 @@ function webAuditStatus(report) {
 
 function renderWebAuditLab(report) {
   const domain = report.domain;
+  state.currentWebAuditReportId = report.id;
   const missingHeaders = (report.https?.security_headers || []).filter(item => !item.present);
   const findings = report.findings || [];
   const commands = webAuditCommands(domain);
@@ -344,6 +360,10 @@ function renderWebAuditLab(report) {
         <span class="pill">Web Audit Lab</span>
         <h2>${escapeHtml(domain)}</h2>
         <p>${escapeHtml(report.summary)}</p>
+        <div class="actions">
+          <a class="secondary button-link" href="/api/reports/${escapeHtml(report.id)}/web-audit.csv">Export checklist CSV</a>
+          <button class="secondary" type="button" data-save-playbook="${escapeHtml(report.id)}">Save playbook</button>
+        </div>
       </div>
       <strong class="score">${escapeHtml(report.score)}/100</strong>
     </div>
@@ -513,9 +533,51 @@ function updateDashboard() {
 function reportActions(report) {
   return `
     <div class="row-actions">
-      <a class="secondary small button-link" href="/api/reports/${report.id}/html" target="_blank" rel="noreferrer">PDF</a>
+      <a class="secondary small button-link" href="/api/reports/${report.id}/pdf">PDF</a>
     </div>
   `;
+}
+
+function renderFolders() {
+  const select = document.querySelector("#activeFolder");
+  if (select) {
+    const current = select.value;
+    select.innerHTML = folderOptions(current);
+  }
+  const folderList = document.querySelector("#folderList");
+  if (folderList) {
+    if (!state.user.authenticated) {
+      folderList.innerHTML = `<div class="report-row"><span>Sign in to create agency client folders</span><span></span><span></span><span></span></div>`;
+    } else if (!state.folders.length) {
+      folderList.innerHTML = `<div class="report-row"><span>No client folders yet</span><span>Create one for each client or investigation.</span><span></span><span></span></div>`;
+    } else {
+      folderList.innerHTML = state.folders.map(folder => `
+        <div class="report-row">
+          <strong>${escapeHtml(folder.name)}</strong>
+          <span class="tag">${folder.domain_reports} domains · ${folder.social_reports} social · ${folder.wallet_reports} wallets</span>
+          <span class="mono">${escapeHtml(formatDate(folder.created_at))}</span>
+          <button class="secondary small" type="button" data-delete-folder="${escapeHtml(folder.id)}">Remove</button>
+        </div>
+      `).join("");
+    }
+  }
+  const playbookList = document.querySelector("#playbookList");
+  if (playbookList) {
+    if (!state.user.authenticated) {
+      playbookList.innerHTML = `<div class="report-row"><span>Sign in to save Web Audit Lab playbooks</span><span></span><span></span><span></span></div>`;
+    } else if (!state.playbooks.length) {
+      playbookList.innerHTML = `<div class="report-row"><span>No saved playbooks</span><span>Build a Web Audit Lab and save it.</span><span></span><span></span></div>`;
+    } else {
+      playbookList.innerHTML = state.playbooks.map(item => `
+        <div class="report-row">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="tag">${escapeHtml(item.domain)}</span>
+          <span class="mono">${escapeHtml(formatDate(item.updated_at))}</span>
+          <a class="secondary small button-link" href="/api/reports/${escapeHtml(item.report_id)}/web-audit.csv">CSV</a>
+        </div>
+      `).join("");
+    }
+  }
 }
 
 function renderReport(report) {
@@ -547,7 +609,8 @@ function renderReport(report) {
         <h2>${escapeHtml(report.domain)}</h2>
         <p>${escapeHtml(report.summary)}</p>
         <div class="actions">
-          <a class="secondary button-link" href="/api/reports/${report.id}/html" target="_blank" rel="noreferrer">Open PDF</a>
+          <a class="secondary button-link" href="/api/reports/${report.id}/pdf">Download PDF</a>
+          <a class="secondary button-link" href="/api/reports/${report.id}/html" target="_blank" rel="noreferrer">HTML report</a>
           <button class="secondary" type="button" data-monitor-domain="${escapeHtml(report.domain)}">Monitor domain</button>
         </div>
       </div>
@@ -798,6 +861,7 @@ function renderWalletReport(report) {
   const counterparties = report.counterparties || [];
   const transactions = report.transactions || [];
   const findings = report.findings || [];
+  state.currentWallet = { chain: report.chain, address: report.address };
   document.querySelector("#walletResult").className = "result";
   document.querySelector("#walletResult").innerHTML = `
     <div class="report-top">
@@ -833,6 +897,7 @@ function renderWalletReport(report) {
             <strong>${escapeHtml(item.short || item.address)}</strong>
             <p>${escapeHtml(item.direction)} · ${escapeHtml(item.tx_count)} tx · ${escapeHtml(item.total_value)} ${escapeHtml(report.asset || "")}</p>
             <small>${escapeHtml((item.labels || []).join(", ") || item.address)}</small>
+            <button class="secondary small" type="button" data-expand-wallet="${escapeHtml(item.address)}">Expand</button>
           </div>
         `).join("") || `<div class="ops-row"><strong>No counterparties</strong><p>No relationship in the recent window.</p></div>`}
       </article>
@@ -843,6 +908,20 @@ function renderWalletReport(report) {
         `).join("")}
       </article>
     </div>
+
+    <section class="lab-panel wallet-notes-panel">
+      <div class="mini-head">
+        <span class="pill">Case notes</span>
+        <h3>Manual tags and notes</h3>
+      </div>
+      <form id="walletAnnotationForm" class="auth-form">
+        <label for="walletTags">Tags</label>
+        <input id="walletTags" type="text" placeholder="exchange, victim, scam, bridge, mixer, service" spellcheck="false">
+        <label for="walletNotes">Notes</label>
+        <textarea id="walletNotes" rows="4" placeholder="Case notes, evidence links, hypothesis and next passive checks"></textarea>
+        <button class="secondary" type="submit">Save wallet notes</button>
+      </form>
+    </section>
 
     <div class="checks">
       ${transactions.map(tx => `
@@ -893,6 +972,8 @@ function nodeColor(type) {
     registry: "#b8ffdf",
     technology: "#a7b8ff",
     subdomain: "#62d8ff",
+    folder: "#ffbd59",
+    tag: "#d6f7ef",
     risk: "#ff5d6c",
     finding: "#ffbd59"
   }[type] || "#e9fff7";
@@ -970,6 +1051,10 @@ function renderDossierCard(item, type) {
         <div class="mini-list">
           ${(item.findings || []).slice(0, 3).map(finding => `<span>${escapeHtml(finding.title || "finding")}</span>`).join("") || "<span>No priority finding</span>"}
         </div>
+        <div class="mini-list">
+          ${(item.annotation?.tags || []).map(tag => `<span>#${escapeHtml(tag)}</span>`).join("") || "<span>No manual tag</span>"}
+          ${item.annotation?.notes ? `<span>${escapeHtml(item.annotation.notes.slice(0, 120))}</span>` : ""}
+        </div>
         ${item.explorer_url ? `<a class="secondary button-link small" href="${escapeHtml(item.explorer_url)}" target="_blank" rel="noreferrer">Open explorer</a>` : ""}
       </article>
     `;
@@ -1030,6 +1115,8 @@ function renderWorkspace() {
   const sites = data.dossiers?.sites || [];
   const people = data.dossiers?.people || [];
   const wallets = data.dossiers?.wallets || [];
+  state.folders = data.folders || state.folders;
+  state.playbooks = data.playbooks || state.playbooks;
   const wallet = data.wallet || {};
   schemaHolder.innerHTML = `
     <div class="schema-grid">
@@ -1053,6 +1140,7 @@ function renderWorkspace() {
   `;
 
   const creditLabel = wallet.plan === "Free" ? wallet.credits : "∞";
+  renderFolders();
   renderWalletReports();
   const walletStats = document.querySelector("#walletResult");
   if (walletStats && walletStats.classList.contains("empty")) {
@@ -1112,8 +1200,11 @@ async function loadSession() {
   state.socialReports = data.social_reports;
   state.walletReports = data.wallet_reports || [];
   state.monitors = data.monitors;
+  state.folders = data.folders || [];
+  state.playbooks = data.playbooks || [];
   state.checkoutConfigured = data.checkout_configured;
   updateAccount();
+  renderFolders();
   renderReports();
   renderSocialReports();
   renderWalletReports();
@@ -1148,7 +1239,7 @@ async function analyze(target) {
   try {
     const data = await api("/api/analyze", {
       method: "POST",
-      body: JSON.stringify({ target })
+      body: JSON.stringify({ target, folder_id: activeFolderId() })
     });
 
     state.user = data.user;
@@ -1191,7 +1282,7 @@ async function buildWebAuditLab(target) {
   try {
     const data = await api("/api/analyze", {
       method: "POST",
-      body: JSON.stringify({ target })
+      body: JSON.stringify({ target, folder_id: activeFolderId() })
     });
     state.user = data.user;
     state.reports.unshift({
@@ -1231,7 +1322,7 @@ async function analyzeSocial(username) {
   try {
     const data = await api("/api/social/analyze", {
       method: "POST",
-      body: JSON.stringify({ username })
+      body: JSON.stringify({ username, folder_id: activeFolderId() })
     });
     state.user = data.user;
     state.socialReports.unshift({
@@ -1271,7 +1362,7 @@ async function analyzeWallet(address) {
   try {
     const data = await api("/api/wallet/analyze", {
       method: "POST",
-      body: JSON.stringify({ address })
+      body: JSON.stringify({ address, folder_id: activeFolderId() })
     });
     state.user = data.user;
     state.walletReports.unshift({
@@ -1301,7 +1392,7 @@ async function addMonitor(domain) {
   try {
     const data = await api("/api/monitors", {
       method: "POST",
-      body: JSON.stringify({ domain })
+      body: JSON.stringify({ domain, folder_id: activeFolderId() })
     });
     state.monitors = data.monitors;
     renderMonitors();
@@ -1449,6 +1540,22 @@ document.querySelector("#passwordForm").addEventListener("submit", async event =
   }
 });
 
+document.querySelector("#folderForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    const data = await api("/api/client-folders", {
+      method: "POST",
+      body: JSON.stringify({ name: document.querySelector("#folderName").value })
+    });
+    state.folders = data.folders;
+    document.querySelector("#folderName").value = "";
+    renderFolders();
+    showAccountMessage("Client folder created.");
+  } catch (error) {
+    showAccountMessage(error.message, true);
+  }
+});
+
 async function logout() {
   await api("/api/auth/logout", { method: "POST" });
   window.location.reload();
@@ -1485,9 +1592,58 @@ document.addEventListener("click", async event => {
     renderMonitors();
   }
 
+  const deleteFolder = event.target.closest("[data-delete-folder]");
+  if (deleteFolder) {
+    const data = await api(`/api/client-folders/${deleteFolder.dataset.deleteFolder}`, { method: "DELETE" });
+    state.folders = data.folders;
+    renderFolders();
+    await loadWorkspace();
+    return;
+  }
+
+  const savePlaybook = event.target.closest("[data-save-playbook]");
+  if (savePlaybook) {
+    const data = await api("/api/web-audit/playbooks", {
+      method: "POST",
+      body: JSON.stringify({ report_id: savePlaybook.dataset.savePlaybook })
+    });
+    state.playbooks = data.playbooks;
+    renderFolders();
+    showBillingMessage("Web Audit Lab playbook saved in Cases.");
+    return;
+  }
+
+  const expandWallet = event.target.closest("[data-expand-wallet]");
+  if (expandWallet) {
+    document.querySelector("#walletAddress").value = expandWallet.dataset.expandWallet;
+    analyzeWallet(expandWallet.dataset.expandWallet);
+    return;
+  }
+
   const jump = event.target.closest("[data-section-jump]");
   if (jump) {
     setSection(jump.dataset.sectionJump);
+  }
+});
+
+document.addEventListener("submit", async event => {
+  if (event.target.id !== "walletAnnotationForm") return;
+  event.preventDefault();
+  if (!state.currentWallet) return;
+  try {
+    const data = await api("/api/wallet/annotations", {
+      method: "POST",
+      body: JSON.stringify({
+        address: state.currentWallet.address,
+        tags: document.querySelector("#walletTags").value,
+        notes: document.querySelector("#walletNotes").value
+      })
+    });
+    state.workspace = data.workspace;
+    renderWorkspace();
+    showBillingMessage("Wallet notes saved to the investigation graph.");
+  } catch (error) {
+    showBillingMessage(error.message);
   }
 });
 

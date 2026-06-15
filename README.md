@@ -55,6 +55,10 @@ OSINTPRO does not run exploits, brute force, credential attacks, invasive scans 
 - Server-side freemium credits and plan limits.
 - Account-isolated history: users only see their own domain, social and wallet reports.
 - History deletion controls for domain, social, wallet and full workspace data.
+- Agency client folders for grouping domain, social, wallet and monitoring work by client or case.
+- Server-side PDF export plus CSV exports for reports, wallet history and Web Audit Lab checklists.
+- Saved Web Audit Lab playbooks for repeatable beginner-safe reviews.
+- Wallet case notes, manual tags and counterparty hop expansion for passive fraud reconstruction.
 - Stripe Payment Links and signed webhook activation for Pro/Agency plans.
 - Private operational admin panel for production status, plans, backups and Stripe events.
 - Cron-protected monitoring and backup endpoints.
@@ -221,13 +225,13 @@ See `ROADMAP.md` for the public product roadmap.
 
 Near-term technical work:
 
-1. Password reset only if an account recovery channel is introduced.
-2. Agency workspaces with client folders.
-3. Better onboarding from Free to Pro/Agency.
-4. Server-side PDF generation.
-5. Web Audit Lab export and saved playbooks.
-6. Wallet graph improvements with manual tags, case notes and hop expansion.
-7. PostgreSQL migration only when paid usage justifies the cost.
+1. Password reset remains intentionally gated until a trusted recovery channel is introduced.
+2. Agency workspaces with client folders are implemented.
+3. Free-to-Pro/Agency onboarding is built into the Billing page.
+4. Server-side PDF generation is implemented at `/api/reports/<id>/pdf`.
+5. Web Audit Lab CSV export and saved playbooks are implemented.
+6. Wallet graph improvements now include manual tags, case notes and counterparty hop expansion.
+7. PostgreSQL migration remains intentionally gated until paid usage justifies the cost.
 
 ## Safety Boundary
 
