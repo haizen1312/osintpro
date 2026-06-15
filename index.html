@@ -123,17 +123,34 @@
       <section class="section" id="wallet">
         <div class="section-head">
           <div>
-            <span class="pill">OSINT Wallet</span>
-            <h2>Asset, crediti e superfici osservate</h2>
+            <span class="pill">Blockchain OSINT</span>
+            <h2>Wallet tracing e movimenti pubblici</h2>
           </div>
-          <button class="secondary" id="refreshWallet" type="button">Refresh</button>
+          <button class="secondary" id="clearWalletReports" type="button">Cancella wallet</button>
         </div>
-        <div id="walletResult" class="wallet-layout">
-          <div class="result empty">
-            <h2>Wallet non disponibile</h2>
-            <p>Accedi per vedere asset, crediti, monitor e report collegati al tuo account.</p>
+        <form id="walletForm" class="scan-form">
+          <div class="target-field">
+            <label for="walletAddress">Wallet address</label>
+            <input id="walletAddress" name="walletAddress" placeholder="BTC o 0x Ethereum/EVM" autocomplete="off" spellcheck="false">
           </div>
+          <button class="primary" type="submit" id="walletButton">Trace wallet</button>
+        </form>
+        <div class="notice">
+          <strong>Ricostruzione antifrode</strong>
+          <span>Raccoglie saldo, movimenti recenti, controparti e pattern fan-in/fan-out da fonti blockchain pubbliche. Usa gli indizi per investigazioni autorizzate.</span>
         </div>
+        <div id="walletResult" class="result empty">
+          <h2>Nessun wallet analizzato</h2>
+          <p>Inserisci un address Bitcoin o Ethereum/EVM pubblico.</p>
+        </div>
+        <div class="section-head secondary-head">
+          <div>
+            <span class="pill">Wallet history</span>
+            <h2>Address tracciati</h2>
+          </div>
+          <button class="secondary" id="refreshWallet" type="button">Aggiorna schema</button>
+        </div>
+        <div class="report-list" id="walletReportList"></div>
       </section>
 
       <section class="section" id="reports">
@@ -277,7 +294,7 @@
           </article>
           <article class="auth-card danger-card">
             <h2>Elimina account</h2>
-            <p>Rimuove account, report, social history e monitor salvati.</p>
+            <p>Rimuove account, report, social history, wallet history e monitor salvati.</p>
             <button class="secondary" id="deleteAccountButton" type="button">Elimina account</button>
           </article>
         </div>

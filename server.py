@@ -42,6 +42,8 @@ PLAN_LIMITS = {
 PAID_PLANS = {"Pro", "Agency", "Admin"}
 DOMAIN_RE = re.compile(r"^(?=.{1,253}$)([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}$")
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9._-]{2,32}$")
+BTC_ADDRESS_RE = re.compile(r"^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,90}$", re.IGNORECASE)
+EVM_ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
 UUID_RE = re.compile(r"^[a-f0-9-]{36}$")
 SECRET_KEY_RE = re.compile(
     r"(?i)\b(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|authorization|bearer)\b"
@@ -63,6 +65,7 @@ RATE_LIMITS = {
     "/api/auth/register": 10,
     "/api/analyze": 30,
     "/api/social/analyze": 30,
+    "/api/wallet/analyze": 30,
     "/api/monitors/run": 12,
 }
 RATE_BUCKETS: dict[tuple[str, str], list[float]] = {}
@@ -76,7 +79,7 @@ SECURITY_HEADERS = [
     "permissions-policy",
 ]
 HTTP_TIMEOUT = 5
-HTTP_LIMIT = 50000
+HTTP_LIMIT = 350000
 MAX_BODY_BYTES = 16384
 MAX_WEBHOOK_BYTES = 262144
 MAX_RESTORE_BYTES = 25 * 1024 * 1024
@@ -279,6 +282,19 @@ def init_db() -> None:
                 user_id TEXT NOT NULL,
                 username TEXT NOT NULL,
                 score INTEGER NOT NULL,
+                summary TEXT NOT NULL,
+                generated_at TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS wallet_reports (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                chain TEXT NOT NULL,
+                address TEXT NOT NULL,
+                risk_score INTEGER NOT NULL,
                 summary TEXT NOT NULL,
                 generated_at TEXT NOT NULL,
                 payload_json TEXT NOT NULL,
@@ -735,6 +751,374 @@ def clean_username(raw: str) -> str:
     if not USERNAME_RE.match(value):
         raise ValueError("Inserisci un nickname valido: 2-32 caratteri, lettere, numeri, punto, underscore o trattino.")
     return value
+
+
+def clean_wallet_address(raw: str) -> tuple[str, str]:
+    value = raw.strip()
+    if EVM_ADDRESS_RE.match(value):
+        return "ethereum", value
+    if BTC_ADDRESS_RE.match(value):
+        return "bitcoin", value
+    raise ValueError("Inserisci un wallet Bitcoin o Ethereum/EVM valido.")
+
+
+def btc_to_unit(value: int | float | None) -> float:
+    return round(float(value or 0) / 100_000_000, 8)
+
+
+def wei_to_eth(value: str | int | float | None) -> float:
+    try:
+        return round(float(value or 0) / 10**18, 8)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def compact_address(value: str | None) -> str:
+    if not value:
+        return "unknown"
+    return value if len(value) <= 18 else f"{value[:8]}...{value[-6:]}"
+
+
+def wallet_explorer_url(chain: str, address: str) -> str:
+    if chain == "bitcoin":
+        return f"https://blockstream.info/address/{quote(address)}"
+    return f"https://eth.blockscout.com/address/{quote(address)}"
+
+
+def wallet_tx_url(chain: str, txid: str) -> str:
+    if chain == "bitcoin":
+        return f"https://blockstream.info/tx/{quote(txid)}"
+    return f"https://eth.blockscout.com/tx/{quote(txid)}"
+
+
+def wallet_counterparty_score(counterparties: list[dict[str, object]]) -> list[dict[str, object]]:
+    ranked: dict[str, dict[str, object]] = {}
+    for item in counterparties:
+        address = str(item.get("address") or "")
+        if not address:
+            continue
+        current = ranked.setdefault(address, {
+            "address": address,
+            "direction": set(),
+            "tx_count": 0,
+            "total_value": 0.0,
+            "labels": set(),
+        })
+        current["tx_count"] = int(current["tx_count"]) + 1
+        current["total_value"] = round(float(current["total_value"]) + float(item.get("value") or 0), 8)
+        current["direction"].add(str(item.get("direction") or "unknown"))
+        if item.get("label"):
+            current["labels"].add(str(item.get("label")))
+
+    results = []
+    for item in ranked.values():
+        results.append({
+            "address": item["address"],
+            "short": compact_address(str(item["address"])),
+            "direction": "/".join(sorted(item["direction"])),
+            "tx_count": item["tx_count"],
+            "total_value": item["total_value"],
+            "labels": sorted(item["labels"]),
+        })
+    results.sort(key=lambda row: (int(row["tx_count"]), float(row["total_value"])), reverse=True)
+    return results[:24]
+
+
+def wallet_findings(chain: str, address_info: dict[str, object], transactions: list[dict[str, object]], counterparties: list[dict[str, object]]) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+    tx_count = int(address_info.get("tx_count") or 0)
+    balance = float(address_info.get("balance") or 0)
+    high_fan_tx = [tx for tx in transactions if int(tx.get("input_count") or 0) >= 8 or int(tx.get("output_count") or 0) >= 8]
+    unique_counterparties = len({item.get("address") for item in counterparties if item.get("address")})
+    has_contract = bool(address_info.get("is_contract"))
+    tags = " ".join(address_info.get("tags") or []).lower()
+    mixer_terms = {"mixer", "tornado", "privacy", "coinjoin", "wasabi", "samourai", "chipmixer"}
+    exchange_terms = {"exchange", "binance", "coinbase", "kraken", "okx", "bybit", "kucoin"}
+
+    if tx_count >= 1000:
+        findings.append({
+            "level": "high",
+            "title": "Wallet ad altissima attivita",
+            "detail": "Il numero di transazioni pubbliche e molto alto: utile per cluster analysis, exchange deposit review o ricostruzioni antifrode.",
+        })
+    elif tx_count >= 100:
+        findings.append({
+            "level": "medium",
+            "title": "Wallet con attivita elevata",
+            "detail": "Il volume di transazioni suggerisce un nodo operativo o un wallet usato frequentemente.",
+        })
+
+    if unique_counterparties >= 20:
+        findings.append({
+            "level": "medium",
+            "title": "Molte controparti osservate",
+            "detail": "Il wallet interagisce con molte entita nella finestra recente; conviene espandere il grafo a hop successivi.",
+        })
+
+    if high_fan_tx:
+        findings.append({
+            "level": "medium",
+            "title": "Pattern fan-in/fan-out",
+            "detail": "Alcune transazioni hanno molti input/output: possibile consolidamento, distribuzione o offuscamento da verificare manualmente.",
+        })
+
+    if any(term in tags for term in mixer_terms):
+        findings.append({
+            "level": "high",
+            "title": "Tag pubblico compatibile con mixer/privacy",
+            "detail": "Le fonti pubbliche associano tag privacy/mixer: usare come indizio OSINT, non come attribuzione definitiva.",
+        })
+
+    if any(term in tags for term in exchange_terms):
+        findings.append({
+            "level": "info",
+            "title": "Possibile exchange/service wallet",
+            "detail": "I tag pubblici suggeriscono servizio centralizzato o exchange; utile per richiesta compliance o preservation letter.",
+        })
+
+    if has_contract:
+        findings.append({
+            "level": "info",
+            "title": "Address contratto o account smart",
+            "detail": "L'indirizzo EVM risulta contract/account smart: controllare metodi, token transfer e interazioni su explorer.",
+        })
+
+    if balance > 0:
+        findings.append({
+            "level": "info",
+            "title": "Saldo osservabile",
+            "detail": f"Saldo pubblico stimato: {balance} {chain.upper() if chain == 'bitcoin' else 'ETH'}.",
+        })
+
+    if not findings:
+        findings.append({
+            "level": "low",
+            "title": "Nessun pattern prioritario nella finestra recente",
+            "detail": "Le fonti pubbliche non evidenziano segnali forti; espandere il periodo o altre chain se necessario.",
+        })
+    return findings[:8]
+
+
+def wallet_risk_score(findings: list[dict[str, str]], tx_count: int, counterparties: int) -> int:
+    score = min(45, tx_count // 20) + min(25, counterparties * 2)
+    for finding in findings:
+        if finding.get("level") == "high":
+            score += 25
+        elif finding.get("level") == "medium":
+            score += 12
+        elif finding.get("level") == "info":
+            score += 4
+    return max(1, min(100, score))
+
+
+def analyze_bitcoin_wallet(address: str) -> dict[str, object]:
+    overview = json_get(f"https://blockstream.info/api/address/{quote(address)}")
+    txs = json_get(f"https://blockstream.info/api/address/{quote(address)}/txs")
+    if not isinstance(overview, dict):
+        raise ValueError("Dati Bitcoin non disponibili dalla fonte pubblica.")
+    if not isinstance(txs, list):
+        txs = []
+
+    chain_stats = overview.get("chain_stats") or {}
+    mempool_stats = overview.get("mempool_stats") or {}
+    funded = int(chain_stats.get("funded_txo_sum") or 0) + int(mempool_stats.get("funded_txo_sum") or 0)
+    spent = int(chain_stats.get("spent_txo_sum") or 0) + int(mempool_stats.get("spent_txo_sum") or 0)
+    tx_count = int(chain_stats.get("tx_count") or 0) + int(mempool_stats.get("tx_count") or 0)
+    balance = btc_to_unit(funded - spent)
+    total_received = btc_to_unit(funded)
+    total_sent = btc_to_unit(spent)
+    transactions: list[dict[str, object]] = []
+    counterparties: list[dict[str, object]] = []
+
+    for tx in txs[:12]:
+        vin = tx.get("vin") or []
+        vout = tx.get("vout") or []
+        incoming = sum(int(out.get("value") or 0) for out in vout if out.get("scriptpubkey_address") == address)
+        outgoing = sum(int(inp.get("prevout", {}).get("value") or 0) for inp in vin if inp.get("prevout", {}).get("scriptpubkey_address") == address)
+        direction = "incoming" if incoming >= outgoing else "outgoing"
+        net = btc_to_unit(incoming - outgoing)
+        txid = str(tx.get("txid") or "")
+        transactions.append({
+            "hash": txid,
+            "short": compact_address(txid),
+            "direction": direction,
+            "value": abs(net),
+            "net": net,
+            "fee": btc_to_unit(tx.get("fee") or 0),
+            "timestamp": dt.datetime.fromtimestamp(int((tx.get("status") or {}).get("block_time") or 0), tz=dt.UTC).isoformat() if (tx.get("status") or {}).get("block_time") else None,
+            "input_count": len(vin),
+            "output_count": len(vout),
+            "url": wallet_tx_url("bitcoin", txid),
+        })
+        for inp in vin:
+            prev = inp.get("prevout") or {}
+            other = prev.get("scriptpubkey_address")
+            if other and other != address:
+                counterparties.append({"address": other, "direction": "from", "value": btc_to_unit(prev.get("value") or 0)})
+        for out in vout:
+            other = out.get("scriptpubkey_address")
+            if other and other != address:
+                counterparties.append({"address": other, "direction": "to", "value": btc_to_unit(out.get("value") or 0)})
+
+    cp_ranked = wallet_counterparty_score(counterparties)
+    info = {
+        "chain": "bitcoin",
+        "address": address,
+        "balance": balance,
+        "total_received": total_received,
+        "total_sent": total_sent,
+        "tx_count": tx_count,
+        "tags": [],
+        "is_contract": False,
+    }
+    findings = wallet_findings("bitcoin", info, transactions, counterparties)
+    risk = wallet_risk_score(findings, tx_count, len(cp_ranked))
+    return {
+        "id": str(uuid.uuid4()),
+        "chain": "bitcoin",
+        "address": address,
+        "asset": "BTC",
+        "generated_at": utc_now(),
+        "summary": f"Wallet Bitcoin con {tx_count} transazioni pubbliche e saldo stimato {balance} BTC.",
+        "risk_score": risk,
+        "explorer_url": wallet_explorer_url("bitcoin", address),
+        "balance": balance,
+        "total_received": total_received,
+        "total_sent": total_sent,
+        "tx_count": tx_count,
+        "counterparties": cp_ranked,
+        "transactions": transactions,
+        "findings": findings,
+        "reconstruction_notes": [
+            "Espandi prima le controparti con piu transazioni o valore maggiore.",
+            "Marca manualmente exchange, mixer, victim wallet e hot wallet quando identificati.",
+            "Fan-in/fan-out e split ripetuti sono indizi da verificare con contesto esterno.",
+        ],
+    }
+
+
+def analyze_ethereum_wallet(address: str) -> dict[str, object]:
+    overview = json_get(f"https://eth.blockscout.com/api/v2/addresses/{quote(address)}")
+    tx_payload = json_get(
+        "https://eth.blockscout.com/api?"
+        + urlencode({
+            "module": "account",
+            "action": "txlist",
+            "address": address,
+            "page": "1",
+            "offset": "12",
+            "sort": "desc",
+        })
+    )
+    if not isinstance(overview, dict):
+        raise ValueError("Dati Ethereum non disponibili dalla fonte pubblica.")
+    tx_items = tx_payload.get("result") if isinstance(tx_payload, dict) else []
+    if not isinstance(tx_items, list):
+        tx_items = []
+
+    balance = wei_to_eth(overview.get("coin_balance"))
+    tags = []
+    metadata = overview.get("metadata") or {}
+    for tag in metadata.get("tags") or []:
+        if isinstance(tag, dict) and tag.get("name"):
+            tags.append(str(tag["name"]))
+    for tag in overview.get("public_tags") or []:
+        if isinstance(tag, dict) and tag.get("label"):
+            tags.append(str(tag["label"]))
+        elif isinstance(tag, str):
+            tags.append(tag)
+    ens = overview.get("ens_domain_name")
+    if ens:
+        tags.append(str(ens))
+
+    transactions: list[dict[str, object]] = []
+    counterparties: list[dict[str, object]] = []
+    normalized = address.lower()
+    for tx in tx_items[:12]:
+        from_raw = str(tx.get("from") or "")
+        to_raw = str(tx.get("to") or "")
+        from_address = from_raw.lower()
+        to_address = to_raw.lower()
+        direction = "incoming" if to_address == normalized else "outgoing" if from_address == normalized else "related"
+        value = wei_to_eth(tx.get("value"))
+        tx_hash = str(tx.get("hash") or "")
+        timestamp = None
+        if tx.get("timeStamp"):
+            try:
+                timestamp = dt.datetime.fromtimestamp(int(tx["timeStamp"]), tz=dt.UTC).isoformat()
+            except (TypeError, ValueError):
+                timestamp = None
+        transactions.append({
+            "hash": tx_hash,
+            "short": compact_address(tx_hash),
+            "direction": direction,
+            "value": value,
+            "net": value if direction == "incoming" else -value if direction == "outgoing" else 0,
+            "fee": wei_to_eth(int(tx.get("gasUsed") or 0) * int(tx.get("gasPrice") or 0)),
+            "timestamp": timestamp,
+            "input_count": 1,
+            "output_count": 1,
+            "url": wallet_tx_url("ethereum", tx_hash),
+            "method": tx.get("methodId"),
+            "status": "error" if str(tx.get("isError")) == "1" else "ok",
+        })
+        if direction == "incoming" and from_address:
+            counterparties.append({
+                "address": from_raw,
+                "direction": "from",
+                "value": value,
+            })
+        elif direction == "outgoing" and to_address:
+            counterparties.append({
+                "address": to_raw,
+                "direction": "to",
+                "value": value,
+            })
+
+    cp_ranked = wallet_counterparty_score(counterparties)
+    tx_count = len(tx_items)
+    info = {
+        "chain": "ethereum",
+        "address": address,
+        "balance": balance,
+        "tx_count": tx_count,
+        "tags": tags,
+        "is_contract": bool(overview.get("is_contract")),
+    }
+    findings = wallet_findings("ethereum", info, transactions, counterparties)
+    risk = wallet_risk_score(findings, tx_count, len(cp_ranked))
+    return {
+        "id": str(uuid.uuid4()),
+        "chain": "ethereum",
+        "address": address,
+        "asset": "ETH",
+        "generated_at": utc_now(),
+        "summary": f"Wallet Ethereum/EVM con saldo stimato {balance} ETH e {len(transactions)} transazioni recenti raccolte.",
+        "risk_score": risk,
+        "explorer_url": wallet_explorer_url("ethereum", address),
+        "balance": balance,
+        "total_received": None,
+        "total_sent": None,
+        "tx_count": tx_count,
+        "ens": ens,
+        "is_contract": bool(overview.get("is_contract")),
+        "reputation": overview.get("reputation"),
+        "tags": sorted(set(tags))[:12],
+        "counterparties": cp_ranked,
+        "transactions": transactions,
+        "findings": findings,
+        "reconstruction_notes": [
+            "Controlla token transfers e internal transactions sull'explorer quando il valore ETH diretto e basso.",
+            "Se compaiono contract/account smart, verifica metodo e destinazione prima di attribuire.",
+            "Tag pubblici e ENS sono indizi OSINT, non prova definitiva di identita.",
+        ],
+    }
+
+
+def analyze_wallet(raw_address: str) -> dict[str, object]:
+    chain, address = clean_wallet_address(raw_address)
+    report = analyze_bitcoin_wallet(address) if chain == "bitcoin" else analyze_ethereum_wallet(address)
+    return redact_data(report)
 
 
 def profile_probe(platform: dict[str, str], username: str) -> dict[str, object]:
@@ -1518,6 +1902,27 @@ def store_social_report(connection: sqlite3.Connection, user_id: str, report: di
     )
 
 
+def store_wallet_report(connection: sqlite3.Connection, user_id: str, report: dict[str, object]) -> None:
+    report = redact_data(report)
+    connection.execute(
+        """
+        INSERT INTO wallet_reports (id, user_id, chain, address, risk_score, summary, generated_at, payload_json, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            report["id"],
+            user_id,
+            report["chain"],
+            report["address"],
+            report["risk_score"],
+            report["summary"],
+            report["generated_at"],
+            json.dumps(report),
+            utc_now(),
+        ),
+    )
+
+
 def run_monitor_rows(connection: sqlite3.Connection, rows: list[sqlite3.Row]) -> dict[str, object]:
     checked = 0
     changed_count = 0
@@ -1905,6 +2310,25 @@ class Handler(SimpleHTTPRequestHandler):
             return []
         return self.social_reports_for_user(str(user["_id"]))
 
+    def wallet_reports_for_user(self, user_id: str) -> list[dict[str, object]]:
+        with db() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, chain, address, risk_score, summary, generated_at
+                FROM wallet_reports
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                LIMIT 50
+                """,
+                (user_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def visible_wallet_reports_for_user(self, user: dict[str, object]) -> list[dict[str, object]]:
+        if not user.get("authenticated"):
+            return []
+        return self.wallet_reports_for_user(str(user["_id"]))
+
     def monitors_for_user(self, user_id: str) -> list[dict[str, object]]:
         with db() as connection:
             rows = connection.execute(
@@ -1963,6 +2387,16 @@ class Handler(SimpleHTTPRequestHandler):
                 """,
                 (user["_id"],),
             ).fetchall()
+            wallet_rows = connection.execute(
+                """
+                SELECT id, chain, address, risk_score, summary, generated_at, payload_json
+                FROM wallet_reports
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                LIMIT 20
+                """,
+                (user["_id"],),
+            ).fetchall()
             monitor_rows = connection.execute(
                 """
                 SELECT domain, status, last_score, last_checked_at
@@ -1977,6 +2411,7 @@ class Handler(SimpleHTTPRequestHandler):
         edges: list[dict[str, str]] = []
         sites: list[dict[str, object]] = []
         people: list[dict[str, object]] = []
+        wallets: list[dict[str, object]] = []
         assets: list[dict[str, object]] = []
 
         def add_node(node_id: str, label: str, node_type: str, score: int | None = None, meta: str = "") -> None:
@@ -2115,13 +2550,66 @@ class Handler(SimpleHTTPRequestHandler):
                 "findings": (report.get("findings") or [])[:5],
             }))
 
-        scores = [int(row["score"] or 0) for row in report_rows] + [int(row["score"] or 0) for row in social_rows]
+        for row in wallet_rows:
+            try:
+                report = redact_data(json.loads(row["payload_json"]))
+            except (TypeError, json.JSONDecodeError):
+                report = dict(row)
+            chain = str(report.get("chain") or row["chain"])
+            address = str(report.get("address") or row["address"])
+            root = f"wallet:{chain}:{address}"
+            risk_score = int(report.get("risk_score") or row["risk_score"] or 0)
+            add_node(root, compact_address(address), "wallet", risk_score, chain)
+            assets.append({"type": "wallet", "label": compact_address(address), "score": risk_score, "monitored": False})
+
+            for tx in (report.get("transactions") or [])[:10]:
+                tx_hash = str(tx.get("hash") or "")
+                if not tx_hash:
+                    continue
+                tx_node = f"tx:{chain}:{tx_hash}"
+                add_node(tx_node, compact_address(tx_hash), "transaction", None, str(tx.get("direction") or "tx"))
+                add_edge(root, tx_node, str(tx.get("direction") or "movement"), "wallet")
+            for counterparty in (report.get("counterparties") or [])[:16]:
+                other = str(counterparty.get("address") or "")
+                if not other:
+                    continue
+                cp_node = f"wallet:{chain}:{other}"
+                add_node(cp_node, compact_address(other), "counterparty", None, str(counterparty.get("direction") or "counterparty"))
+                add_edge(root, cp_node, f"{counterparty.get('tx_count', 0)} tx", "wallet")
+            for finding in (report.get("findings") or [])[:5]:
+                title = finding.get("title")
+                if title:
+                    node_id = f"wallet-finding:{chain}:{address}:{title}"
+                    add_node(node_id, str(title), "finding", None, str(finding.get("level") or "signal"))
+                    add_edge(root, node_id, "wallet finding", "risk")
+
+            wallets.append(redact_data({
+                "id": row["id"],
+                "chain": chain,
+                "address": address,
+                "short": compact_address(address),
+                "risk_score": risk_score,
+                "summary": report.get("summary") or row["summary"],
+                "generated_at": report.get("generated_at") or row["generated_at"],
+                "balance": report.get("balance"),
+                "asset": report.get("asset"),
+                "tx_count": report.get("tx_count"),
+                "counterparties": (report.get("counterparties") or [])[:8],
+                "findings": (report.get("findings") or [])[:5],
+                "explorer_url": report.get("explorer_url"),
+            }))
+
+        scores = (
+            [int(row["score"] or 0) for row in report_rows]
+            + [int(row["score"] or 0) for row in social_rows]
+            + [100 - int(row["risk_score"] or 0) for row in wallet_rows]
+        )
         exposure_index = round(sum(scores) / len(scores)) if scores else 0
         return redact_data({
             "authenticated": True,
             "nodes": list(nodes.values())[:140],
             "edges": edges[:220],
-            "dossiers": {"sites": sites, "people": people},
+            "dossiers": {"sites": sites, "people": people, "wallets": wallets},
             "wallet": {
                 "assets": assets[:60],
                 "credits": user.get("credits", 0),
@@ -2130,6 +2618,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "monitor_used": len(monitor_rows),
                 "domain_reports": len(report_rows),
                 "social_reports": len(social_rows),
+                "wallet_reports": len(wallet_rows),
                 "exposure_index": exposure_index,
             },
         })
@@ -2142,6 +2631,7 @@ class Handler(SimpleHTTPRequestHandler):
                 ).fetchone()["count"],
                 "reports": connection.execute("SELECT COUNT(*) AS count FROM reports").fetchone()["count"],
                 "social_reports": connection.execute("SELECT COUNT(*) AS count FROM social_reports").fetchone()["count"],
+                "wallet_reports": connection.execute("SELECT COUNT(*) AS count FROM wallet_reports").fetchone()["count"],
                 "monitors": connection.execute("SELECT COUNT(*) AS count FROM monitors").fetchone()["count"],
                 "stripe_events": connection.execute("SELECT COUNT(*) AS count FROM stripe_events").fetchone()["count"],
             }
@@ -2155,10 +2645,12 @@ class Handler(SimpleHTTPRequestHandler):
                     users.updated_at,
                     COUNT(DISTINCT reports.id) AS report_count,
                     COUNT(DISTINCT social_reports.id) AS social_report_count,
+                    COUNT(DISTINCT wallet_reports.id) AS wallet_report_count,
                     COUNT(DISTINCT monitors.id) AS monitor_count
                 FROM users
                 LEFT JOIN reports ON reports.user_id = users.id
                 LEFT JOIN social_reports ON social_reports.user_id = users.id
+                LEFT JOIN wallet_reports ON wallet_reports.user_id = users.id
                 LEFT JOIN monitors ON monitors.user_id = users.id
                 WHERE users.nickname IS NOT NULL
                 GROUP BY users.id
@@ -2215,6 +2707,13 @@ class Handler(SimpleHTTPRequestHandler):
                 ORDER BY created_at ASC
                 """
             ).fetchall()
+            wallet_reports = connection.execute(
+                """
+                SELECT id, user_id, chain, address, risk_score, summary, generated_at, created_at
+                FROM wallet_reports
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
             monitors = connection.execute(
                 """
                 SELECT id, user_id, domain, status, last_score, last_summary,
@@ -2236,6 +2735,7 @@ class Handler(SimpleHTTPRequestHandler):
             "users": [dict(row) for row in users],
             "reports": [dict(row) for row in reports],
             "social_reports": [dict(row) for row in social_reports],
+            "wallet_reports": [dict(row) for row in wallet_reports],
             "monitors": [dict(row) for row in monitors],
             "stripe_events": [dict(row) for row in stripe_events],
         })
@@ -2264,6 +2764,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "user": public_user(user),
                 "reports": self.visible_reports_for_user(user),
                 "social_reports": self.visible_social_reports_for_user(user),
+                "wallet_reports": self.visible_wallet_reports_for_user(user),
                 "monitors": self.visible_monitors_for_user(user),
                 "pricing": {
                     "pro": {"price": "19", "monitors": 5},
@@ -2275,6 +2776,10 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/social/reports":
             user, headers = self.get_or_create_user()
             self.send_json({"social_reports": self.visible_social_reports_for_user(user)}, headers=headers)
+            return
+        if parsed.path == "/api/wallet/reports":
+            user, headers = self.get_or_create_user()
+            self.send_json({"wallet_reports": self.visible_wallet_reports_for_user(user)}, headers=headers)
             return
         if parsed.path == "/api/reports":
             user, headers = self.get_or_create_user()
@@ -2536,6 +3041,33 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Errore social OSINT. Nessun dettaglio interno esposto."}, 500, headers)
             return
 
+        if parsed.path == "/api/wallet/analyze":
+            user, headers = self.get_or_create_user()
+            try:
+                body = self.read_json()
+                address = str(body.get("address", ""))
+                with db() as connection:
+                    row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
+                    if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
+                        self.send_json({"error": "Crediti Free esauriti. Passa a Pro per continuare."}, 402, headers)
+                        return
+
+                    report = analyze_wallet(address)
+                    if not is_paid_plan(row["plan"]):
+                        connection.execute(
+                            "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
+                            (utc_now(), user["_id"]),
+                        )
+                    if user.get("authenticated"):
+                        store_wallet_report(connection, str(user["_id"]), report)
+                    updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
+                self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            except Exception:
+                self.send_json({"error": "Errore wallet OSINT. Nessun dettaglio interno esposto."}, 500, headers)
+            return
+
         if parsed.path == "/api/monitors":
             user, headers = self.get_or_create_user()
             if not user.get("authenticated"):
@@ -2772,12 +3304,19 @@ class Handler(SimpleHTTPRequestHandler):
                 connection.execute("DELETE FROM social_reports WHERE user_id = ?", (user["_id"],))
             self.send_json({"social_reports": []}, headers=headers)
             return
+        if parsed.path == "/api/wallet/reports":
+            user, headers = self.get_or_create_user()
+            with db() as connection:
+                connection.execute("DELETE FROM wallet_reports WHERE user_id = ?", (user["_id"],))
+            self.send_json({"wallet_reports": []}, headers=headers)
+            return
         if parsed.path == "/api/history":
             user, headers = self.get_or_create_user()
             with db() as connection:
                 connection.execute("DELETE FROM reports WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM social_reports WHERE user_id = ?", (user["_id"],))
-            self.send_json({"reports": [], "social_reports": []}, headers=headers)
+                connection.execute("DELETE FROM wallet_reports WHERE user_id = ?", (user["_id"],))
+            self.send_json({"reports": [], "social_reports": [], "wallet_reports": []}, headers=headers)
             return
         if parsed.path == "/api/account":
             user, headers = self.get_or_create_user()
@@ -2790,6 +3329,7 @@ class Handler(SimpleHTTPRequestHandler):
             with db() as connection:
                 connection.execute("DELETE FROM reports WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM social_reports WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM wallet_reports WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM monitors WHERE user_id = ?", (user["_id"],))
                 connection.execute("UPDATE stripe_events SET user_id = NULL WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM users WHERE id = ?", (user["_id"],))

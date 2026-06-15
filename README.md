@@ -15,7 +15,7 @@ Apri il sito live, crea un account con nickname/password e prova:
 - Domain OSINT su un dominio pubblico.
 - Social OSINT su un nickname pubblico.
 - Schema intelligence con grafo entita e dossier persona/sito.
-- OSINT Wallet con asset, piano, crediti e superfici osservate.
+- Wallet OSINT su address Bitcoin o Ethereum/EVM pubblici.
 - Report PDF/CSV.
 - Monitoring domini.
 - Upgrade Pro/Agency tramite Stripe.
@@ -68,8 +68,8 @@ OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/
 - Webhook Stripe firmato per attivare Pro/Agency dopo pagamento completato.
 - Pannello operativo privato per stato produzione, utenti, piani e ultimi eventi Stripe.
 - Pagina Social OSINT per analizzare nickname pubblici su social/dev platform.
-- Pagina Schema per correlare domini, nickname, profili, DNS, email posture, finding e tecnologie in un grafo.
-- OSINT Wallet per visualizzare asset raccolti, crediti, piano, monitor e indice di esposizione per account.
+- Pagina Wallet OSINT per analizzare address Bitcoin/Ethereum, saldo pubblico, movimenti recenti, controparti e pattern investigativi.
+- Pagina Schema per correlare domini, nickname, profili, DNS, email posture, finding, tecnologie, wallet, transazioni e controparti in un grafo.
 
 ## Avvio locale
 
@@ -213,11 +213,11 @@ Eventi inviati:
 Il tab `Social` controlla passivamente la presenza pubblica di un nickname su social network e developer platform.
 Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purple Team per brand monitoring, anti-impersonation e due diligence.
 
-## Schema e OSINT Wallet
+## Schema e Wallet OSINT
 
-Il tab `Schema` crea un grafo passivo dai report salvati nell'account: siti, persone/nickname, IP, nameserver, MX, profili social, tecnologie, finding e possibili review di rischio.
+Il tab `Schema` crea un grafo passivo dai report salvati nell'account: siti, persone/nickname, IP, nameserver, MX, profili social, tecnologie, finding, wallet blockchain, transazioni e controparti.
 
-Il tab `Wallet` mostra il pack OSINT dell'utente: piano, crediti, monitor usati, asset raccolti, report dominio/social e indice di esposizione medio. Ogni wallet e isolato per account.
+Il tab `Wallet` accetta address Bitcoin o Ethereum/EVM pubblici e raccoglie saldo, movimenti recenti, controparti, link explorer e finding euristici come fan-in/fan-out, alta attivita, contract/account smart e tag pubblici. Serve per ricostruzioni autorizzate su wallet sospetti o truffaldini; non esegue transazioni e non fornisce funzioni di offuscamento.
 
 ## Prossimi step tecnici
 

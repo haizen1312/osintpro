@@ -746,6 +746,15 @@ input:focus {
   contain: content;
 }
 
+.wallet-tx {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.wallet-tx:hover {
+  border-color: rgba(57, 255, 184, .44);
+}
+
 .tag {
   width: max-content;
   padding: 3px 7px;

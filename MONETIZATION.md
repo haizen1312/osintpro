@@ -1,6 +1,6 @@
 # OSINTPRO Monetization Checklist
 
-OSINTPRO va venduto come intelligence passiva per domini, brand e nickname pubblici.
+OSINTPRO va venduto come intelligence passiva per domini, brand, nickname pubblici e wallet blockchain pubblici.
 Non posizionarlo come scanner offensivo: il valore e nel report, nel monitoraggio e nella priorita dei finding.
 
 Sito live:
@@ -12,8 +12,8 @@ https://osintpro-48j4.onrender.com/
 ## Offerta iniziale
 
 - Free tier: 5 report iniziali, 1 dominio monitorato.
-- Pro: 19 EUR/mese, report illimitati, 5 domini monitorati, PDF/CSV.
-- Agency: 79 EUR/mese, report per clienti, 25 domini monitorati, workflow Red/Purple Team e segnali OSINT avanzati.
+- Pro: 19 EUR/mese, report illimitati, 5 domini monitorati, PDF/CSV e Wallet OSINT base.
+- Agency: 79 EUR/mese, report per clienti, 25 domini monitorati, workflow Red/Purple Team, Wallet OSINT e grafo investigativo.
 
 ## Primo setup Stripe
 
@@ -49,8 +49,8 @@ Target iniziali:
 Messaggio breve:
 
 ```text
-Ti preparo un mini report OSINT passivo sul tuo dominio: DNS, TLS, email security, header, brand exposure e raccomandazioni pratiche.
-Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review e controllo takeover da CNAME pubblici, OSINTPRO parte da 19 EUR/mese.
+Ti preparo un mini report OSINT passivo sul tuo dominio o su un wallet pubblico: DNS/TLS/email security, brand exposure, oppure saldo, movimenti e controparti blockchain.
+Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review, controllo takeover e grafo investigativo wallet, OSINTPRO parte da 19 EUR/mese.
 ```
 
 ## Cose da non promettere
@@ -58,6 +58,8 @@ Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review e controllo ta
 - Nessuna garanzia di sicurezza assoluta.
 - Nessun exploit o scansione aggressiva.
 - Nessuna attribuzione certa sui nickname senza verifica manuale.
+- Nessuna attribuzione certa di wallet senza contesto esterno, denuncia, KYC/exchange data o verifica investigativa.
+- Nessun supporto a offuscamento, mixing, evasione o movimentazione fondi.
 
 ## Prossimi upgrade che aumentano il prezzo
 
@@ -66,5 +68,5 @@ Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review e controllo ta
 - workspace agency multi-cliente
 - metriche admin avanzate e backup operativo
 - restore guidato da artifact GitHub Actions per restare su piano free
+- hop 2/3 nel grafo wallet, tag manuali per exchange/mixer/victim wallet e CSV investigativo
 - migrazione futura a Postgres gestito solo quando il traffico paga i costi
-- audit finale prima di rendere pubblico il repository

@@ -2,6 +2,7 @@ const state = {
   user: { plan: "Free", credits: 0, free_credits: 5, monitor_limit: 1 },
   reports: [],
   socialReports: [],
+  walletReports: [],
   monitors: [],
   workspace: null,
   checkoutConfigured: false
@@ -474,6 +475,88 @@ function renderSocialReport(report) {
   `;
 }
 
+function renderWalletReports() {
+  const holder = document.querySelector("#walletReportList");
+  if (!holder) return;
+  if (!state.user.authenticated) {
+    holder.innerHTML = `<div class="report-row"><span>Accedi per salvare e vedere lo storico wallet del tuo account</span><span></span><span></span><span></span></div>`;
+    return;
+  }
+  if (!state.walletReports.length) {
+    holder.innerHTML = `<div class="report-row"><span>Nessun wallet analizzato</span><span></span><span></span><span></span></div>`;
+    return;
+  }
+  holder.innerHTML = state.walletReports.map(item => `
+    <div class="report-row">
+      <strong>${escapeHtml(item.address)}</strong>
+      <span class="tag ${item.risk_score >= 65 ? "missing" : ""}">${escapeHtml(item.chain)} · ${item.risk_score}/100</span>
+      <span class="mono">${escapeHtml(formatDate(item.generated_at))}</span>
+      <span></span>
+    </div>
+  `).join("");
+}
+
+function renderWalletReport(report) {
+  const counterparties = report.counterparties || [];
+  const transactions = report.transactions || [];
+  const findings = report.findings || [];
+  document.querySelector("#walletResult").className = "result";
+  document.querySelector("#walletResult").innerHTML = `
+    <div class="report-top">
+      <div>
+        <span class="pill">Blockchain report</span>
+        <h2>${escapeHtml(report.address)}</h2>
+        <p>${escapeHtml(report.summary)}</p>
+        <div class="actions">
+          <a class="secondary button-link" href="${escapeHtml(report.explorer_url)}" target="_blank" rel="noreferrer">Apri explorer</a>
+          <button class="secondary" type="button" data-section-jump="schema">Vedi nello schema</button>
+        </div>
+      </div>
+      <div class="score ${report.risk_score >= 65 ? "bad" : report.risk_score >= 35 ? "warn" : ""}">
+        <div><span>Risk</span><strong>${report.risk_score}</strong></div>
+      </div>
+    </div>
+
+    <div class="summary-strip">
+      <div><strong>${escapeHtml(report.balance ?? "n/a")}</strong><span>${escapeHtml(report.asset || report.chain)}</span></div>
+      <div><strong>${escapeHtml(report.tx_count ?? transactions.length)}</strong><span>tx osservate</span></div>
+      <div><strong>${counterparties.length}</strong><span>controparti</span></div>
+    </div>
+
+    <div class="ops-grid wallet-ops">
+      <article class="ops-card priority">
+        <div><span class="pill">Findings</span><strong>${findings.length}</strong></div>
+        ${renderFindings(findings)}
+      </article>
+      <article class="ops-card">
+        <div><span class="pill">Top controparti</span><strong>${counterparties.length}</strong></div>
+        ${counterparties.map(item => `
+          <div class="ops-row">
+            <strong>${escapeHtml(item.short || item.address)}</strong>
+            <p>${escapeHtml(item.direction)} · ${escapeHtml(item.tx_count)} tx · ${escapeHtml(item.total_value)} ${escapeHtml(report.asset || "")}</p>
+            <small>${escapeHtml((item.labels || []).join(", ") || item.address)}</small>
+          </div>
+        `).join("") || `<div class="ops-row"><strong>Nessuna controparte</strong><p>Nessuna relazione nella finestra recente.</p></div>`}
+      </article>
+      <article class="ops-card">
+        <div><span class="pill">Ricostruzione</span><strong>${(report.reconstruction_notes || []).length}</strong></div>
+        ${(report.reconstruction_notes || []).map(note => `
+          <div class="ops-row"><strong>Next step</strong><p>${escapeHtml(note)}</p></div>
+        `).join("")}
+      </article>
+    </div>
+
+    <div class="checks">
+      ${transactions.map(tx => `
+        <a class="check wallet-tx" href="${escapeHtml(tx.url)}" target="_blank" rel="noreferrer">
+          <span class="tag ${tx.direction === "outgoing" ? "missing" : ""}">${escapeHtml(tx.direction)}</span>
+          <span><strong>${escapeHtml(tx.short || tx.hash)}</strong><br><span class="mono">${escapeHtml(tx.value)} ${escapeHtml(report.asset || "")} · fee ${escapeHtml(tx.fee ?? "n/a")} · ${escapeHtml(formatDate(tx.timestamp))}</span></span>
+        </a>
+      `).join("") || `<div class="check"><span class="tag">n/a</span><span>Nessuna transazione recente dalla fonte pubblica.</span></div>`}
+    </div>
+  `;
+}
+
 function renderMonitors() {
   const holder = document.querySelector("#monitorList");
   updateAccount();
@@ -506,6 +589,9 @@ function nodeColor(type) {
     nameserver: "#7cffce",
     mail: "#ffbd59",
     email: "#ffbd59",
+    wallet: "#39ffb8",
+    counterparty: "#b9fff0",
+    transaction: "#ffbd59",
     registry: "#b8ffdf",
     technology: "#a7b8ff",
     subdomain: "#62d8ff",
@@ -568,6 +654,28 @@ function renderGraph(nodes = [], edges = []) {
 }
 
 function renderDossierCard(item, type) {
+  if (type === "wallet") {
+    return `
+      <article class="dossier-card ${scoreTone(100 - item.risk_score)}">
+        <div>
+          <span class="pill">Wallet dossier</span>
+          <strong>${escapeHtml(item.short || item.address)}</strong>
+          <span class="tag ${item.risk_score >= 65 ? "missing" : ""}">risk ${item.risk_score}/100</span>
+        </div>
+        <p>${escapeHtml(item.summary)}</p>
+        <div class="dossier-meta">
+          <span>Chain <strong>${escapeHtml(item.chain)}</strong></span>
+          <span>Saldo <strong>${escapeHtml(item.balance ?? "n/a")} ${escapeHtml(item.asset || "")}</strong></span>
+          <span>Tx <strong>${escapeHtml(item.tx_count ?? "n/a")}</strong></span>
+          <span>Controparti <strong>${(item.counterparties || []).length}</strong></span>
+        </div>
+        <div class="mini-list">
+          ${(item.findings || []).slice(0, 3).map(finding => `<span>${escapeHtml(finding.title || "finding")}</span>`).join("") || "<span>Nessun finding prioritario</span>"}
+        </div>
+        ${item.explorer_url ? `<a class="secondary button-link small" href="${escapeHtml(item.explorer_url)}" target="_blank" rel="noreferrer">Apri explorer</a>` : ""}
+      </article>
+    `;
+  }
   if (type === "site") {
     return `
       <article class="dossier-card ${scoreTone(item.score)}">
@@ -611,16 +719,19 @@ function renderDossierCard(item, type) {
 
 function renderWorkspace() {
   const schemaHolder = document.querySelector("#schemaResult");
-  const walletHolder = document.querySelector("#walletResult");
+  const walletResultHolder = document.querySelector("#walletResult");
   const data = state.workspace;
   if (!data || !data.authenticated) {
     schemaHolder.innerHTML = `<div class="result empty"><h2>Accedi per costruire lo schema</h2><p>Il grafo usa solo report e social history del tuo account.</p></div>`;
-    walletHolder.innerHTML = `<div class="result empty"><h2>Wallet privato</h2><p>Login richiesto per visualizzare crediti, asset e superfici osservate.</p></div>`;
+    if (walletResultHolder?.classList.contains("empty")) {
+      walletResultHolder.innerHTML = `<h2>Wallet privato</h2><p>Login richiesto per salvare ricostruzioni e storico wallet.</p>`;
+    }
     return;
   }
 
   const sites = data.dossiers?.sites || [];
   const people = data.dossiers?.people || [];
+  const wallets = data.dossiers?.wallets || [];
   const wallet = data.wallet || {};
   schemaHolder.innerHTML = `
     <div class="schema-grid">
@@ -632,38 +743,34 @@ function renderWorkspace() {
         <article><span>Relazioni</span><strong>${(data.edges || []).length}</strong></article>
         <article><span>Siti</span><strong>${sites.length}</strong></article>
         <article><span>Persone</span><strong>${people.length}</strong></article>
+        <article><span>Wallet</span><strong>${wallets.length}</strong></article>
       </aside>
     </div>
     <div class="dossier-grid">
       ${sites.map(item => renderDossierCard(item, "site")).join("")}
       ${people.map(item => renderDossierCard(item, "person")).join("")}
-      ${!sites.length && !people.length ? `<div class="result empty"><h2>Nessun dossier</h2><p>Genera report dominio o social per popolare questa sezione.</p></div>` : ""}
+      ${wallets.map(item => renderDossierCard(item, "wallet")).join("")}
+      ${!sites.length && !people.length && !wallets.length ? `<div class="result empty"><h2>Nessun dossier</h2><p>Genera report dominio, social o wallet per popolare questa sezione.</p></div>` : ""}
     </div>
   `;
 
   const creditLabel = wallet.plan === "Free" ? wallet.credits : "∞";
-  walletHolder.innerHTML = `
+  renderWalletReports();
+  const walletStats = document.querySelector("#walletResult");
+  if (walletStats && walletStats.classList.contains("empty")) {
+    walletStats.innerHTML = `
     <div class="wallet-grid">
       <article class="wallet-card hero-wallet">
         <span class="pill">Current pack</span>
         <strong>${escapeHtml(wallet.plan || "Free")}</strong>
-        <p>Crediti disponibili: <b>${escapeHtml(creditLabel)}</b>. Monitor: <b>${wallet.monitor_used || 0}/${wallet.monitor_limit || 1}</b>.</p>
+        <p>Crediti: <b>${escapeHtml(creditLabel)}</b>. Wallet report: <b>${wallet.wallet_reports || 0}</b>. Monitor domini: <b>${wallet.monitor_used || 0}/${wallet.monitor_limit || 1}</b>.</p>
       </article>
       <article class="wallet-card"><span>Exposure index</span><strong>${wallet.exposure_index || 0}/100</strong><p>Media score degli asset raccolti.</p></article>
       <article class="wallet-card"><span>Domain report</span><strong>${wallet.domain_reports || 0}</strong><p>Siti e brand analizzati.</p></article>
-      <article class="wallet-card"><span>Social report</span><strong>${wallet.social_reports || 0}</strong><p>Nickname e profili pubblici.</p></article>
+      <article class="wallet-card"><span>Wallet report</span><strong>${wallet.wallet_reports || 0}</strong><p>Address blockchain tracciati.</p></article>
     </div>
-    <div class="wallet-assets">
-      ${(wallet.assets || []).map(asset => `
-        <div class="asset-row">
-          <strong>${escapeHtml(asset.label)}</strong>
-          <span class="tag">${escapeHtml(asset.type)}</span>
-          <span class="mono">${asset.score}/100</span>
-          <span>${asset.monitored ? "monitor attivo" : "non monitorato"}</span>
-        </div>
-      `).join("") || `<div class="asset-row"><span>Nessun asset nel wallet</span><span></span><span></span><span></span></div>`}
-    </div>
-  `;
+    `;
+  }
 }
 
 async function loadWorkspace() {
@@ -704,11 +811,13 @@ async function loadSession() {
   state.user = data.user;
   state.reports = data.reports;
   state.socialReports = data.social_reports;
+  state.walletReports = data.wallet_reports || [];
   state.monitors = data.monitors;
   state.checkoutConfigured = data.checkout_configured;
   updateAccount();
   renderReports();
   renderSocialReports();
+  renderWalletReports();
   renderMonitors();
   await loadWorkspace();
 }
@@ -806,6 +915,47 @@ async function analyzeSocial(username) {
   }
 }
 
+async function analyzeWallet(address) {
+  if (state.user.plan === "Free" && state.user.credits <= 0) {
+    setSection("billing");
+    showBillingMessage("Hai finito i crediti Free. Wallet OSINT continua nei piani Pro/Agency.");
+    return;
+  }
+  const button = document.querySelector("#walletButton");
+  button.disabled = true;
+  button.textContent = "Tracing...";
+  setLiveSignal(`tracing public blockchain wallet ${address}`);
+  document.querySelector("#walletResult").className = "result empty";
+  document.querySelector("#walletResult").innerHTML = `<h2>Ricostruzione wallet in corso</h2><p>Sto leggendo fonti blockchain pubbliche e preparando grafo controparti.</p>`;
+  try {
+    const data = await api("/api/wallet/analyze", {
+      method: "POST",
+      body: JSON.stringify({ address })
+    });
+    state.user = data.user;
+    state.walletReports.unshift({
+      id: data.report.id,
+      chain: data.report.chain,
+      address: data.report.address,
+      risk_score: data.report.risk_score,
+      summary: data.report.summary,
+      generated_at: data.report.generated_at
+    });
+    state.walletReports = state.walletReports.slice(0, 50);
+    updateAccount();
+    renderWalletReport(data.report);
+    renderWalletReports();
+    await loadWorkspace();
+  } catch (error) {
+    document.querySelector("#walletResult").className = "result empty";
+    document.querySelector("#walletResult").innerHTML = `<h2 class="error">Errore</h2><p>${escapeHtml(error.message)}</p>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Trace wallet";
+    setLiveSignal("passive sensors idle");
+  }
+}
+
 async function addMonitor(domain) {
   try {
     const data = await api("/api/monitors", {
@@ -871,6 +1021,16 @@ document.querySelector("#socialForm").addEventListener("submit", event => {
     return;
   }
   analyzeSocial(username);
+});
+
+document.querySelector("#walletForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const address = document.querySelector("#walletAddress").value.trim();
+  if (!address) {
+    document.querySelector("#walletAddress").focus();
+    return;
+  }
+  analyzeWallet(address);
 });
 
 document.querySelector("#registerForm").addEventListener("submit", async event => {
@@ -968,6 +1128,11 @@ document.addEventListener("click", async event => {
     state.monitors = data.monitors;
     renderMonitors();
   }
+
+  const jump = event.target.closest("[data-section-jump]");
+  if (jump) {
+    setSection(jump.dataset.sectionJump);
+  }
 });
 
 document.querySelector("#runMonitors").addEventListener("click", async () => {
@@ -1001,12 +1166,23 @@ document.querySelector("#clearSocialReports").addEventListener("click", async ()
   await loadWorkspace();
 });
 
+document.querySelector("#clearWalletReports").addEventListener("click", async () => {
+  const data = await api("/api/wallet/reports", { method: "DELETE" });
+  state.walletReports = data.wallet_reports;
+  renderWalletReports();
+  document.querySelector("#walletResult").className = "result empty";
+  document.querySelector("#walletResult").innerHTML = `<h2>Nessun wallet analizzato</h2><p>Inserisci un address Bitcoin o Ethereum/EVM pubblico.</p>`;
+  await loadWorkspace();
+});
+
 document.querySelector("#clearAllHistory").addEventListener("click", async () => {
   const data = await api("/api/history", { method: "DELETE" });
   state.reports = data.reports;
   state.socialReports = data.social_reports;
+  state.walletReports = data.wallet_reports || [];
   renderReports();
   renderSocialReports();
+  renderWalletReports();
   await loadWorkspace();
 });
 
