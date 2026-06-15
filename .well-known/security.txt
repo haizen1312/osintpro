@@ -1,0 +1,4 @@
+Contact: https://github.com/haizen1312/osintpro/issues
+Policy: https://github.com/haizen1312/osintpro/blob/main/SECURITY.md
+Preferred-Languages: en
+Canonical: https://osintpro-48j4.onrender.com/.well-known/security.txt

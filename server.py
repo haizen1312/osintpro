@@ -86,7 +86,18 @@ MAX_RESTORE_BYTES = 25 * 1024 * 1024
 DEFAULT_MONITOR_BATCH_LIMIT = 20
 DEFAULT_REGISTRATION_IP_LIMIT = 3
 DEFAULT_BACKUP_RETENTION = 14
-PUBLIC_STATIC_PATHS = {"/", "/index.html", "/app.js", "/styles.css", "/admin.html", "/admin.js", "/favicon.ico"}
+PUBLIC_STATIC_PATHS = {
+    "/",
+    "/index.html",
+    "/app.js",
+    "/styles.css",
+    "/admin.html",
+    "/admin.js",
+    "/favicon.ico",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/.well-known/security.txt",
+}
 CHECKOUT_REFERENCE_RE = re.compile(r"^osintpro_([a-f0-9-]{36})_(pro|agency)$")
 BACKUP_NAME_RE = re.compile(r"^osintpro-[0-9]{8}T[0-9]{6}Z-[a-z0-9-]+-[a-f0-9]{6}\.sqlite3$")
 PLAN_RANK = {"Free": 0, "Pro": 1, "Agency": 2, "Admin": 3}
@@ -407,7 +418,7 @@ def apply_stripe_event(event: dict[str, object]) -> dict[str, object]:
     session = data.get("object") if isinstance(data, dict) and isinstance(data.get("object"), dict) else {}
     now = utc_now()
     if not event_id:
-        raise ValueError("Evento Stripe senza id.")
+        raise ValueError("Stripe event missing id.")
     if event_type != "checkout.session.completed":
         with db() as connection:
             connection.execute(
@@ -2132,10 +2143,16 @@ class Handler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(ROOT), **kwargs)
 
     def end_headers(self) -> None:
+        host = self.headers.get("Host", "")
+        if not host.startswith(("127.0.0.1", "localhost")):
+            self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        self.send_header("X-Permitted-Cross-Domain-Policies", "none")
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
@@ -2230,19 +2247,19 @@ class Handler(SimpleHTTPRequestHandler):
         if not length:
             return {}
         if length > MAX_BODY_BYTES:
-            raise ValueError("Richiesta troppo grande.")
+            raise ValueError("Request body is too large.")
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
         except json.JSONDecodeError as exc:
-            raise ValueError("JSON non valido.") from exc
+            raise ValueError("Invalid JSON.") from exc
         if not isinstance(payload, dict):
-            raise ValueError("Payload non valido.")
+            raise ValueError("Invalid payload.")
         return payload
 
     def read_raw_body(self, limit: int = MAX_BODY_BYTES) -> bytes:
         length = int(self.headers.get("Content-Length", "0"))
         if length > limit:
-            raise ValueError("Richiesta troppo grande.")
+            raise ValueError("Request body is too large.")
         return self.rfile.read(length) if length else b""
 
     def session_id(self) -> str | None:
@@ -2805,7 +2822,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Cron is not configured."}, 503)
                 return
             if not cron_authorized(self.headers):
-                self.send_json({"error": "Cron non autorizzato."}, 403)
+                self.send_json({"error": "Cron request is not authorized."}, 403)
                 return
             try:
                 backup = create_sqlite_backup("artifact")
@@ -2896,16 +2913,16 @@ class Handler(SimpleHTTPRequestHandler):
                     return
                 event = json.loads(payload.decode("utf-8"))
                 if not isinstance(event, dict):
-                    raise ValueError("Evento Stripe non valido.")
+                    raise ValueError("Invalid Stripe event.")
                 self.send_json(apply_stripe_event(event))
             except json.JSONDecodeError:
-                self.send_json({"error": "Evento Stripe non valido."}, 400)
+                self.send_json({"error": "Invalid Stripe event."}, 400)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400)
             return
 
         if self.rate_limited(parsed.path):
-            self.send_json({"error": "Troppe richieste. Riprova tra poco."}, 429)
+            self.send_json({"error": "Too many requests. Try again shortly."}, 429)
             return
         if parsed.path == "/api/auth/register":
             user, headers = self.get_or_create_user()
@@ -2948,7 +2965,7 @@ class Handler(SimpleHTTPRequestHandler):
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE nickname = ?", (nickname,)).fetchone()
                 if not row or not verify_password(password, row["password_hash"]):
-                    self.send_json({"error": "Credenziali non valide."}, 403)
+                    self.send_json({"error": "Invalid credentials."}, 403)
                     return
                 self.send_json({"user": row_to_user(row)}, headers={
                     "Set-Cookie": self.make_session_cookie(str(row["id"]))
@@ -3127,7 +3144,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Cron is not configured."}, 503)
                 return
             if not cron_authorized(self.headers):
-                self.send_json({"error": "Cron non autorizzato."}, 403)
+                self.send_json({"error": "Cron request is not authorized."}, 403)
                 return
             try:
                 with db() as connection:
@@ -3169,7 +3186,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Cron is not configured."}, 503)
                 return
             if not cron_authorized(self.headers):
-                self.send_json({"error": "Cron non autorizzato."}, 403)
+                self.send_json({"error": "Cron request is not authorized."}, 403)
                 return
             try:
                 backup = create_sqlite_backup("cron")
@@ -3188,7 +3205,7 @@ class Handler(SimpleHTTPRequestHandler):
             code = str(body.get("code", ""))
             configured_admin_code = admin_code()
             if not configured_admin_code or not hmac.compare_digest(code, configured_admin_code):
-                self.send_json({"error": "Codice admin non valido."}, 403, headers)
+                self.send_json({"error": "Invalid admin code."}, 403, headers)
                 return
             with db() as connection:
                 connection.execute(
@@ -3222,7 +3239,7 @@ class Handler(SimpleHTTPRequestHandler):
                         self.send_json({"error": "User not found."}, 404, headers)
                         return
                     if row["id"] == user["_id"] and plan != "Admin":
-                        self.send_json({"error": "Non puoi rimuovere Admin dall'account admin corrente."}, 400, headers)
+                        self.send_json({"error": "You cannot remove Admin from the current admin account."}, 400, headers)
                         return
                     connection.execute(
                         "UPDATE users SET plan = ?, updated_at = ? WHERE id = ?",
@@ -3324,7 +3341,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Sign in to delete your account."}, 401, headers)
                 return
             if is_admin_user(user):
-                self.send_json({"error": "L'account Admin corrente non puo essere eliminato da qui."}, 403, headers)
+                self.send_json({"error": "The current Admin account cannot be deleted here."}, 403, headers)
                 return
             with db() as connection:
                 connection.execute("DELETE FROM reports WHERE user_id = ?", (user["_id"],))

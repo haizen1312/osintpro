@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://osintpro-48j4.onrender.com/sitemap.xml
