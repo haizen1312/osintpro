@@ -224,22 +224,37 @@
           <button class="secondary" id="loadOwnNetworkLab" type="button">Inspect OSINTPRO</button>
         </div>
 
-        <form id="networkLabForm" class="scan-form">
-          <div class="target-field">
-            <label for="networkLabTarget">Authorized domain</label>
-            <input id="networkLabTarget" name="networkLabTarget" placeholder="example.com" autocomplete="off" spellcheck="false">
-          </div>
-          <button class="primary" type="submit" id="networkLabButton">Build traffic view</button>
-        </form>
+        <div class="mode-switch" aria-label="Network Lab modes">
+          <button class="secondary small active" type="button" data-network-mode="website">Website traffic</button>
+          <button class="secondary small" type="button" data-network-mode="local">Own network</button>
+        </div>
 
-        <div class="notice">
-          <strong>Packet analysis without unsafe capture</strong>
-          <span>Builds a readable Wireshark-style packet timeline from passive DNS, TLS and HTTP evidence. Capture real traffic only on networks and devices you own or are explicitly authorized to inspect.</span>
+        <div class="network-mode active" id="networkWebsiteMode">
+          <form id="networkLabForm" class="scan-form">
+            <div class="target-field">
+              <label for="networkLabTarget">Authorized domain</label>
+              <input id="networkLabTarget" name="networkLabTarget" placeholder="example.com" autocomplete="off" spellcheck="false">
+            </div>
+            <button class="primary" type="submit" id="networkLabButton">Build traffic view</button>
+          </form>
+
+          <div class="notice">
+            <strong>Website traffic analysis</strong>
+            <span>Builds a readable Wireshark-style packet timeline from passive DNS, TLS and HTTP evidence for an authorized website.</span>
+          </div>
+        </div>
+
+        <div class="network-mode" id="networkLocalMode">
+          <div class="notice">
+            <strong>Own-network analysis</strong>
+            <span>Reads local runtime network context when OSINTPRO is running on your own machine and gives Wireshark filters for your own LAN. The hosted app does not expose cloud server network details.</span>
+          </div>
+          <button class="primary" type="button" id="localNetworkButton">Build own-network view</button>
         </div>
 
         <div id="networkLabResult" class="result empty">
           <h2>No network lab yet</h2>
-          <p>Enter an authorized domain to see DNS, TLS and HTTP as beginner-readable packets.</p>
+          <p>Choose Website traffic for a domain or Own network for your local lab machine.</p>
         </div>
       </section>
 
@@ -383,7 +398,7 @@
           </article>
           <article class="pro">
             <span class="pill">Pro</span>
-            <h2>€19/month</h2>
+            <h2>€19/mo</h2>
             <p>For founders, consultants and small teams that need continuous visibility.</p>
             <ul>
               <li>Unlimited reports</li>
@@ -397,7 +412,7 @@
           </article>
           <article class="agency">
             <span class="pill">Agency</span>
-            <h2>€79/month</h2>
+            <h2>€79/mo</h2>
             <p>For agencies selling client reporting and recurring monitoring.</p>
             <ul>
               <li>25 monitored domains</li>

@@ -883,6 +883,58 @@ def wallet_tx_url(chain: str, txid: str) -> str:
     return f"https://eth.blockscout.com/tx/{quote(txid)}"
 
 
+def local_network_snapshot() -> dict[str, object]:
+    hostname = socket.gethostname()
+    addresses = []
+    seen = set()
+    try:
+        candidates = socket.getaddrinfo(hostname, None, family=socket.AF_INET)
+    except socket.gaierror:
+        candidates = []
+    for item in candidates:
+        ip_value = item[4][0]
+        if ip_value not in seen:
+            seen.add(ip_value)
+            addresses.append({
+                "ip": ip_value,
+                "type": "private" if ipaddress.ip_address(ip_value).is_private else "public",
+                "loopback": ipaddress.ip_address(ip_value).is_loopback,
+            })
+    if "127.0.0.1" not in seen:
+        addresses.append({"ip": "127.0.0.1", "type": "loopback", "loopback": True})
+
+    resolver_hosts = []
+    resolv_conf = Path("/etc/resolv.conf")
+    if resolv_conf.exists():
+        try:
+            for line in resolv_conf.read_text(encoding="utf-8", errors="ignore").splitlines():
+                line = line.strip()
+                if line.startswith("nameserver "):
+                    resolver_hosts.append(line.split()[1])
+        except OSError:
+            pass
+
+    return redact_data({
+        "hostname": hostname,
+        "addresses": addresses[:12],
+        "resolvers": resolver_hosts[:6],
+        "capture_filters": [
+            {"filter": "arp or icmp", "use": "See local discovery and ping traffic on your own network."},
+            {"filter": "dns", "use": "See name lookups made by your device."},
+            {"filter": "tcp.port == 443", "use": "Focus on HTTPS connection metadata."},
+            {"filter": "mdns or udp.port == 5353", "use": "Review local multicast device discovery."},
+            {"filter": "dhcp or bootp", "use": "Review address assignment traffic when reconnecting to your network."},
+        ],
+        "timeline": [
+            {"protocol": "ARP", "summary": "Device asks who owns a local IP address.", "plain": "This is normal local discovery."},
+            {"protocol": "DNS", "summary": "Device asks a resolver for a domain name.", "plain": "Useful for seeing which public services a device contacts."},
+            {"protocol": "TCP", "summary": "Device opens a connection to a remote IP and port.", "plain": "Shows metadata such as endpoints and ports, not encrypted page content."},
+            {"protocol": "TLS", "summary": "Device negotiates an encrypted HTTPS session.", "plain": "Certificate and SNI metadata may be visible; passwords and page bodies remain encrypted."},
+            {"protocol": "mDNS", "summary": "Local devices announce names and services.", "plain": "Useful for understanding printers, TVs and other devices on your own LAN."},
+        ],
+    })
+
+
 def wallet_counterparty_score(counterparties: list[dict[str, object]]) -> list[dict[str, object]]:
     ranked: dict[str, dict[str, object]] = {}
     for item in counterparties:
@@ -3160,6 +3212,23 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/intel/workspace":
             user, headers = self.get_or_create_user()
             self.send_json(self.intelligence_workspace(user), headers=headers)
+            return
+        if parsed.path == "/api/network/local":
+            user, headers = self.get_or_create_user()
+            host = self.headers.get("Host", "")
+            if not host.startswith(("127.0.0.1", "localhost")):
+                self.send_json({
+                    "available": False,
+                    "mode": "cloud",
+                    "message": "Own-network inspection is available when OSINTPRO runs locally on the device or lab machine. The hosted app will not expose Render server network details.",
+                    "safe_next_steps": [
+                        "Run OSINTPRO locally on your own computer.",
+                        "Open the Network Lab and choose Own Network.",
+                        "Capture only traffic from devices and networks you own or are authorized to inspect.",
+                    ],
+                }, headers=headers)
+                return
+            self.send_json({"available": True, "mode": "local", "network": local_network_snapshot()}, headers=headers)
             return
         if parsed.path == "/api/admin/status":
             user, headers = self.get_or_create_user()

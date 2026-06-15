@@ -501,6 +501,27 @@ textarea:focus {
   background: rgba(9, 18, 15, .72);
 }
 
+.mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 14px;
+}
+
+.mode-switch .active {
+  border-color: rgba(57, 255, 184, .65);
+  background: rgba(57, 255, 184, .16);
+  color: var(--green);
+}
+
+.network-mode {
+  display: none;
+}
+
+.network-mode.active {
+  display: block;
+}
+
 .result {
   min-height: 300px;
   padding: 18px;

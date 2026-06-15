@@ -29,7 +29,7 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 - Passive technology fingerprinting from headers and web signals.
 - Risk findings, vulnerability hypotheses and Red/Purple Team recommendations derived only from passive evidence.
 - Web Audit Lab: Burp-style beginner workflow with safe commands, evidence checklist and technical glossary.
-- Network Traffic Lab: Wireshark-style readable packet timeline for DNS, TCP/TLS and HTTP evidence.
+- Network Traffic Lab: Wireshark-style website traffic mode plus own-network mode for local authorized LAN analysis.
 - Social OSINT: public username presence checks across social, developer and community platforms.
 - Wallet OSINT: public Bitcoin and Ethereum/EVM balance, recent movements, counterparties and explorer links.
 - Entity graph: a workspace view that connects domains, usernames, profiles, DNS, findings, technologies, wallets, transactions and counterparties.
@@ -210,16 +210,17 @@ It does not provide exploit payloads, automated fuzzing, brute force, credential
 
 ## Network Traffic Lab Scope
 
-The Network Traffic Lab translates Wireshark-style packet analysis into a simple, readable workflow:
+The Network Traffic Lab translates Wireshark-style packet analysis into two simple, readable workflows:
 
-- DNS query and answer story for the authorized domain
-- TCP and TLS connection timeline in beginner language
-- certificate issuer, subject and expiry explained without raw noise
-- HTTP response status, server hint and security headers
+- Website traffic mode: DNS query and answer story for the authorized domain
+- Website traffic mode: TCP/TLS connection timeline, certificate issuer, subject and expiry
+- Website traffic mode: HTTP response status, server hint and security headers
+- Own-network mode: local runtime IP context when OSINTPRO is running on the user's own machine
+- Own-network mode: Wireshark filters for ARP, DNS, TCP/443, mDNS and DHCP/BOOTP
 - copy-friendly Wireshark display filters for authorized local captures
 - safe terminal checks using `dig`, `curl` and `openssl`
 
-It does not secretly sniff traffic, capture other users' packets, decode private sessions or bypass encryption. Real packet capture should only be performed on devices and networks the operator owns or is explicitly authorized to inspect.
+It does not secretly sniff traffic, capture other users' packets, decode private sessions, expose cloud server network details or bypass encryption. Real packet capture should only be performed on devices and networks the operator owns or is explicitly authorized to inspect.
 
 ## GitHub Discovery Plan
 

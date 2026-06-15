@@ -514,6 +514,144 @@ function renderNetworkLab(report) {
   `;
 }
 
+function setNetworkMode(mode) {
+  document.querySelectorAll("[data-network-mode]").forEach(button => {
+    button.classList.toggle("active", button.dataset.networkMode === mode);
+  });
+  document.querySelector("#networkWebsiteMode").classList.toggle("active", mode === "website");
+  document.querySelector("#networkLocalMode").classList.toggle("active", mode === "local");
+  if (mode === "local") {
+    document.querySelector("#networkLabResult").className = "result empty";
+    document.querySelector("#networkLabResult").innerHTML = `<h2>Own-network lab</h2><p>Run OSINTPRO locally, then build a readable view of your own machine's network context and safe Wireshark filters.</p>`;
+  }
+}
+
+function renderLocalNetworkLab(data) {
+  const network = data.network || {};
+  if (!data.available) {
+    document.querySelector("#networkLabResult").className = "result";
+    document.querySelector("#networkLabResult").innerHTML = `
+      <div class="result-head">
+        <div>
+          <span class="pill">Own Network</span>
+          <h2>Local capture requires local runtime</h2>
+          <p>${escapeHtml(data.message)}</p>
+        </div>
+      </div>
+      <section class="lab-panel disclaimer-panel">
+        <div class="mini-head">
+          <span class="pill">Safe next steps</span>
+          <h3>How to use it correctly</h3>
+        </div>
+        <ol class="step-list">
+          ${(data.safe_next_steps || []).map(item => `<li>${escapeHtml(item)}</li>`).join("")}
+        </ol>
+      </section>
+    `;
+    return;
+  }
+
+  const addresses = network.addresses || [];
+  const filters = network.capture_filters || [];
+  const timeline = network.timeline || [];
+  document.querySelector("#networkLabResult").className = "result";
+  document.querySelector("#networkLabResult").innerHTML = `
+    <div class="result-head">
+      <div>
+        <span class="pill">Own Network Lab</span>
+        <h2>${escapeHtml(network.hostname || "local machine")}</h2>
+        <p>Readable local network context for a Wireshark capture on your own device or lab network.</p>
+      </div>
+      <strong class="score">${addresses.length}</strong>
+    </div>
+
+    <div class="lab-grid">
+      <article class="lab-card lab-hero">
+        <span class="pill">Local capture workflow</span>
+        <h3>What to do in Wireshark</h3>
+        <ol class="step-list">
+          <li><strong>Select interface:</strong> choose your Wi-Fi or Ethernet adapter, not a random interface.</li>
+          <li><strong>Start capture:</strong> capture only your own device or authorized lab traffic.</li>
+          <li><strong>Filter:</strong> use DNS, ARP, TLS and mDNS filters below to hide noise.</li>
+          <li><strong>Read:</strong> focus on endpoint, port, protocol and certificate metadata.</li>
+          <li><strong>Stop:</strong> stop capture before storing or sharing evidence.</li>
+        </ol>
+      </article>
+      <article class="lab-card">
+        <span>Local addresses</span>
+        <strong>${addresses.length}</strong>
+        <p>${addresses.map(item => item.ip).join(", ") || "No local IPv4 address observed."}</p>
+      </article>
+      <article class="lab-card">
+        <span>DNS resolvers</span>
+        <strong>${(network.resolvers || []).length}</strong>
+        <p>${(network.resolvers || []).join(", ") || "Resolver not observed from runtime."}</p>
+      </article>
+    </div>
+
+    <section class="lab-panel disclaimer-panel">
+      <div class="mini-head">
+        <span class="pill">Authorized use only</span>
+        <h3>LAN capture boundary</h3>
+      </div>
+      <p>Capture only your own traffic or traffic you are explicitly authorized to inspect. Do not capture roommates, clients, public Wi-Fi users or third-party devices without permission.</p>
+    </section>
+
+    <section class="lab-panel">
+      <div class="mini-head">
+        <span class="pill">Local context</span>
+        <h3>Readable interface clues</h3>
+      </div>
+      <div class="packet-table">
+        ${addresses.map((item, index) => `
+          <article class="packet-row">
+            <span class="mono">#${index + 1}</span>
+            <strong>IPv4</strong>
+            <span>${escapeHtml(item.ip)} · ${escapeHtml(item.type)}${item.loopback ? " · loopback" : ""}</span>
+            <p>${item.loopback ? "Local-only address used by your own machine." : "Candidate address for your local capture interface."}</p>
+            <small>Use this only to orient your own Wireshark capture.</small>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+
+    <div class="lab-columns">
+      <section class="lab-panel">
+        <div class="mini-head">
+          <span class="pill">Display filters</span>
+          <h3>Copy into Wireshark</h3>
+        </div>
+        <div class="command-list">
+          ${filters.map(item => `
+            <article class="command-card">
+              ${shellCommand(item.filter)}
+              <p>${escapeHtml(item.use)}</p>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+
+      <section class="lab-panel">
+        <div class="mini-head">
+          <span class="pill">Protocol timeline</span>
+          <h3>What common LAN packets mean</h3>
+        </div>
+        <div class="packet-table">
+          ${timeline.map((item, index) => `
+            <article class="packet-row">
+              <span class="mono">#${index + 1}</span>
+              <strong>${escapeHtml(item.protocol)}</strong>
+              <span>${escapeHtml(item.summary)}</span>
+              <p>${escapeHtml(item.plain)}</p>
+              <small>Readable evidence, not a secret or credential.</small>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderWebAuditLab(report) {
   const domain = report.domain;
   state.currentWebAuditReportId = report.id;
@@ -1592,6 +1730,26 @@ async function buildNetworkLab(target) {
   }
 }
 
+async function buildLocalNetworkLab() {
+  const button = document.querySelector("#localNetworkButton");
+  button.disabled = true;
+  button.textContent = "Building...";
+  setLiveSignal("building own-network traffic view");
+  document.querySelector("#networkLabResult").className = "result empty";
+  document.querySelector("#networkLabResult").innerHTML = `<h2>Building Own Network Lab</h2><p>Reading safe local runtime network context.</p>`;
+  try {
+    const data = await api("/api/network/local");
+    renderLocalNetworkLab(data);
+  } catch (error) {
+    document.querySelector("#networkLabResult").className = "result empty";
+    document.querySelector("#networkLabResult").innerHTML = `<h2 class="error">Error</h2><p>${escapeHtml(error.message)}</p>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Build own-network view";
+    setLiveSignal("passive sensors idle");
+  }
+}
+
 async function analyzeSocial(username) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
@@ -1767,8 +1925,15 @@ document.querySelector("#networkLabForm").addEventListener("submit", event => {
 
 document.querySelector("#loadOwnNetworkLab").addEventListener("click", () => {
   document.querySelector("#networkLabTarget").value = "osintpro-48j4.onrender.com";
+  setNetworkMode("website");
   buildNetworkLab("osintpro-48j4.onrender.com");
 });
+
+document.querySelectorAll("[data-network-mode]").forEach(button => {
+  button.addEventListener("click", () => setNetworkMode(button.dataset.networkMode));
+});
+
+document.querySelector("#localNetworkButton").addEventListener("click", buildLocalNetworkLab);
 
 document.querySelector("#walletForm").addEventListener("submit", event => {
   event.preventDefault();
