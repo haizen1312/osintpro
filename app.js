@@ -123,10 +123,10 @@ function escapeHtml(value) {
 }
 
 function formatDate(value) {
-  if (!value) return "non ancora";
+  if (!value) return "not yet";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" });
+  return date.toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" });
 }
 
 function nicknameInitials(nickname) {
@@ -135,22 +135,22 @@ function nicknameInitials(nickname) {
 }
 
 function list(items) {
-  if (!items || !items.length) return "<span class=\"mono\">nessun dato</span>";
+  if (!items || !items.length) return "<span class=\"mono\">no data</span>";
   return `<div class="mono lines">${items.map(item => `<span>${escapeHtml(item)}</span>`).join("")}</div>`;
 }
 
 function flag(value) {
-  return `<span class="tag ${value ? "" : "missing"}">${value ? "OK" : "Manca"}</span>`;
+  return `<span class="tag ${value ? "" : "missing"}">${value ? "OK" : "Missing"}</span>`;
 }
 
 function probeLabel(probe) {
-  if (!probe) return "non disponibile";
-  return probe.present ? `HTTP ${probe.status}` : (probe.status ? `HTTP ${probe.status}` : "non trovato");
+  if (!probe) return "not available";
+  return probe.present ? `HTTP ${probe.status}` : (probe.status ? `HTTP ${probe.status}` : "not found");
 }
 
 function renderFindings(findings = []) {
   if (!findings.length) {
-    return `<div class="finding"><span class="tag">OK</span><strong>Nessun finding prioritario</strong><p>Le fonti passive non evidenziano problemi principali.</p></div>`;
+    return `<div class="finding"><span class="tag">OK</span><strong>No priority finding</strong><p>Passive sources do not show major issues.</p></div>`;
   }
   return findings.map(item => `
     <div class="finding ${escapeHtml(item.level)}">
@@ -163,7 +163,7 @@ function renderFindings(findings = []) {
 
 function renderVulnerabilities(items = []) {
   if (!items.length) {
-    return `<div class="ops-row"><span class="tag">OK</span><strong>Nessuna ipotesi prioritaria</strong><p>Non emergono ipotesi di vulnerabilita dalle fonti passive.</p></div>`;
+    return `<div class="ops-row"><span class="tag">OK</span><strong>No priority hypothesis</strong><p>No vulnerability hypotheses emerged from passive sources.</p></div>`;
   }
   return items.map(item => `
     <div class="ops-row ${escapeHtml(item.severity)}">
@@ -203,13 +203,26 @@ function updateAccount() {
   document.querySelector("#logoutButton").hidden = !isAuthenticated;
   document.querySelector("#deleteAccountButton").disabled = !isAuthenticated || state.user.plan === "Admin";
   document.querySelector("#accountState").textContent = state.user.authenticated
-    ? `Loggato come @${state.user.nickname}`
-    : "Sessione anonima: registra un account con nickname per conservare pack, crediti e acquisti.";
-  document.querySelector("#accountMeta").textContent = `Piano ${state.user.plan} · Crediti ${label} · Monitor ${state.monitors.length}/${state.user.monitor_limit}`;
+    ? `Signed in as @${state.user.nickname}`
+    : "Anonymous session: create a nickname account to keep credits, reports and purchases.";
+  document.querySelector("#accountMeta").textContent = `Plan ${state.user.plan} · Credits ${label} · Monitor ${state.monitors.length}/${state.user.monitor_limit}`;
   const historyNotice = document.querySelector("#historyNotice");
   if (historyNotice) {
     historyNotice.classList.toggle("guest-only", !isAuthenticated);
   }
+  updateDashboard();
+}
+
+function updateDashboard() {
+  const creditLabel = state.user.plan === "Free" ? `${state.user.credits} credits available` : "Unlimited reports";
+  const nodes = state.workspace?.nodes?.length || 0;
+  const edges = state.workspace?.edges?.length || 0;
+  const dashPlan = document.querySelector("#dashPlan");
+  if (!dashPlan) return;
+  dashPlan.textContent = state.user.plan || "Free";
+  document.querySelector("#dashCredits").textContent = creditLabel;
+  document.querySelector("#dashGraph").textContent = `${nodes} nodes / ${edges} edges`;
+  document.querySelector("#dashMonitors").textContent = `${state.monitors.length}/${state.user.monitor_limit}`;
 }
 
 function reportActions(report) {
@@ -245,12 +258,12 @@ function renderReport(report) {
   document.querySelector("#result").innerHTML = `
     <div class="report-top">
       <div>
-        <span class="pill">Report monetizzabile</span>
+        <span class="pill">Sellable report</span>
         <h2>${escapeHtml(report.domain)}</h2>
         <p>${escapeHtml(report.summary)}</p>
         <div class="actions">
-          <a class="secondary button-link" href="/api/reports/${report.id}/html" target="_blank" rel="noreferrer">Apri PDF</a>
-          <button class="secondary" type="button" data-monitor-domain="${escapeHtml(report.domain)}">Monitora dominio</button>
+          <a class="secondary button-link" href="/api/reports/${report.id}/html" target="_blank" rel="noreferrer">Open PDF</a>
+          <button class="secondary" type="button" data-monitor-domain="${escapeHtml(report.domain)}">Monitor domain</button>
         </div>
       </div>
       <div class="score ${scoreClass}">
@@ -269,7 +282,7 @@ function renderReport(report) {
 
     <div class="grid">
       <article class="card">
-        <strong>IP risolti</strong>
+        <strong>Resolved IPs</strong>
         ${list(report.dns.addresses)}
       </article>
       <article class="card">
@@ -289,15 +302,15 @@ function renderReport(report) {
         ${list(report.dns.soa)}
       </article>
       <article class="card">
-        <strong>Certificato TLS</strong>
-        <p class="mono">${cert.subject ? escapeHtml(cert.subject) : "non disponibile"}<br>${cert.expires ? `Scade: ${escapeHtml(cert.expires)}` : ""}<br>${cert.days_remaining !== null && cert.days_remaining !== undefined ? `${cert.days_remaining} giorni rimanenti` : ""}</p>
+        <strong>TLS certificate</strong>
+        <p class="mono">${cert.subject ? escapeHtml(cert.subject) : "not available"}<br>${cert.expires ? `Expires: ${escapeHtml(cert.expires)}` : ""}<br>${cert.days_remaining !== null && cert.days_remaining !== undefined ? `${cert.days_remaining} days remaining` : ""}</p>
       </article>
       <article class="card">
         <strong>HTTP status</strong>
-        <p class="mono">${report.https?.status || "non disponibile"} ${escapeHtml(report.https?.server || "")}</p>
+        <p class="mono">${report.https?.status || "not available"} ${escapeHtml(report.https?.server || "")}</p>
       </article>
       <article class="card">
-        <strong>Tempo analisi</strong>
+        <strong>Analysis time</strong>
         <p class="mono">${escapeHtml(formatDate(report.generated_at))}</p>
       </article>
     </div>
@@ -317,7 +330,7 @@ function renderReport(report) {
 
       <article class="intel-card">
         <div><span class="pill">Registry Intel</span><strong>${rdap.available ? "RDAP" : "n/a"}</strong></div>
-        <p class="mono">Registrar: ${escapeHtml(rdap.registrar || "non disponibile")}<br>Creato: ${escapeHtml(formatDate(rdap.created))}<br>Scadenza: ${escapeHtml(formatDate(rdap.expires))}</p>
+        <p class="mono">Registrar: ${escapeHtml(rdap.registrar || "not available")}<br>Created: ${escapeHtml(formatDate(rdap.created))}<br>Expires: ${escapeHtml(formatDate(rdap.expires))}</p>
       </article>
 
       <article class="intel-card">
@@ -350,7 +363,7 @@ function renderReport(report) {
           <span>${flag(wellKnown.assetlinks?.present)} Android assetlinks <em>${escapeHtml(probeLabel(wellKnown.assetlinks))}</em></span>
           <span>${flag(wellKnown.apple_app_site_association?.present)} Apple app association <em>${escapeHtml(probeLabel(wellKnown.apple_app_site_association))}</em></span>
         </div>
-        ${takeoverHints.length ? renderOpsRows(takeoverHints, "provider", "subdomain", "cname") : `<span class="mono">nessun CNAME SaaS/cloud prioritario osservato</span>`}
+        ${takeoverHints.length ? renderOpsRows(takeoverHints, "provider", "subdomain", "cname") : `<span class="mono">no priority SaaS/cloud CNAME observed</span>`}
       </article>
 
       <article class="intel-card">
@@ -377,7 +390,7 @@ function renderReport(report) {
     <div class="checks">
       ${headers.map(item => `
         <div class="check">
-          <span class="tag ${item.present ? "" : "missing"}">${item.present ? "OK" : "Manca"}</span>
+          <span class="tag ${item.present ? "" : "missing"}">${item.present ? "OK" : "Missing"}</span>
           <span><strong>${escapeHtml(item.name)}</strong><br><span class="mono">${escapeHtml(item.value || item.reason)}</span></span>
         </div>
       `).join("")}
@@ -388,11 +401,11 @@ function renderReport(report) {
 function renderReports() {
   const holder = document.querySelector("#reportList");
   if (!state.user.authenticated) {
-    holder.innerHTML = `<div class="report-row"><span>Accedi per vedere lo storico privato del tuo account</span><span></span><span></span><span></span></div>`;
+    holder.innerHTML = `<div class="report-row"><span>Sign in to view your private account history</span><span></span><span></span><span></span></div>`;
     return;
   }
   if (!state.reports.length) {
-    holder.innerHTML = `<div class="report-row"><span>Nessun report salvato</span><span></span><span></span><span></span></div>`;
+    holder.innerHTML = `<div class="report-row"><span>No saved reports</span><span></span><span></span><span></span></div>`;
     return;
   }
   holder.innerHTML = state.reports.map(item => `
@@ -408,11 +421,11 @@ function renderReports() {
 function renderSocialReports() {
   const holder = document.querySelector("#socialReportList");
   if (!state.user.authenticated) {
-    holder.innerHTML = `<div class="report-row"><span>Accedi per vedere lo storico social del tuo account</span><span></span><span></span><span></span></div>`;
+    holder.innerHTML = `<div class="report-row"><span>Sign in to view your social history</span><span></span><span></span><span></span></div>`;
     return;
   }
   if (!state.socialReports.length) {
-    holder.innerHTML = `<div class="report-row"><span>Nessun nickname analizzato</span><span></span><span></span><span></span></div>`;
+    holder.innerHTML = `<div class="report-row"><span>No usernames analyzed</span><span></span><span></span><span></span></div>`;
     return;
   }
   holder.innerHTML = state.socialReports.map(item => `
@@ -443,9 +456,9 @@ function renderSocialReport(report) {
     </div>
 
     <div class="summary-strip">
-      <div><strong>${found.length}</strong><span>profili probabili</span></div>
-      <div><strong>${uncertain.length}</strong><span>incerti</span></div>
-      <div><strong>${absent.length}</strong><span>non osservati</span></div>
+      <div><strong>${found.length}</strong><span>likely profiles</span></div>
+      <div><strong>${uncertain.length}</strong><span>uncertain</span></div>
+      <div><strong>${absent.length}</strong><span>not observed</span></div>
     </div>
 
     <div class="social-grid">
@@ -479,11 +492,11 @@ function renderWalletReports() {
   const holder = document.querySelector("#walletReportList");
   if (!holder) return;
   if (!state.user.authenticated) {
-    holder.innerHTML = `<div class="report-row"><span>Accedi per salvare e vedere lo storico wallet del tuo account</span><span></span><span></span><span></span></div>`;
+    holder.innerHTML = `<div class="report-row"><span>Sign in to save and view wallet history</span><span></span><span></span><span></span></div>`;
     return;
   }
   if (!state.walletReports.length) {
-    holder.innerHTML = `<div class="report-row"><span>Nessun wallet analizzato</span><span></span><span></span><span></span></div>`;
+    holder.innerHTML = `<div class="report-row"><span>No wallets analyzed</span><span></span><span></span><span></span></div>`;
     return;
   }
   holder.innerHTML = state.walletReports.map(item => `
@@ -508,8 +521,8 @@ function renderWalletReport(report) {
         <h2>${escapeHtml(report.address)}</h2>
         <p>${escapeHtml(report.summary)}</p>
         <div class="actions">
-          <a class="secondary button-link" href="${escapeHtml(report.explorer_url)}" target="_blank" rel="noreferrer">Apri explorer</a>
-          <button class="secondary" type="button" data-section-jump="schema">Vedi nello schema</button>
+          <a class="secondary button-link" href="${escapeHtml(report.explorer_url)}" target="_blank" rel="noreferrer">Open explorer</a>
+          <button class="secondary" type="button" data-section-jump="schema">View in graph</button>
         </div>
       </div>
       <div class="score ${report.risk_score >= 65 ? "bad" : report.risk_score >= 35 ? "warn" : ""}">
@@ -519,8 +532,8 @@ function renderWalletReport(report) {
 
     <div class="summary-strip">
       <div><strong>${escapeHtml(report.balance ?? "n/a")}</strong><span>${escapeHtml(report.asset || report.chain)}</span></div>
-      <div><strong>${escapeHtml(report.tx_count ?? transactions.length)}</strong><span>tx osservate</span></div>
-      <div><strong>${counterparties.length}</strong><span>controparti</span></div>
+      <div><strong>${escapeHtml(report.tx_count ?? transactions.length)}</strong><span>observed tx</span></div>
+      <div><strong>${counterparties.length}</strong><span>counterparties</span></div>
     </div>
 
     <div class="ops-grid wallet-ops">
@@ -529,17 +542,17 @@ function renderWalletReport(report) {
         ${renderFindings(findings)}
       </article>
       <article class="ops-card">
-        <div><span class="pill">Top controparti</span><strong>${counterparties.length}</strong></div>
+        <div><span class="pill">Top counterparties</span><strong>${counterparties.length}</strong></div>
         ${counterparties.map(item => `
           <div class="ops-row">
             <strong>${escapeHtml(item.short || item.address)}</strong>
             <p>${escapeHtml(item.direction)} · ${escapeHtml(item.tx_count)} tx · ${escapeHtml(item.total_value)} ${escapeHtml(report.asset || "")}</p>
             <small>${escapeHtml((item.labels || []).join(", ") || item.address)}</small>
           </div>
-        `).join("") || `<div class="ops-row"><strong>Nessuna controparte</strong><p>Nessuna relazione nella finestra recente.</p></div>`}
+        `).join("") || `<div class="ops-row"><strong>No counterparties</strong><p>No relationship in the recent window.</p></div>`}
       </article>
       <article class="ops-card">
-        <div><span class="pill">Ricostruzione</span><strong>${(report.reconstruction_notes || []).length}</strong></div>
+        <div><span class="pill">Reconstruction</span><strong>${(report.reconstruction_notes || []).length}</strong></div>
         ${(report.reconstruction_notes || []).map(note => `
           <div class="ops-row"><strong>Next step</strong><p>${escapeHtml(note)}</p></div>
         `).join("")}
@@ -552,7 +565,7 @@ function renderWalletReport(report) {
           <span class="tag ${tx.direction === "outgoing" ? "missing" : ""}">${escapeHtml(tx.direction)}</span>
           <span><strong>${escapeHtml(tx.short || tx.hash)}</strong><br><span class="mono">${escapeHtml(tx.value)} ${escapeHtml(report.asset || "")} · fee ${escapeHtml(tx.fee ?? "n/a")} · ${escapeHtml(formatDate(tx.timestamp))}</span></span>
         </a>
-      `).join("") || `<div class="check"><span class="tag">n/a</span><span>Nessuna transazione recente dalla fonte pubblica.</span></div>`}
+      `).join("") || `<div class="check"><span class="tag">n/a</span><span>No recent transactions from the public source.</span></div>`}
     </div>
   `;
 }
@@ -561,15 +574,15 @@ function renderMonitors() {
   const holder = document.querySelector("#monitorList");
   updateAccount();
   if (!state.monitors.length) {
-    holder.innerHTML = `<div class="monitor-row"><span>Nessun dominio monitorato</span><span></span><span></span><span></span></div>`;
+    holder.innerHTML = `<div class="monitor-row"><span>No monitored domains</span><span></span><span></span><span></span></div>`;
     return;
   }
   holder.innerHTML = state.monitors.map(item => `
     <div class="monitor-row">
       <strong>${escapeHtml(item.domain)}</strong>
       <span class="tag ${item.status === "changed" ? "missing" : ""}">${escapeHtml(item.status)}</span>
-      <span class="mono">${item.last_score === null ? "non ancora" : `${item.last_score}/100`}<br>${escapeHtml(formatDate(item.last_checked_at))}</span>
-      <button class="secondary small" type="button" data-remove-monitor="${escapeHtml(item.id)}">Rimuovi</button>
+      <span class="mono">${item.last_score === null ? "not yet" : `${item.last_score}/100`}<br>${escapeHtml(formatDate(item.last_checked_at))}</span>
+      <button class="secondary small" type="button" data-remove-monitor="${escapeHtml(item.id)}">Remove</button>
     </div>
   `).join("");
 }
@@ -602,7 +615,7 @@ function nodeColor(type) {
 
 function renderGraph(nodes = [], edges = []) {
   if (!nodes.length) {
-    return `<div class="graph-empty"><strong>Nessun nodo</strong><span>Genera report dominio o social per popolare lo schema.</span></div>`;
+    return `<div class="graph-empty"><strong>No nodes</strong><span>Generate domain, social or wallet reports to populate the graph.</span></div>`;
   }
   const width = 920;
   const height = 520;
@@ -645,7 +658,7 @@ function renderGraph(nodes = [], edges = []) {
   }).join("");
 
   return `
-    <svg class="entity-graph" viewBox="0 0 ${width} ${height}" role="img" aria-label="Schema OSINT dei dati raccolti">
+    <svg class="entity-graph" viewBox="0 0 ${width} ${height}" role="img" aria-label="OSINT graph of collected data">
       <rect width="${width}" height="${height}" rx="10"></rect>
       ${edgeMarkup}
       ${nodeMarkup}
@@ -665,14 +678,14 @@ function renderDossierCard(item, type) {
         <p>${escapeHtml(item.summary)}</p>
         <div class="dossier-meta">
           <span>Chain <strong>${escapeHtml(item.chain)}</strong></span>
-          <span>Saldo <strong>${escapeHtml(item.balance ?? "n/a")} ${escapeHtml(item.asset || "")}</strong></span>
+          <span>Balance <strong>${escapeHtml(item.balance ?? "n/a")} ${escapeHtml(item.asset || "")}</strong></span>
           <span>Tx <strong>${escapeHtml(item.tx_count ?? "n/a")}</strong></span>
-          <span>Controparti <strong>${(item.counterparties || []).length}</strong></span>
+          <span>Counterparties <strong>${(item.counterparties || []).length}</strong></span>
         </div>
         <div class="mini-list">
-          ${(item.findings || []).slice(0, 3).map(finding => `<span>${escapeHtml(finding.title || "finding")}</span>`).join("") || "<span>Nessun finding prioritario</span>"}
+          ${(item.findings || []).slice(0, 3).map(finding => `<span>${escapeHtml(finding.title || "finding")}</span>`).join("") || "<span>No priority finding</span>"}
         </div>
-        ${item.explorer_url ? `<a class="secondary button-link small" href="${escapeHtml(item.explorer_url)}" target="_blank" rel="noreferrer">Apri explorer</a>` : ""}
+        ${item.explorer_url ? `<a class="secondary button-link small" href="${escapeHtml(item.explorer_url)}" target="_blank" rel="noreferrer">Open explorer</a>` : ""}
       </article>
     `;
   }
@@ -690,10 +703,10 @@ function renderDossierCard(item, type) {
           <span>IP <strong>${(item.ips || []).length}</strong></span>
           <span>MX <strong>${(item.mx || []).length}</strong></span>
           <span>CT names <strong>${(item.subdomains || []).length}</strong></span>
-          <span>Monitor <strong>${item.monitored ? "attivo" : "off"}</strong></span>
+          <span>Monitor <strong>${item.monitored ? "active" : "off"}</strong></span>
         </div>
         <div class="mini-list">
-          ${(item.findings || []).slice(0, 3).map(finding => `<span>${escapeHtml(finding.title || "finding")}</span>`).join("") || "<span>Nessun finding prioritario</span>"}
+          ${(item.findings || []).slice(0, 3).map(finding => `<span>${escapeHtml(finding.title || "finding")}</span>`).join("") || "<span>No priority finding</span>"}
         </div>
       </article>
     `;
@@ -707,11 +720,11 @@ function renderDossierCard(item, type) {
       </div>
       <p>${escapeHtml(item.summary)}</p>
       <div class="dossier-meta">
-        <span>Profili <strong>${item.profiles_found}</strong></span>
-        <span>Ultimo check <strong>${escapeHtml(formatDate(item.generated_at))}</strong></span>
+        <span>Profiles <strong>${item.profiles_found}</strong></span>
+        <span>Last check <strong>${escapeHtml(formatDate(item.generated_at))}</strong></span>
       </div>
       <div class="mini-list">
-        ${(item.profiles || []).slice(0, 5).map(profile => `<span>${escapeHtml(profile.platform)} · ${escapeHtml(profile.confidence)}</span>`).join("") || "<span>Nessun profilo confermato</span>"}
+        ${(item.profiles || []).slice(0, 5).map(profile => `<span>${escapeHtml(profile.platform)} · ${escapeHtml(profile.confidence)}</span>`).join("") || "<span>No confirmed profile</span>"}
       </div>
     </article>
   `;
@@ -722,9 +735,9 @@ function renderWorkspace() {
   const walletResultHolder = document.querySelector("#walletResult");
   const data = state.workspace;
   if (!data || !data.authenticated) {
-    schemaHolder.innerHTML = `<div class="result empty"><h2>Accedi per costruire lo schema</h2><p>Il grafo usa solo report e social history del tuo account.</p></div>`;
+    schemaHolder.innerHTML = `<div class="result empty"><h2>Sign in to build the graph</h2><p>The graph only uses reports and history from your account.</p></div>`;
     if (walletResultHolder?.classList.contains("empty")) {
-      walletResultHolder.innerHTML = `<h2>Wallet privato</h2><p>Login richiesto per salvare ricostruzioni e storico wallet.</p>`;
+      walletResultHolder.innerHTML = `<h2>Private wallet history</h2><p>Login is required to save reconstructions and wallet history.</p>`;
     }
     return;
   }
@@ -739,10 +752,10 @@ function renderWorkspace() {
         ${renderGraph(data.nodes || [], data.edges || [])}
       </article>
       <aside class="schema-summary">
-        <article><span>Nodi</span><strong>${(data.nodes || []).length}</strong></article>
-        <article><span>Relazioni</span><strong>${(data.edges || []).length}</strong></article>
-        <article><span>Siti</span><strong>${sites.length}</strong></article>
-        <article><span>Persone</span><strong>${people.length}</strong></article>
+        <article><span>Nodes</span><strong>${(data.nodes || []).length}</strong></article>
+        <article><span>Edges</span><strong>${(data.edges || []).length}</strong></article>
+        <article><span>Sites</span><strong>${sites.length}</strong></article>
+        <article><span>People</span><strong>${people.length}</strong></article>
         <article><span>Wallet</span><strong>${wallets.length}</strong></article>
       </aside>
     </div>
@@ -750,7 +763,7 @@ function renderWorkspace() {
       ${sites.map(item => renderDossierCard(item, "site")).join("")}
       ${people.map(item => renderDossierCard(item, "person")).join("")}
       ${wallets.map(item => renderDossierCard(item, "wallet")).join("")}
-      ${!sites.length && !people.length && !wallets.length ? `<div class="result empty"><h2>Nessun dossier</h2><p>Genera report dominio, social o wallet per popolare questa sezione.</p></div>` : ""}
+      ${!sites.length && !people.length && !wallets.length ? `<div class="result empty"><h2>No dossier</h2><p>Generate a domain, social or wallet report to populate this section.</p></div>` : ""}
     </div>
   `;
 
@@ -761,13 +774,13 @@ function renderWorkspace() {
     walletStats.innerHTML = `
     <div class="wallet-grid">
       <article class="wallet-card hero-wallet">
-        <span class="pill">Current pack</span>
+        <span class="pill">Current plan</span>
         <strong>${escapeHtml(wallet.plan || "Free")}</strong>
-        <p>Crediti: <b>${escapeHtml(creditLabel)}</b>. Wallet report: <b>${wallet.wallet_reports || 0}</b>. Monitor domini: <b>${wallet.monitor_used || 0}/${wallet.monitor_limit || 1}</b>.</p>
+        <p>Credits: <b>${escapeHtml(creditLabel)}</b>. Wallet report: <b>${wallet.wallet_reports || 0}</b>. Domain monitors: <b>${wallet.monitor_used || 0}/${wallet.monitor_limit || 1}</b>.</p>
       </article>
-      <article class="wallet-card"><span>Exposure index</span><strong>${wallet.exposure_index || 0}/100</strong><p>Media score degli asset raccolti.</p></article>
-      <article class="wallet-card"><span>Domain report</span><strong>${wallet.domain_reports || 0}</strong><p>Siti e brand analizzati.</p></article>
-      <article class="wallet-card"><span>Wallet report</span><strong>${wallet.wallet_reports || 0}</strong><p>Address blockchain tracciati.</p></article>
+      <article class="wallet-card"><span>Exposure index</span><strong>${wallet.exposure_index || 0}/100</strong><p>Average score across collected assets.</p></article>
+      <article class="wallet-card"><span>Domain report</span><strong>${wallet.domain_reports || 0}</strong><p>Analyzed sites and brands.</p></article>
+      <article class="wallet-card"><span>Wallet report</span><strong>${wallet.wallet_reports || 0}</strong><p>Traced blockchain addresses.</p></article>
     </div>
     `;
   }
@@ -777,6 +790,7 @@ async function loadWorkspace() {
   const data = await api("/api/intel/workspace");
   state.workspace = data;
   renderWorkspace();
+  updateDashboard();
 }
 
 function showBillingMessage(message) {
@@ -799,7 +813,7 @@ async function api(path, options = {}) {
   });
   const data = await response.json();
   if (!response.ok) {
-    const error = new Error(data.error || "Richiesta fallita");
+    const error = new Error(data.error || "Request failed");
     error.status = response.status;
     throw error;
   }
@@ -835,7 +849,7 @@ async function checkApi() {
 async function analyze(target) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
-    showBillingMessage("Hai finito i crediti Free. Passa a Pro per continuare.");
+    showBillingMessage("You have used all Free credits. Upgrade to Pro to continue.");
     return;
   }
 
@@ -844,7 +858,7 @@ async function analyze(target) {
   button.textContent = "Analyzing...";
   setLiveSignal(`collecting passive intel for ${target}`);
   document.querySelector("#result").className = "result empty";
-  document.querySelector("#result").innerHTML = `<h2>Analisi in corso</h2><p>Sto interrogando fonti passive dal backend locale.</p>`;
+  document.querySelector("#result").innerHTML = `<h2>Analysis in progress</h2><p>Querying passive sources from the backend.</p>`;
 
   try {
     const data = await api("/api/analyze", {
@@ -867,7 +881,7 @@ async function analyze(target) {
     await loadWorkspace();
   } catch (error) {
     document.querySelector("#result").className = "result empty";
-    document.querySelector("#result").innerHTML = `<h2 class="error">Errore</h2><p>${escapeHtml(error.message)}</p>`;
+    document.querySelector("#result").innerHTML = `<h2 class="error">Error</h2><p>${escapeHtml(error.message)}</p>`;
   } finally {
     button.disabled = false;
     button.textContent = "Run intel";
@@ -878,7 +892,7 @@ async function analyze(target) {
 async function analyzeSocial(username) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
-    showBillingMessage("Hai finito i crediti Free. Social OSINT continua nei piani Pro/Agency.");
+    showBillingMessage("You have used all Free credits. Social OSINT continues on Pro/Agency.");
     return;
   }
   const button = document.querySelector("#socialButton");
@@ -886,7 +900,7 @@ async function analyzeSocial(username) {
   button.textContent = "Searching...";
   setLiveSignal(`probing public handles for ${username}`);
   document.querySelector("#socialResult").className = "result empty";
-  document.querySelector("#socialResult").innerHTML = `<h2>Ricerca nickname in corso</h2><p>Sto controllando profili pubblici e segnali di impersonificazione.</p>`;
+  document.querySelector("#socialResult").innerHTML = `<h2>Social lookup in progress</h2><p>Checking public profiles and impersonation signals.</p>`;
   try {
     const data = await api("/api/social/analyze", {
       method: "POST",
@@ -907,7 +921,7 @@ async function analyzeSocial(username) {
     await loadWorkspace();
   } catch (error) {
     document.querySelector("#socialResult").className = "result empty";
-    document.querySelector("#socialResult").innerHTML = `<h2 class="error">Errore</h2><p>${escapeHtml(error.message)}</p>`;
+    document.querySelector("#socialResult").innerHTML = `<h2 class="error">Error</h2><p>${escapeHtml(error.message)}</p>`;
   } finally {
     button.disabled = false;
     button.textContent = "Run social OSINT";
@@ -918,7 +932,7 @@ async function analyzeSocial(username) {
 async function analyzeWallet(address) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
-    showBillingMessage("Hai finito i crediti Free. Wallet OSINT continua nei piani Pro/Agency.");
+    showBillingMessage("You have used all Free credits. Wallet OSINT continues on Pro/Agency.");
     return;
   }
   const button = document.querySelector("#walletButton");
@@ -926,7 +940,7 @@ async function analyzeWallet(address) {
   button.textContent = "Tracing...";
   setLiveSignal(`tracing public blockchain wallet ${address}`);
   document.querySelector("#walletResult").className = "result empty";
-  document.querySelector("#walletResult").innerHTML = `<h2>Ricostruzione wallet in corso</h2><p>Sto leggendo fonti blockchain pubbliche e preparando grafo controparti.</p>`;
+  document.querySelector("#walletResult").innerHTML = `<h2>Wallet reconstruction running</h2><p>Reading public blockchain sources and preparing the counterparty graph.</p>`;
   try {
     const data = await api("/api/wallet/analyze", {
       method: "POST",
@@ -948,7 +962,7 @@ async function analyzeWallet(address) {
     await loadWorkspace();
   } catch (error) {
     document.querySelector("#walletResult").className = "result empty";
-    document.querySelector("#walletResult").innerHTML = `<h2 class="error">Errore</h2><p>${escapeHtml(error.message)}</p>`;
+    document.querySelector("#walletResult").innerHTML = `<h2 class="error">Error</h2><p>${escapeHtml(error.message)}</p>`;
   } finally {
     button.disabled = false;
     button.textContent = "Trace wallet";
@@ -984,7 +998,7 @@ async function checkout(plan) {
       body: JSON.stringify({ plan })
     });
     if (data.url) {
-      showBillingMessage("Redirect sicuro verso Stripe in corso...");
+      showBillingMessage("Secure redirect to Stripe...");
       window.location.href = data.url;
       return;
     }
@@ -992,7 +1006,7 @@ async function checkout(plan) {
   } catch (error) {
     if (error.status === 401) {
       setSection("account");
-      showAccountMessage("Crea un account o accedi prima di acquistare Pro/Agency.", true);
+      showAccountMessage("Create an account or sign in before buying Pro/Agency.", true);
       return;
     }
     showBillingMessage(error.message);
@@ -1046,7 +1060,7 @@ document.querySelector("#registerForm").addEventListener("submit", async event =
     document.querySelector("#registerPassword").value = "";
     state.user = data.user;
     await loadSession();
-    showAccountMessage("Account creato. Crediti, report e piani ora sono legati al tuo nickname.");
+    showAccountMessage("Account created. Credits, reports and plans are now tied to your nickname.");
   } catch (error) {
     document.querySelector("#registerPassword").value = "";
     showAccountMessage(error.message, true);
@@ -1066,7 +1080,7 @@ document.querySelector("#loginForm").addEventListener("submit", async event => {
     document.querySelector("#loginPassword").value = "";
     state.user = data.user;
     await loadSession();
-    showAccountMessage("Login effettuato.");
+    showAccountMessage("Signed in.");
   } catch (error) {
     document.querySelector("#loginPassword").value = "";
     showAccountMessage(error.message, true);
@@ -1085,7 +1099,7 @@ document.querySelector("#passwordForm").addEventListener("submit", async event =
     });
     document.querySelector("#currentPassword").value = "";
     document.querySelector("#newPassword").value = "";
-    showAccountMessage("Password aggiornata.");
+    showAccountMessage("Password updated.");
   } catch (error) {
     document.querySelector("#currentPassword").value = "";
     document.querySelector("#newPassword").value = "";
@@ -1171,7 +1185,7 @@ document.querySelector("#clearWalletReports").addEventListener("click", async ()
   state.walletReports = data.wallet_reports;
   renderWalletReports();
   document.querySelector("#walletResult").className = "result empty";
-  document.querySelector("#walletResult").innerHTML = `<h2>Nessun wallet analizzato</h2><p>Inserisci un address Bitcoin o Ethereum/EVM pubblico.</p>`;
+  document.querySelector("#walletResult").innerHTML = `<h2>No wallets analyzed</h2><p>Enter a public Bitcoin or Ethereum/EVM address.</p>`;
   await loadWorkspace();
 });
 
@@ -1191,15 +1205,15 @@ document.querySelector("#refreshWallet").addEventListener("click", loadWorkspace
 
 document.querySelector("#deleteAccountButton").addEventListener("click", async () => {
   if (!state.user.authenticated) {
-    showAccountMessage("Accedi prima di eliminare l'account.", true);
+    showAccountMessage("Sign in before deleting your account.", true);
     return;
   }
   if (state.user.plan === "Admin") {
-    showAccountMessage("L'account Admin non puo essere eliminato da qui.", true);
+    showAccountMessage("The Admin account cannot be deleted here.", true);
     return;
   }
-  const confirmation = window.prompt("Scrivi ELIMINA per cancellare account e dati.");
-  if (confirmation !== "ELIMINA") return;
+  const confirmation = window.prompt("Type DELETE to delete the account and data.");
+  if (confirmation !== "DELETE") return;
   await api("/api/account", { method: "DELETE" });
   window.location.reload();
 });
@@ -1229,5 +1243,5 @@ checkApi();
 loadSession().catch(error => {
   document.querySelector("#apiStatus").textContent = "offline";
   document.querySelector("#result").className = "result empty";
-  document.querySelector("#result").innerHTML = `<h2 class="error">Errore</h2><p>${escapeHtml(error.message)}</p>`;
+  document.querySelector("#result").innerHTML = `<h2 class="error">Error</h2><p>${escapeHtml(error.message)}</p>`;
 });

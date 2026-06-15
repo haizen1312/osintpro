@@ -1,27 +1,29 @@
 # OSINTPRO Monetization Checklist
 
-OSINTPRO va venduto come intelligence passiva per domini, brand, nickname pubblici e wallet blockchain pubblici.
-Non posizionarlo come scanner offensivo: il valore e nel report, nel monitoraggio e nella priorita dei finding.
+OSINTPRO should be sold as passive intelligence for domains, brands, public usernames and public blockchain wallets.
 
-Sito live:
+Do not position it as an offensive scanner. The value is in readable reporting, monitoring, prioritization and investigative workflow.
+
+Live app:
 
 ```text
 https://osintpro-48j4.onrender.com/
 ```
 
-## Offerta iniziale
+## Offer
 
-- Free tier: 5 report iniziali, 1 dominio monitorato.
-- Pro: 19 EUR/mese, report illimitati, 5 domini monitorati, PDF/CSV e Wallet OSINT base.
-- Agency: 79 EUR/mese, report per clienti, 25 domini monitorati, workflow Red/Purple Team, Wallet OSINT e grafo investigativo.
+- Free: 5 starter reports and 1 monitored domain.
+- Pro: 19 EUR/month, unlimited reports, 5 monitored domains, PDF/CSV and wallet OSINT.
+- Agency: 79 EUR/month, client reporting workflows, 25 monitored domains, Red/Purple Team guidance, wallet OSINT and entity graph.
 
-## Primo setup Stripe
+## Stripe Setup
 
-1. Crea due Payment Link su Stripe:
-   - OSINTPRO Pro, 19 EUR/mese.
-   - OSINTPRO Agency, 79 EUR/mese.
-2. Copia gli URL dei Payment Link.
-3. In produzione imposta:
+Create two Stripe Payment Links:
+
+- OSINTPRO Pro, 19 EUR/month.
+- OSINTPRO Agency, 79 EUR/month.
+
+Production variables:
 
 ```bash
 OSINTPRO_STRIPE_PRO_URL="https://buy.stripe.com/..."
@@ -29,44 +31,76 @@ OSINTPRO_STRIPE_AGENCY_URL="https://buy.stripe.com/..."
 OSINTPRO_STRIPE_WEBHOOK_SECRET="whsec_..."
 ```
 
-Questa versione usa Payment Link per validare vendite subito. Il backend aggiunge un `client_reference_id` al link Stripe, quindi il webhook `checkout.session.completed` puo riconciliare pagamento, utente e piano.
-
-Webhook da creare in Stripe:
+Webhook endpoint:
 
 ```text
 https://osintpro-48j4.onrender.com/api/stripe/webhook
 ```
 
-## Primo canale di vendita
-
-Target iniziali:
-
-- piccole agenzie web
-- freelance cyber/GDPR
-- founder SaaS
-- e-commerce con dominio principale e brand social
-
-Messaggio breve:
+Required event:
 
 ```text
-Ti preparo un mini report OSINT passivo sul tuo dominio o su un wallet pubblico: DNS/TLS/email security, brand exposure, oppure saldo, movimenti e controparti blockchain.
-Se vuoi monitoraggio mensile, PDF per clienti, DNSSEC/BIMI review, controllo takeover e grafo investigativo wallet, OSINTPRO parte da 19 EUR/mese.
+checkout.session.completed
 ```
 
-## Cose da non promettere
+This version uses Payment Links so revenue can start before building a full billing portal. The backend appends user context to the Stripe link and the signed webhook activates the correct plan after payment.
 
-- Nessuna garanzia di sicurezza assoluta.
-- Nessun exploit o scansione aggressiva.
-- Nessuna attribuzione certa sui nickname senza verifica manuale.
-- Nessuna attribuzione certa di wallet senza contesto esterno, denuncia, KYC/exchange data o verifica investigativa.
-- Nessun supporto a offuscamento, mixing, evasione o movimentazione fondi.
+## First Customers
 
-## Prossimi upgrade che aumentano il prezzo
+Best initial targets:
 
-- alert webhook su cambiamenti monitor
-- export PDF vero server-side
-- workspace agency multi-cliente
-- metriche admin avanzate e backup operativo
-- restore guidato da artifact GitHub Actions per restare su piano free
-- hop 2/3 nel grafo wallet, tag manuali per exchange/mixer/victim wallet e CSV investigativo
-- migrazione futura a Postgres gestito solo quando il traffico paga i costi
+- small web agencies
+- freelance security/GDPR consultants
+- SaaS founders
+- ecommerce operators
+- crypto fraud analysts
+- compliance teams that need lightweight public wallet triage
+- investigators documenting suspicious wallet movement
+
+Short outbound message:
+
+```text
+I can prepare a passive OSINT report for your domain, brand, public username or public wallet address.
+
+It covers DNS/TLS/email posture, public brand exposure, social username presence, or blockchain balance, movements and counterparties.
+
+If you want recurring monitoring, client-ready PDF/CSV exports and an investigation graph, OSINTPRO starts at 19 EUR/month.
+```
+
+## What Not To Promise
+
+- No guarantee of absolute security.
+- No exploit, brute force or aggressive scanning.
+- No certain attribution of usernames without manual verification.
+- No certain attribution of wallets without external context, exchange/KYC data, legal process or verified investigation notes.
+- No support for obfuscation, mixing, evasion or moving funds.
+
+## Pricing Upsell Logic
+
+Free users should feel value quickly but hit a natural ceiling:
+
+- Free gives enough reports to understand the product.
+- Pro removes report friction and adds practical monitoring.
+- Agency is for repeat client work, case tracking and higher-volume monitoring.
+
+## Growth Without Paid Ads
+
+Free channels:
+
+- GitHub search traffic through English README keywords and topics.
+- Short posts showing sanitized example reports.
+- Founder/security communities where passive domain intelligence is useful.
+- Web agency outreach: offer a first free report for their own domain.
+- Crypto safety communities: frame wallet OSINT as public transaction reconstruction, not deanonymization.
+- Build-in-public updates whenever a useful feature ships.
+
+## Features That Increase Willingness To Pay
+
+- true server-side PDF export
+- agency client folders
+- saved investigation notes
+- wallet graph hop expansion
+- manual wallet tags such as exchange, scam, victim, mixer, bridge or unknown
+- alerting on monitor changes
+- stronger admin analytics
+- PostgreSQL migration after revenue supports hosting costs

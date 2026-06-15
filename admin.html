@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,16 +20,16 @@
 
       <div>
         <span class="pill">Private owner access</span>
-        <h1>Accesso admin</h1>
-        <p>Sblocca utilizzo completo dell'app senza checkout o limiti freemium.</p>
+        <h1>Admin access</h1>
+        <p>Unlock full owner access without checkout or freemium limits.</p>
       </div>
 
       <form id="adminForm" class="admin-form">
         <div>
-          <label for="adminCode">Codice admin</label>
-          <input id="adminCode" name="adminCode" type="password" autocomplete="current-password" placeholder="Codice privato">
+          <label for="adminCode">Admin code</label>
+          <input id="adminCode" name="adminCode" type="password" autocomplete="current-password" placeholder="Private code">
         </div>
-        <button class="primary" type="submit">Sblocca Admin</button>
+        <button class="primary" type="submit">Unlock Admin</button>
       </form>
 
       <div class="billing-message" id="adminMessage"></div>
@@ -37,8 +37,8 @@
         <div class="admin-status-grid" id="adminStatusGrid"></div>
 
         <div class="admin-actions">
-          <a class="secondary button-link" href="/api/admin/export">Scarica export operativo</a>
-          <button class="secondary" type="button" id="backupButton">Crea backup DB</button>
+          <a class="secondary button-link" href="/api/admin/export">Download operational export</a>
+          <button class="secondary" type="button" id="backupButton">Create DB backup</button>
         </div>
 
         <form id="restoreForm" class="admin-form restore-form">
@@ -46,16 +46,16 @@
             <label for="restoreFile">Restore snapshot SQLite</label>
             <input id="restoreFile" name="restoreFile" type="file" accept=".sqlite,.sqlite3,.db,application/octet-stream">
           </div>
-          <button class="secondary" type="submit">Ripristina backup</button>
+          <button class="secondary" type="submit">Restore backup</button>
         </form>
 
         <form id="planForm" class="admin-form inline-admin-form">
           <div>
-            <label for="planNickname">Nickname utente</label>
+            <label for="planNickname">User nickname</label>
             <input id="planNickname" name="planNickname" autocomplete="off" placeholder="nickname">
           </div>
           <div>
-            <label for="planValue">Piano</label>
+            <label for="planValue">Plan</label>
             <select id="planValue" name="planValue">
               <option value="Free">Free</option>
               <option value="Pro">Pro</option>
@@ -63,14 +63,14 @@
               <option value="Admin">Admin</option>
             </select>
           </div>
-          <button class="secondary" type="submit">Aggiorna piano</button>
+          <button class="secondary" type="submit">Update plan</button>
         </form>
 
         <div>
           <div class="section-head compact-head">
             <div>
               <span class="pill">Users</span>
-              <h2>Account recenti</h2>
+              <h2>Recent accounts</h2>
             </div>
           </div>
           <div class="admin-table" id="adminUsers"></div>
@@ -80,7 +80,7 @@
           <div class="section-head compact-head">
             <div>
               <span class="pill">Stripe</span>
-              <h2>Ultimi eventi</h2>
+              <h2>Latest events</h2>
             </div>
           </div>
           <div class="admin-table" id="adminEvents"></div>
@@ -96,7 +96,7 @@
           <div class="admin-table" id="adminBackups"></div>
         </div>
       </section>
-      <a class="secondary button-link" href="/">Torna all'app</a>
+      <a class="secondary button-link" href="/">Back to app</a>
     </section>
   </main>
 

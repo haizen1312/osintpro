@@ -110,11 +110,24 @@ li {
 
 .nav {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+}
+
+.nav-label {
+  margin-top: 8px;
+  color: rgba(138, 169, 156, .72);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.nav-label:first-child {
+  margin-top: 0;
 }
 
 .nav-btn {
-  height: 40px;
+  min-height: 38px;
   padding: 0 10px;
   border-radius: 6px;
   background: transparent;
@@ -333,6 +346,46 @@ li {
 
 .section.active {
   display: block;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, .7fr));
+  gap: 12px;
+}
+
+.dash-card {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  min-height: 170px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  box-shadow: var(--shadow);
+}
+
+.dash-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.dash-card strong {
+  color: var(--cyan);
+  font-size: 28px;
+}
+
+.primary-dash {
+  background:
+    linear-gradient(135deg, rgba(57, 255, 184, .14), rgba(98, 216, 255, .06) 48%, transparent),
+    var(--panel-strong);
+}
+
+.primary-dash h2 {
+  font-size: 30px;
 }
 
 .panel {
@@ -1273,6 +1326,7 @@ input:focus {
   .admin-status-grid,
   .inline-admin-form,
   .restore-form,
+  .dashboard-grid,
   .schema-grid,
   .dossier-grid,
   .dossier-meta,

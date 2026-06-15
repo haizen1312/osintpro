@@ -25,7 +25,7 @@ async function adminApi(path, options = {}) {
     }
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Operazione admin non riuscita");
+  if (!response.ok) throw new Error(data.error || "Admin operation failed");
   return data;
 }
 
@@ -46,40 +46,41 @@ function renderAdmin(data) {
   const totals = admin.totals || {};
   const database = production.database || {};
   document.querySelector("#adminStatusGrid").innerHTML = [
-    statusCard("Utenti", totals.users || 0),
-    statusCard("Report domini", totals.reports || 0),
-    statusCard("Report social", totals.social_reports || 0),
+    statusCard("Users", totals.users || 0),
+    statusCard("Domain reports", totals.reports || 0),
+    statusCard("Social reports", totals.social_reports || 0),
+    statusCard("Wallet reports", totals.wallet_reports || 0),
     statusCard("Monitor", totals.monitors || 0),
-    statusCard("Stripe link Pro", production.stripe_pro_link ? "OK" : "Manca", production.stripe_pro_link ? "ok" : "warn"),
-    statusCard("Stripe link Agency", production.stripe_agency_link ? "OK" : "Manca", production.stripe_agency_link ? "ok" : "warn"),
-    statusCard("Stripe webhook", production.stripe_webhook ? "OK" : "Manca", production.stripe_webhook ? "ok" : "warn"),
-    statusCard("Cron secret", production.cron_secret ? "OK" : "Manca", production.cron_secret ? "ok" : "warn"),
-    statusCard("Alert webhook", production.alert_webhook ? "Attivo" : "Opzionale", production.alert_webhook ? "ok" : "muted"),
+    statusCard("Stripe link Pro", production.stripe_pro_link ? "OK" : "Missing", production.stripe_pro_link ? "ok" : "warn"),
+    statusCard("Stripe link Agency", production.stripe_agency_link ? "OK" : "Missing", production.stripe_agency_link ? "ok" : "warn"),
+    statusCard("Stripe webhook", production.stripe_webhook ? "OK" : "Missing", production.stripe_webhook ? "ok" : "warn"),
+    statusCard("Cron secret", production.cron_secret ? "OK" : "Missing", production.cron_secret ? "ok" : "warn"),
+    statusCard("Alert webhook", production.alert_webhook ? "Active" : "Optional", production.alert_webhook ? "ok" : "muted"),
     statusCard("Database", database.persistent_hint ? "Custom path" : "Default", database.persistent_hint ? "ok" : "warn"),
-    statusCard("Anti-abuso", production.registration_limit ? `${production.registration_limit}/connessione` : "Off", production.registration_limit ? "ok" : "warn"),
-    statusCard("Backup DB", database.backup_count ? `${database.backup_count} snapshot` : "Nessuno", database.backup_count ? "ok" : "warn")
+    statusCard("Anti-abuse", production.registration_limit ? `${production.registration_limit}/connection` : "Off", production.registration_limit ? "ok" : "warn"),
+    statusCard("Backup DB", database.backup_count ? `${database.backup_count} snapshot` : "None", database.backup_count ? "ok" : "warn")
   ].join("");
 
   const users = admin.users || [];
   document.querySelector("#adminUsers").innerHTML = users.length ? `
     <div class="admin-row header">
-      <span>Nickname</span><span>Piano</span><span>Crediti</span><span>Report</span><span>Monitor</span>
+      <span>Nickname</span><span>Plan</span><span>Credits</span><span>Report</span><span>Monitor</span>
     </div>
     ${users.map(user => `
       <button class="admin-row user-row" type="button" data-user="${escapeHtml(user.nickname)}" data-plan="${escapeHtml(user.plan)}">
         <span>${escapeHtml(user.nickname)}</span>
         <span>${escapeHtml(user.plan)}</span>
         <span>${escapeHtml(user.credits)}</span>
-        <span>${escapeHtml((user.report_count || 0) + (user.social_report_count || 0))}</span>
+        <span>${escapeHtml((user.report_count || 0) + (user.social_report_count || 0) + (user.wallet_report_count || 0))}</span>
         <span>${escapeHtml(user.monitor_count || 0)}</span>
       </button>
     `).join("")}
-  ` : `<div class="empty">Nessun utente registrato.</div>`;
+  ` : `<div class="empty">No registered users.</div>`;
 
   const events = admin.stripe_events || [];
   document.querySelector("#adminEvents").innerHTML = events.length ? `
     <div class="admin-row header">
-      <span>Tipo</span><span>Status</span><span>Piano</span><span>Data</span>
+      <span>Type</span><span>Status</span><span>Plan</span><span>Date</span>
     </div>
     ${events.map(event => `
       <div class="admin-row">
@@ -89,29 +90,29 @@ function renderAdmin(data) {
         <span>${escapeHtml(event.created_at)}</span>
       </div>
     `).join("")}
-  ` : `<div class="empty">Nessun evento Stripe registrato.</div>`;
+  ` : `<div class="empty">No Stripe events recorded.</div>`;
 
   const backups = admin.backups || [];
   document.querySelector("#adminBackups").innerHTML = backups.length ? `
     <div class="admin-row backup-row header">
-      <span>File</span><span>Dimensione</span><span>Creato</span><span>Azione</span>
+      <span>File</span><span>Size</span><span>Created</span><span>Action</span>
     </div>
     ${backups.map(backup => `
       <div class="admin-row backup-row">
         <span>${escapeHtml(backup.name)}</span>
         <span>${escapeHtml(Math.max(1, Math.round((backup.size || 0) / 1024)))} KB</span>
         <span>${escapeHtml(backup.created_at)}</span>
-        <span><a href="/api/admin/backups/${encodeURIComponent(backup.name)}">Scarica</a></span>
+        <span><a href="/api/admin/backups/${encodeURIComponent(backup.name)}">Download</a></span>
       </div>
     `).join("")}
-  ` : `<div class="empty">Nessun backup creato.</div>`;
+  ` : `<div class="empty">No backups created.</div>`;
 }
 
 async function loadAdminStatus() {
   try {
     const data = await adminApi("/api/admin/status");
     renderAdmin(data);
-    showMessage("Dashboard admin caricata.");
+    showMessage("Admin dashboard loaded.");
   } catch {
     dashboard.hidden = true;
   }
@@ -122,7 +123,7 @@ document.querySelector("#adminForm").addEventListener("submit", async event => {
   const button = event.currentTarget.querySelector("button");
   const code = document.querySelector("#adminCode").value;
   button.disabled = true;
-  button.textContent = "Verifico...";
+  button.textContent = "Verifying...";
 
   try {
     const data = await adminApi("/api/admin/login", {
@@ -130,13 +131,13 @@ document.querySelector("#adminForm").addEventListener("submit", async event => {
       body: JSON.stringify({ code })
     });
     renderAdmin(data);
-    showMessage("Accesso Admin attivato. Dashboard privata pronta.");
+    showMessage("Admin access enabled. Private dashboard ready.");
   } catch (error) {
     showMessage(error.message, true);
   } finally {
     document.querySelector("#adminCode").value = "";
     button.disabled = false;
-    button.textContent = "Sblocca Admin";
+    button.textContent = "Unlock Admin";
   }
 });
 
@@ -146,35 +147,35 @@ document.querySelector("#planForm").addEventListener("submit", async event => {
   const nickname = document.querySelector("#planNickname").value;
   const plan = document.querySelector("#planValue").value;
   button.disabled = true;
-  button.textContent = "Aggiorno...";
+  button.textContent = "Updating...";
   try {
     const data = await adminApi("/api/admin/users/plan", {
       method: "POST",
       body: JSON.stringify({ nickname, plan })
     });
     renderAdmin(data);
-    showMessage(`Piano aggiornato per ${nickname}.`);
+    showMessage(`Plan updated for ${nickname}.`);
   } catch (error) {
     showMessage(error.message, true);
   } finally {
     button.disabled = false;
-    button.textContent = "Aggiorna piano";
+    button.textContent = "Update plan";
   }
 });
 
 document.querySelector("#backupButton").addEventListener("click", async event => {
   const button = event.currentTarget;
   button.disabled = true;
-  button.textContent = "Creo backup...";
+  button.textContent = "Creating backup...";
   try {
     const data = await adminApi("/api/admin/backups", { method: "POST" });
     renderAdmin(data);
-    showMessage(`Backup creato: ${data.backup.name}`);
+    showMessage(`Backup created: ${data.backup.name}`);
   } catch (error) {
     showMessage(error.message, true);
   } finally {
     button.disabled = false;
-    button.textContent = "Crea backup DB";
+    button.textContent = "Create DB backup";
   }
 });
 
@@ -183,13 +184,13 @@ document.querySelector("#restoreForm").addEventListener("submit", async event =>
   const button = event.currentTarget.querySelector("button");
   const file = document.querySelector("#restoreFile").files[0];
   if (!file) {
-    showMessage("Seleziona uno snapshot SQLite da ripristinare.", true);
+    showMessage("Select a SQLite snapshot to restore.", true);
     return;
   }
-  const confirmation = window.prompt("Scrivi RESTORE per sostituire il database corrente.");
+  const confirmation = window.prompt("Type RESTORE to replace the current database.");
   if (confirmation !== "RESTORE") return;
   button.disabled = true;
-  button.textContent = "Ripristino...";
+  button.textContent = "Restoring...";
   try {
     const response = await fetch("/api/admin/restore", {
       method: "POST",
@@ -200,15 +201,15 @@ document.querySelector("#restoreForm").addEventListener("submit", async event =>
       body: file
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Restore non riuscito");
+    if (!response.ok) throw new Error(data.error || "Restore failed");
     renderAdmin(data);
     document.querySelector("#restoreFile").value = "";
-    showMessage(`Restore completato: ${data.restored.users} utenti, ${data.restored.reports + data.restored.social_reports} report.`);
+    showMessage(`Restore completed: ${data.restored.users} users, ${data.restored.reports + data.restored.social_reports} reports.`);
   } catch (error) {
     showMessage(error.message, true);
   } finally {
     button.disabled = false;
-    button.textContent = "Ripristina backup";
+    button.textContent = "Restore backup";
   }
 });
 

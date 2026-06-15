@@ -560,10 +560,10 @@ def latest_backup() -> dict[str, object] | None:
 
 def backup_path(name: str) -> Path:
     if not BACKUP_NAME_RE.match(name):
-        raise ValueError("Backup non valido.")
+        raise ValueError("Invalid backup.")
     path = (BACKUP_DIR / name).resolve()
     if BACKUP_DIR.resolve() not in path.parents:
-        raise ValueError("Backup non valido.")
+        raise ValueError("Invalid backup.")
     return path
 
 
@@ -584,7 +584,7 @@ def prune_backups(protected_name: str = "") -> None:
 
 def create_sqlite_backup(reason: str = "manual") -> dict[str, object]:
     if not DB_PATH.exists():
-        raise ValueError("Database non ancora creato.")
+        raise ValueError("Database has not been created yet.")
     safe_reason = re.sub(r"[^a-z0-9-]+", "-", reason.lower()).strip("-")[:32] or "manual"
     timestamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
     suffix = secrets.token_hex(3)
@@ -648,7 +648,7 @@ def validate_sqlite_database(path: Path) -> dict[str, object]:
 
 def restore_sqlite_backup(payload: bytes) -> dict[str, object]:
     if len(payload) > MAX_RESTORE_BYTES:
-        raise ValueError("Backup troppo grande.")
+        raise ValueError("Backup is too large.")
     if not payload.startswith(b"SQLite format 3\x00"):
         raise ValueError("File backup SQLite non valido.")
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -712,7 +712,7 @@ def normalize_nickname(raw: str) -> str:
 
 def password_hash(password: str, salt: str | None = None) -> str:
     if len(password) < 8:
-        raise ValueError("La password deve avere almeno 8 caratteri.")
+        raise ValueError("Password must be at least 8 characters.")
     salt = salt or secrets.token_hex(16)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 180000)
     return f"pbkdf2_sha256${salt}${digest.hex()}"
@@ -742,14 +742,14 @@ def clean_domain(raw: str) -> str:
     if value.startswith("www."):
         value = value[4:]
     if not DOMAIN_RE.match(value):
-        raise ValueError("Inserisci un dominio valido, per esempio openai.com")
+        raise ValueError("Enter a valid domain, for example openai.com")
     return value
 
 
 def clean_username(raw: str) -> str:
     value = raw.strip().lstrip("@")
     if not USERNAME_RE.match(value):
-        raise ValueError("Inserisci un nickname valido: 2-32 caratteri, lettere, numeri, punto, underscore o trattino.")
+        raise ValueError("Enter a valid username: 2-32 characters, letters, numbers, dot, underscore or dash.")
     return value
 
 
@@ -759,7 +759,7 @@ def clean_wallet_address(raw: str) -> tuple[str, str]:
         return "ethereum", value
     if BTC_ADDRESS_RE.match(value):
         return "bitcoin", value
-    raise ValueError("Inserisci un wallet Bitcoin o Ethereum/EVM valido.")
+    raise ValueError("Enter a valid Bitcoin or Ethereum/EVM wallet address.")
 
 
 def btc_to_unit(value: int | float | None) -> float:
@@ -838,63 +838,63 @@ def wallet_findings(chain: str, address_info: dict[str, object], transactions: l
     if tx_count >= 1000:
         findings.append({
             "level": "high",
-            "title": "Wallet ad altissima attivita",
-            "detail": "Il numero di transazioni pubbliche e molto alto: utile per cluster analysis, exchange deposit review o ricostruzioni antifrode.",
+            "title": "Very high-activity wallet",
+            "detail": "The number of public transactions is very high: useful for cluster analysis, exchange deposit review or fraud reconstruction.",
         })
     elif tx_count >= 100:
         findings.append({
             "level": "medium",
-            "title": "Wallet con attivita elevata",
-            "detail": "Il volume di transazioni suggerisce un nodo operativo o un wallet usato frequentemente.",
+            "title": "High-activity wallet",
+            "detail": "Transaction volume suggests an operational node or frequently used wallet.",
         })
 
     if unique_counterparties >= 20:
         findings.append({
             "level": "medium",
-            "title": "Molte controparti osservate",
-            "detail": "Il wallet interagisce con molte entita nella finestra recente; conviene espandere il grafo a hop successivi.",
+            "title": "Many counterparties observed",
+            "detail": "The wallet interacts with many entities in the recent window; expand the graph to additional hops.",
         })
 
     if high_fan_tx:
         findings.append({
             "level": "medium",
-            "title": "Pattern fan-in/fan-out",
-            "detail": "Alcune transazioni hanno molti input/output: possibile consolidamento, distribuzione o offuscamento da verificare manualmente.",
+            "title": "Fan-in/fan-out pattern",
+            "detail": "Some transactions have many inputs/outputs: possible consolidation, distribution or obfuscation to verify manually.",
         })
 
     if any(term in tags for term in mixer_terms):
         findings.append({
             "level": "high",
-            "title": "Tag pubblico compatibile con mixer/privacy",
-            "detail": "Le fonti pubbliche associano tag privacy/mixer: usare come indizio OSINT, non come attribuzione definitiva.",
+            "title": "Public tag compatible with mixer/privacy service",
+            "detail": "Public sources associate privacy/mixer tags: use as an OSINT indicator, not definitive attribution.",
         })
 
     if any(term in tags for term in exchange_terms):
         findings.append({
             "level": "info",
-            "title": "Possibile exchange/service wallet",
-            "detail": "I tag pubblici suggeriscono servizio centralizzato o exchange; utile per richiesta compliance o preservation letter.",
+            "title": "Possible exchange/service wallet",
+            "detail": "Public tags suggest a centralized service or exchange; useful for compliance requests or preservation letters.",
         })
 
     if has_contract:
         findings.append({
             "level": "info",
-            "title": "Address contratto o account smart",
-            "detail": "L'indirizzo EVM risulta contract/account smart: controllare metodi, token transfer e interazioni su explorer.",
+            "title": "Contract or smart account address",
+            "detail": "The EVM address appears to be a contract/smart account: review methods, token transfers and explorer interactions.",
         })
 
     if balance > 0:
         findings.append({
             "level": "info",
-            "title": "Saldo osservabile",
-            "detail": f"Saldo pubblico stimato: {balance} {chain.upper() if chain == 'bitcoin' else 'ETH'}.",
+            "title": "Observable balance",
+            "detail": f"Estimated public balance: {balance} {chain.upper() if chain == 'bitcoin' else 'ETH'}.",
         })
 
     if not findings:
         findings.append({
             "level": "low",
-            "title": "Nessun pattern prioritario nella finestra recente",
-            "detail": "Le fonti pubbliche non evidenziano segnali forti; espandere il periodo o altre chain se necessario.",
+            "title": "No priority pattern in the recent window",
+            "detail": "Public sources do not show strong signals; expand the time window or additional chains if needed.",
         })
     return findings[:8]
 
@@ -915,7 +915,7 @@ def analyze_bitcoin_wallet(address: str) -> dict[str, object]:
     overview = json_get(f"https://blockstream.info/api/address/{quote(address)}")
     txs = json_get(f"https://blockstream.info/api/address/{quote(address)}/txs")
     if not isinstance(overview, dict):
-        raise ValueError("Dati Bitcoin non disponibili dalla fonte pubblica.")
+        raise ValueError("Bitcoin data is not available from the public source.")
     if not isinstance(txs, list):
         txs = []
 
@@ -979,7 +979,7 @@ def analyze_bitcoin_wallet(address: str) -> dict[str, object]:
         "address": address,
         "asset": "BTC",
         "generated_at": utc_now(),
-        "summary": f"Wallet Bitcoin con {tx_count} transazioni pubbliche e saldo stimato {balance} BTC.",
+        "summary": f"Bitcoin wallet with {tx_count} public transactions and estimated balance {balance} BTC.",
         "risk_score": risk,
         "explorer_url": wallet_explorer_url("bitcoin", address),
         "balance": balance,
@@ -990,9 +990,9 @@ def analyze_bitcoin_wallet(address: str) -> dict[str, object]:
         "transactions": transactions,
         "findings": findings,
         "reconstruction_notes": [
-            "Espandi prima le controparti con piu transazioni o valore maggiore.",
-            "Marca manualmente exchange, mixer, victim wallet e hot wallet quando identificati.",
-            "Fan-in/fan-out e split ripetuti sono indizi da verificare con contesto esterno.",
+            "Expand counterparties with the highest transaction count or value first.",
+            "Manually tag exchanges, mixers, victim wallets and hot wallets when identified.",
+            "Fan-in/fan-out and repeated splits are indicators to verify with external context.",
         ],
     }
 
@@ -1011,7 +1011,7 @@ def analyze_ethereum_wallet(address: str) -> dict[str, object]:
         })
     )
     if not isinstance(overview, dict):
-        raise ValueError("Dati Ethereum non disponibili dalla fonte pubblica.")
+        raise ValueError("Ethereum data is not available from the public source.")
     tx_items = tx_payload.get("result") if isinstance(tx_payload, dict) else []
     if not isinstance(tx_items, list):
         tx_items = []
@@ -1093,7 +1093,7 @@ def analyze_ethereum_wallet(address: str) -> dict[str, object]:
         "address": address,
         "asset": "ETH",
         "generated_at": utc_now(),
-        "summary": f"Wallet Ethereum/EVM con saldo stimato {balance} ETH e {len(transactions)} transazioni recenti raccolte.",
+        "summary": f"Ethereum/EVM wallet with estimated balance {balance} ETH and {len(transactions)} recent transactions collected.",
         "risk_score": risk,
         "explorer_url": wallet_explorer_url("ethereum", address),
         "balance": balance,
@@ -1108,9 +1108,9 @@ def analyze_ethereum_wallet(address: str) -> dict[str, object]:
         "transactions": transactions,
         "findings": findings,
         "reconstruction_notes": [
-            "Controlla token transfers e internal transactions sull'explorer quando il valore ETH diretto e basso.",
-            "Se compaiono contract/account smart, verifica metodo e destinazione prima di attribuire.",
-            "Tag pubblici e ENS sono indizi OSINT, non prova definitiva di identita.",
+            "Check token transfers and internal transactions in the explorer when direct ETH value is low.",
+            "If contracts/smart accounts appear, verify method and destination before attribution.",
+            "Public tags and ENS are OSINT indicators, not definitive identity proof.",
         ],
     }
 
@@ -1167,26 +1167,26 @@ def social_findings(username: str, profiles: list[dict[str, object]]) -> list[di
     if len(found) >= 5:
         findings.append({
             "level": "medium",
-            "title": "Nickname riutilizzato su molte piattaforme",
-            "detail": "Il riuso facilita correlazione identita, social graph mapping e brand impersonation checks.",
+            "title": "Username reused across many platforms",
+            "detail": "Reuse enables identity correlation, social graph mapping and brand impersonation checks.",
         })
     if len(found) == 0 and uncertain:
         findings.append({
             "level": "low",
-            "title": "Risultati incerti",
-            "detail": "Alcune piattaforme limitano le richieste pubbliche; serve verifica manuale.",
+            "title": "Uncertain results",
+            "detail": "Some platforms limit public requests; manual verification is required.",
         })
     if any(item["platform"] in {"GitHub", "GitLab", "Keybase"} and item["present"] is True for item in profiles):
         findings.append({
             "level": "info",
-            "title": "Developer footprint osservabile",
-            "detail": "Profili tecnici pubblici possono aiutare attribution, supply-chain review e exposure review.",
+            "title": "Observable developer footprint",
+            "detail": "Public technical profiles can support attribution, supply-chain review and exposure review.",
         })
     if any(item["platform"] in {"Telegram", "X", "Instagram", "TikTok"} and item["present"] is True for item in profiles):
         findings.append({
             "level": "info",
-            "title": "Social handle potenzialmente monetizzabile",
-            "detail": "Utile per brand monitoring, creator due diligence o anti-impersonation package.",
+            "title": "Potentially monetizable social handle",
+            "detail": "Useful for brand monitoring, creator due diligence or anti-impersonation packages.",
         })
     return findings[:8]
 
@@ -1203,12 +1203,12 @@ def analyze_username(raw_username: str) -> dict[str, object]:
     found = [item for item in profiles if item["present"] is True]
     uncertain = [item for item in profiles if item["present"] is None]
     score = min(100, len(found) * 12 + len(uncertain) * 4)
-    summary = f"Trovati {len(found)} profili probabili e {len(uncertain)} risultati incerti per @{username}."
+    summary = f"Found {len(found)} likely profiles and {len(uncertain)} uncertain results for ."
     findings = social_findings(username, profiles)
     recommendations = [
-        "Verifica manualmente i profili ad alta confidenza prima di contattare o attribuire.",
-        "Monitora piattaforme dove il nickname e libero se il nome appartiene a un brand.",
-        "Per creator/brand, blocca handle critici su piattaforme principali.",
+        "Manually verify high-confidence profiles before contacting or attributing.",
+        "Monitor platforms where the username is available if it belongs to a brand.",
+        "For creators/brands, reserve critical handles on major platforms.",
     ]
     return {
         "id": str(uuid.uuid4()),
@@ -1222,24 +1222,24 @@ def analyze_username(raw_username: str) -> dict[str, object]:
         "red_team_paths": [
             {
                 "name": "Handle correlation",
-                "objective": "Correlare presenze pubbliche per attribution autorizzata.",
-                "signal": f"{len(found)} profili probabili.",
+                "objective": "Correlate public presence for authorized attribution.",
+                "signal": f"{len(found)} likely profiles.",
             },
             {
                 "name": "Impersonation gap",
-                "objective": "Identificare piattaforme dove un brand dovrebbe riservare il nickname.",
-                "signal": f"{len([item for item in profiles if item['present'] is False])} handle non osservati.",
+                "objective": "Identify platforms where a brand should reserve the username.",
+                "signal": f"{len([item for item in profiles if item['present'] is False])} handles not observed.",
             },
         ],
         "purple_team_controls": [
             {
                 "control": "Username watchlist",
-                "why": "Nuovi profili con handle simile possono indicare impersonificazione.",
+                "why": "New profiles with similar handles can indicate impersonation.",
                 "cadence": "weekly",
             },
             {
                 "control": "Brand handle coverage",
-                "why": "Riduce opportunita di account fake su piattaforme ad alta visibilita.",
+                "why": "Reduces fake-account opportunities on high-visibility platforms.",
                 "cadence": "monthly",
             },
         ],
@@ -1356,7 +1356,7 @@ def https_headers(domain: str) -> dict[str, object]:
             "name": name,
             "present": bool(value),
             "value": redact_text(value) if value else value,
-            "reason": "Header non trovato nella risposta HTTPS" if not value else "",
+            "reason": "Header not found in the HTTPS response" if not value else "",
         })
 
     return {"status": status, "server": redact_text(server) if server else server, "security_headers": checks}
@@ -1496,7 +1496,7 @@ def cname_takeover_hints(subdomains: list[str]) -> list[dict[str, str]]:
                     "subdomain": subdomain,
                     "cname": lower,
                     "provider": provider,
-                    "note": "CNAME verso piattaforma gestita: verificare ownership e stato risorsa in modo autorizzato.",
+                    "note": "CNAME points to a managed platform: verify ownership and resource state in an authorized way.",
                 })
                 break
     return hints[:10]
@@ -1555,23 +1555,23 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
 
     for item in headers:
         if not item.get("present"):
-            findings.append({"level": "medium", "title": f"Header mancante: {item['name']}", "detail": "Riduce la postura browser-side osservabile pubblicamente."})
+            findings.append({"level": "medium", "title": f"Missing header: {item['name']}", "detail": "Reduces the publicly observable browser-side security posture."})
     flags = email.get("flags", {})
     if not flags.get("spf_present"):
-        findings.append({"level": "high", "title": "SPF assente", "detail": "Il dominio non pubblica una policy SPF nel TXT principale."})
+        findings.append({"level": "high", "title": "SPF missing", "detail": "The domain does not publish an SPF policy in the main TXT records."})
     if not flags.get("dmarc_present"):
-        findings.append({"level": "high", "title": "DMARC assente", "detail": "Manca una policy pubblica anti-impersonificazione su _dmarc."})
+        findings.append({"level": "high", "title": "DMARC missing", "detail": "No public anti-impersonation policy was found on _dmarc."})
     if isinstance(days, int) and days < 30:
-        findings.append({"level": "high", "title": "TLS in scadenza", "detail": f"Il certificato scade tra {days} giorni."})
+        findings.append({"level": "high", "title": "TLS expiring soon", "detail": f"The certificate expires in {days} days."})
     if not web.get("security_txt", {}).get("present"):
-        findings.append({"level": "low", "title": "security.txt assente", "detail": "Non e stato trovato un canale pubblico standard per disclosure di sicurezza."})
+        findings.append({"level": "low", "title": "security.txt missing", "detail": "No standard public security disclosure channel was found."})
     if not dns.get("caa"):
-        findings.append({"level": "low", "title": "CAA assente", "detail": "Il dominio non limita pubblicamente le CA autorizzate a emettere certificati."})
+        findings.append({"level": "low", "title": "CAA missing", "detail": "The domain does not publicly restrict which CAs can issue certificates."})
     signals = advanced.get("signals", {}) if isinstance(advanced, dict) else {}
     if not signals.get("dnssec_enabled"):
-        findings.append({"level": "low", "title": "DNSSEC non osservato", "detail": "Non sono stati trovati DS/DNSKEY pubblici dal resolver locale."})
+        findings.append({"level": "low", "title": "DNSSEC not observed", "detail": "No public DS/DNSKEY records were found from the local resolver."})
     if advanced.get("takeover_hints"):
-        findings.append({"level": "high", "title": "CNAME verso provider gestiti", "detail": "Alcuni subdomini puntano a piattaforme SaaS/cloud: verificare ownership per evitare takeover."})
+        findings.append({"level": "high", "title": "CNAME to managed providers", "detail": "Some subdomains point to SaaS/cloud platforms: verify ownership to prevent takeover."})
     return findings[:10]
 
 
@@ -1590,83 +1590,83 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
         vulns.append({
             "severity": "medium",
             "confidence": "high",
-            "title": "Possibile superficie XSS piu ampia",
-            "evidence": "Content-Security-Policy non osservata sulla risposta HTTPS principale.",
-            "next_step": "Validare con test applicativi autorizzati e definire una CSP per script, frame e connect-src.",
+            "title": "Potentially broader XSS surface",
+            "evidence": "Content-Security-Policy was not observed on the main HTTPS response.",
+            "next_step": "Validate with authorized application testing and define a CSP for scripts, frames and connect-src.",
         })
     if not headers.get("strict-transport-security", {}).get("present"):
         vulns.append({
             "severity": "medium",
             "confidence": "high",
-            "title": "Downgrade/SSL stripping non mitigato da HSTS",
-            "evidence": "Strict-Transport-Security non osservato.",
-            "next_step": "Abilitare HSTS con max-age adeguato dopo verifica completa di HTTPS.",
+            "title": "Downgrade/SSL stripping not mitigated by HSTS",
+            "evidence": "Strict-Transport-Security was not observed.",
+            "next_step": "Enable HSTS with an appropriate max-age after full HTTPS validation.",
         })
     if not headers.get("x-frame-options", {}).get("present") and not headers.get("content-security-policy", {}).get("present"):
         vulns.append({
             "severity": "medium",
             "confidence": "medium",
-            "title": "Clickjacking da verificare",
-            "evidence": "Mancano X-Frame-Options e CSP frame-ancestors.",
-            "next_step": "Testare embedding in iframe in ambiente autorizzato e bloccare frame non fidati.",
+            "title": "Clickjacking to verify",
+            "evidence": "X-Frame-Options and CSP frame-ancestors are missing.",
+            "next_step": "Test iframe embedding in an authorized environment and block untrusted frames.",
         })
     if not flags.get("dmarc_present"):
         vulns.append({
             "severity": "high",
             "confidence": "high",
-            "title": "Brand spoofing email piu probabile",
-            "evidence": "Record DMARC non trovato su _dmarc.",
-            "next_step": "Pubblicare DMARC almeno p=none con reporting, poi passare a quarantine/reject.",
+            "title": "Email brand spoofing more likely",
+            "evidence": "DMARC record not found on _dmarc.",
+            "next_step": "Publish DMARC at least with p=none and reporting, then move toward quarantine/reject.",
         })
     if flags.get("dmarc_present") and not (flags.get("dmarc_reject") or flags.get("dmarc_quarantine")):
         vulns.append({
             "severity": "medium",
             "confidence": "high",
-            "title": "DMARC presente ma non enforcement",
-            "evidence": "DMARC trovato, ma senza policy quarantine/reject osservabile.",
-            "next_step": "Analizzare report aggregate e pianificare enforcement graduale.",
+            "title": "DMARC present but not enforced",
+            "evidence": "DMARC was found, but no observable quarantine/reject policy is active.",
+            "next_step": "Analyze aggregate reports and plan gradual enforcement.",
         })
     if not dns.get("caa"):
         vulns.append({
             "severity": "low",
             "confidence": "high",
-            "title": "Governance certificati debole",
-            "evidence": "Record CAA assente.",
-            "next_step": "Limitare le CA autorizzate a emettere certificati per il dominio.",
+            "title": "Weak certificate governance",
+            "evidence": "CAA record missing.",
+            "next_step": "Restrict the CAs authorized to issue certificates for the domain.",
         })
     if web.get("robots_txt", {}).get("present") or web.get("sitemap_xml", {}).get("present"):
         vulns.append({
             "severity": "info",
             "confidence": "medium",
-            "title": "Mappa pubblica utile alla ricognizione",
-            "evidence": "robots.txt o sitemap.xml disponibili pubblicamente.",
-            "next_step": "Verificare che non espongano percorsi sensibili, ambienti staging o endpoint interni.",
+            "title": "Public map useful for reconnaissance",
+            "evidence": "robots.txt or sitemap.xml are publicly available.",
+            "next_step": "Verify they do not expose sensitive paths, staging environments or internal endpoints.",
         })
     if advanced.get("takeover_hints"):
         vulns.append({
             "severity": "high",
             "confidence": "medium",
-            "title": "Possibile subdomain takeover da verificare",
-            "evidence": "CNAME pubblici verso provider gestiti osservati in subdomini da Certificate Transparency.",
-            "next_step": "Verificare ownership delle risorse cloud/SaaS prima di ogni test tecnico.",
+            "title": "Potential subdomain takeover to verify",
+            "evidence": "Public CNAMEs to managed providers were observed in Certificate Transparency subdomains.",
+            "next_step": "Verify ownership of cloud/SaaS resources before any technical testing.",
         })
     signals = advanced.get("signals", {}) if isinstance(advanced, dict) else {}
     if not signals.get("dnssec_enabled"):
         vulns.append({
             "severity": "low",
             "confidence": "medium",
-            "title": "Integrita DNS non rafforzata da DNSSEC",
-            "evidence": "DS/DNSKEY non osservati.",
-            "next_step": "Valutare DNSSEC con registrar/DNS provider se compatibile con l'operativita.",
+            "title": "DNS integrity not strengthened by DNSSEC",
+            "evidence": "DS/DNSKEY records were not observed.",
+            "next_step": "Evaluate DNSSEC with the registrar/DNS provider if compatible with operations.",
         })
     days = cert.get("days_remaining")
     if isinstance(days, int) and days < 45:
         vulns.append({
             "severity": "medium" if days >= 15 else "high",
             "confidence": "high",
-            "title": "Rischio operativo su certificato TLS",
-            "evidence": f"Certificato in scadenza tra {days} giorni.",
-            "next_step": "Verificare rinnovo automatico e alerting prima della finestra critica.",
+            "title": "Operational risk on TLS certificate",
+            "evidence": f"Certificate expires in {days} days.",
+            "next_step": "Verify automatic renewal and alerting before the critical window.",
         })
     return vulns[:8]
 
@@ -1683,38 +1683,38 @@ def red_team_paths(report: dict[str, object]) -> list[dict[str, str]]:
     if ct.get("subdomains"):
         paths.append({
             "name": "CT pivot",
-            "objective": "Espandere asset inventory da nomi nei certificati pubblici.",
-            "signal": f"{len(ct.get('subdomains', []))} nomi osservabili in Certificate Transparency.",
+            "objective": "Expand asset inventory from names in public certificates.",
+            "signal": f"{len(ct.get('subdomains', []))} names observable in Certificate Transparency.",
         })
     if not flags.get("dmarc_reject"):
         paths.append({
             "name": "Brand impersonation drill",
-            "objective": "Misurare esposizione a spoofing e phishing simulato autorizzato.",
-            "signal": "DMARC non in enforcement reject.",
+            "objective": "Measure exposure to authorized spoofing and phishing simulation.",
+            "signal": "DMARC is not enforced with reject.",
         })
     if web.get("robots_txt", {}).get("present") or web.get("sitemap_xml", {}).get("present"):
         paths.append({
             "name": "Content discovery",
-            "objective": "Revisionare percorsi pubblici indicizzati o dichiarati.",
-            "signal": "robots.txt/sitemap.xml disponibili.",
+            "objective": "Review publicly indexed or declared paths.",
+            "signal": "robots.txt/sitemap.xml available.",
         })
     if tech:
         paths.append({
             "name": "Stack fingerprint",
-            "objective": "Correlare tecnologia osservata con hardening e patch policy.",
+            "objective": "Correlate observed technology with hardening and patch policy.",
             "signal": ", ".join(tech[:4]),
         })
     if advanced.get("takeover_hints"):
         paths.append({
             "name": "Subdomain ownership review",
-            "objective": "Verificare asset cloud/SaaS referenziati da CNAME pubblici.",
-            "signal": f"{len(advanced.get('takeover_hints', []))} CNAME da controllare.",
+            "objective": "Verify cloud/SaaS assets referenced by public CNAMEs.",
+            "signal": f"{len(advanced.get('takeover_hints', []))} CNAMEs to review.",
         })
     if not paths:
         paths.append({
             "name": "Baseline validation",
-            "objective": "Stabilire baseline e monitorare drift su DNS, TLS e header.",
-            "signal": "Superficie pubblica limitata dalle fonti passive.",
+            "objective": "Establish a baseline and monitor DNS, TLS and header drift.",
+            "signal": "Public surface is limited in passive sources.",
         })
     return paths[:5]
 
@@ -1723,27 +1723,27 @@ def purple_team_controls(report: dict[str, object]) -> list[dict[str, str]]:
     return [
         {
             "control": "DNS drift detection",
-            "why": "Nuovi MX, NS, CAA o TXT possono indicare cambi infrastrutturali o takeover operativi.",
+            "why": "New MX, NS, CAA or TXT records can indicate infrastructure changes or operational takeover risk.",
             "cadence": "daily",
         },
         {
             "control": "Certificate Transparency watch",
-            "why": "Nuovi certificati possono rivelare subdomini, shadow IT o emissioni inattese.",
+            "why": "New certificates can reveal subdomains, shadow IT or unexpected issuance.",
             "cadence": "daily",
         },
         {
             "control": "Email authentication guardrail",
-            "why": "SPF/DMARC/MTA-STS riducono abuso del brand e vanno trattati come controlli di detection.",
+            "why": "SPF/DMARC/MTA-STS reduce brand abuse and should be treated as detection controls.",
             "cadence": "weekly",
         },
         {
             "control": "Web header baseline",
-            "why": "CSP, HSTS, frame e MIME headers spesso regrediscono durante deploy applicativi.",
+            "why": "CSP, HSTS, frame and MIME headers often regress during application deployments.",
             "cadence": "per release",
         },
         {
             "control": "Subdomain ownership register",
-            "why": "CNAME verso provider esterni vanno mappati a owner e contratto per prevenire takeover.",
+            "why": "CNAMEs to external providers should be mapped to owners and contracts to prevent takeover.",
             "cadence": "monthly",
         },
     ]
@@ -1779,19 +1779,19 @@ def recommendations(report: dict[str, object]) -> list[str]:
     items: list[str] = []
 
     if not dns.get("mx"):
-        items.append("Configura o verifica i record MX se il dominio invia o riceve email.")
+        items.append("Configure or verify MX records if the domain sends or receives email.")
     txt_values = " ".join(dns.get("txt", [])) if isinstance(dns, dict) else ""
     if "v=spf1" not in txt_values.lower():
-        items.append("Aggiungi un record SPF per ridurre spoofing e problemi di deliverability email.")
+        items.append("Add an SPF record to reduce spoofing and email deliverability issues.")
     if not email.get("flags", {}).get("dmarc_present"):
-        items.append("Valuta un record DMARC per proteggere il brand da impersonificazione email.")
+        items.append("Evaluate a DMARC record to protect the brand from email impersonation.")
     if not cert.get("expires"):
-        items.append("Verifica il certificato TLS: OSINTPRO non ha letto una scadenza HTTPS valida.")
+        items.append("Verify the TLS certificate: OSINTPRO did not read a valid HTTPS expiry date.")
     missing = [item["name"] for item in headers if not item.get("present")]
     if missing:
-        items.append(f"Aggiungi o rivedi security header mancanti: {', '.join(missing[:4])}.")
+        items.append(f"Add or review missing security headers: {', '.join(missing[:4])}.")
     if not items:
-        items.append("Mantieni monitoraggio attivo: il profilo pubblico osservato e buono.")
+        items.append("Keep monitoring enabled: the observed public profile is good.")
     return items[:5]
 
 
@@ -1818,13 +1818,13 @@ def analyze(raw_target: str) -> dict[str, object]:
 
     missing_headers = [item["name"] for item in https["security_headers"] if not item["present"]]
     if not addresses:
-        summary = "Il dominio non risolve indirizzi IP dal backend locale."
+        summary = "The domain does not resolve IP addresses from the local backend."
     elif email["score"] < 45:
-        summary = "Dominio raggiungibile, ma la postura email pubblica richiede attenzione."
+        summary = "Domain is reachable, but the public email posture needs attention."
     elif missing_headers:
-        summary = f"Dominio raggiungibile. Mancano {len(missing_headers)} security header osservabili."
+        summary = f"Domain is reachable. Missing {len(missing_headers)} observable security headers."
     else:
-        summary = "Dominio raggiungibile con header di sicurezza principali presenti."
+        summary = "Domain is reachable with the main security headers present."
 
     report = {
         "id": str(uuid.uuid4()),
@@ -2009,11 +2009,11 @@ def report_document(report: dict[str, object]) -> str:
 
     def lines(values: list[str]) -> str:
         if not values:
-            return "<span class='muted'>nessun dato</span>"
+            return "<span class='muted'>no data</span>"
         return "".join(f"<li>{html.escape(str(value))}</li>" for value in values)
 
     checks = "".join(
-        f"<tr><td>{html.escape(item['name'])}</td><td>{'OK' if item.get('present') else 'Manca'}</td><td>{html.escape(str(item.get('value') or item.get('reason') or ''))}</td></tr>"
+        f"<tr><td>{html.escape(item['name'])}</td><td>{'OK' if item.get('present') else 'Missing'}</td><td>{html.escape(str(item.get('value') or item.get('reason') or ''))}</td></tr>"
         for item in headers
     )
     recs = "".join(f"<li>{html.escape(item)}</li>" for item in recommendations(report))
@@ -2027,7 +2027,7 @@ def report_document(report: dict[str, object]) -> str:
     well_known = advanced.get("well_known", {}) if isinstance(advanced, dict) else {}
     takeover_hints = advanced.get("takeover_hints", []) if isinstance(advanced, dict) else []
     well_known_rows = "".join(
-        f"<tr><td>{html.escape(name)}</td><td>{'OK' if value.get('present') else 'Manca'}</td><td>{html.escape(str(value.get('status') or 'n/a'))}</td></tr>"
+        f"<tr><td>{html.escape(name)}</td><td>{'OK' if value.get('present') else 'Missing'}</td><td>{html.escape(str(value.get('status') or 'n/a'))}</td></tr>"
         for name, value in well_known.items()
     )
     takeover_rows = "".join(
@@ -2047,7 +2047,7 @@ def report_document(report: dict[str, object]) -> str:
         for item in purple_controls
     )
     return f"""<!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>OSINTPRO report - {html.escape(str(report.get("domain", "")))}</title>
@@ -2069,47 +2069,47 @@ def report_document(report: dict[str, object]) -> str:
   </style>
 </head>
 <body>
-  <button class="no-print" onclick="window.print()">Salva come PDF</button>
+  <button class="no-print" onclick="window.print()">Save as PDF</button>
   <header>
     <div class="score"><span>Score</span><strong>{int(report.get("score", 0))}</strong></div>
     <p class="meta">OSINTPRO passive domain intelligence</p>
     <h1>{html.escape(str(report.get("domain", "")))}</h1>
     <p>{html.escape(str(report.get("summary", "")))}</p>
-    <p class="meta">Generato: {html.escape(str(report.get("generated_at", "")))}</p>
+    <p class="meta">Generated: {html.escape(str(report.get("generated_at", "")))}</p>
   </header>
   <main>
     <section>
-      <h2>Raccomandazioni</h2>
+      <h2>Recommendations</h2>
       <div class="box"><ol>{recs}</ol></div>
     </section>
     <section class="grid">
       <div class="box"><h2>IP</h2><ul>{lines(dns.get("addresses", []))}</ul></div>
       <div class="box"><h2>MX</h2><ul>{lines(dns.get("mx", []))}</ul></div>
       <div class="box"><h2>Nameserver</h2><ul>{lines(dns.get("ns", []))}</ul></div>
-      <div class="box"><h2>Certificato TLS</h2><p>{html.escape(str(cert.get("subject") or "non disponibile"))}</p><p class="meta">Scadenza: {html.escape(str(cert.get("expires") or "non disponibile"))}</p></div>
+      <div class="box"><h2>TLS certificate</h2><p>{html.escape(str(cert.get("subject") or "not available"))}</p><p class="meta">Expires: {html.escape(str(cert.get("expires") or "not available"))}</p></div>
     </section>
     <section class="grid">
       <div class="box"><h2>Email security</h2><p>Score: {int(email.get("score", 0))}/100</p><ul>{lines(email.get("dmarc", []) + email.get("mta_sts", []) + email.get("tls_rpt", []))}</ul></div>
-      <div class="box"><h2>RDAP</h2><p>Registrar: {html.escape(str(rdap.get("registrar") or "non disponibile"))}</p><p class="meta">Creato: {html.escape(str(rdap.get("created") or "n/a"))}<br>Scade: {html.escape(str(rdap.get("expires") or "n/a"))}</p></div>
+      <div class="box"><h2>RDAP</h2><p>Registrar: {html.escape(str(rdap.get("registrar") or "not available"))}</p><p class="meta">Created: {html.escape(str(rdap.get("created") or "n/a"))}<br>Expires: {html.escape(str(rdap.get("expires") or "n/a"))}</p></div>
       <div class="box"><h2>Well-known</h2><p>security.txt: {web.get("security_txt", {}).get("status") or "n/a"}<br>robots.txt: {web.get("robots_txt", {}).get("status") or "n/a"}<br>sitemap.xml: {web.get("sitemap_xml", {}).get("status") or "n/a"}</p></div>
-      <div class="box"><h2>Certificate Transparency</h2><ul>{subdomain_rows or "<li>nessun nome trovato</li>"}</ul></div>
+      <div class="box"><h2>Certificate Transparency</h2><ul>{subdomain_rows or "<li>no names found</li>"}</ul></div>
     </section>
     <section>
       <h2>Advanced passive OSINT</h2>
       <div class="box">
-        <p>DNSSEC: {'OK' if dnssec.get('enabled') else 'non osservato'} | BIMI: {'OK' if bimi.get('present') else 'non osservato'}</p>
-        <table><thead><tr><th>Well-known</th><th>Stato</th><th>HTTP</th></tr></thead><tbody>{well_known_rows or "<tr><td colspan='3'>nessun dato</td></tr>"}</tbody></table>
+        <p>DNSSEC: {'OK' if dnssec.get('enabled') else 'not observed'} | BIMI: {'OK' if bimi.get('present') else 'not observed'}</p>
+        <table><thead><tr><th>Well-known</th><th>Status</th><th>HTTP</th></tr></thead><tbody>{well_known_rows or "<tr><td colspan='3'>no data</td></tr>"}</tbody></table>
         <h3>CNAME takeover review</h3>
-        <table><thead><tr><th>Subdomain</th><th>Provider</th><th>CNAME</th></tr></thead><tbody>{takeover_rows or "<tr><td colspan='3'>nessun hint prioritario</td></tr>"}</tbody></table>
+        <table><thead><tr><th>Subdomain</th><th>Provider</th><th>CNAME</th></tr></thead><tbody>{takeover_rows or "<tr><td colspan='3'>no priority hints</td></tr>"}</tbody></table>
       </div>
     </section>
     <section>
       <h2>Findings</h2>
-      <table><thead><tr><th>Livello</th><th>Finding</th><th>Dettaglio</th></tr></thead><tbody>{finding_rows or "<tr><td>ok</td><td>Nessun finding prioritario</td><td></td></tr>"}</tbody></table>
+      <table><thead><tr><th>Level</th><th>Finding</th><th>Detail</th></tr></thead><tbody>{finding_rows or "<tr><td>ok</td><td>No priority findings</td><td></td></tr>"}</tbody></table>
     </section>
     <section>
       <h2>Red/Purple Team</h2>
-      <table><thead><tr><th>Severity</th><th>Ipotesi</th><th>Evidenza</th><th>Next step</th></tr></thead><tbody>{vuln_rows or "<tr><td>ok</td><td>Nessuna ipotesi prioritaria</td><td></td><td></td></tr>"}</tbody></table>
+      <table><thead><tr><th>Severity</th><th>Hypothesis</th><th>Evidence</th><th>Next step</th></tr></thead><tbody>{vuln_rows or "<tr><td>ok</td><td>No priority hypotheses</td><td></td><td></td></tr>"}</tbody></table>
       <h2>Red team paths</h2>
       <table><thead><tr><th>Path</th><th>Obiettivo</th><th>Segnale</th></tr></thead><tbody>{red_rows}</tbody></table>
       <h2>Purple team controls</h2>
@@ -2117,7 +2117,7 @@ def report_document(report: dict[str, object]) -> str:
     </section>
     <section>
       <h2>Security header</h2>
-      <table><thead><tr><th>Header</th><th>Stato</th><th>Valore</th></tr></thead><tbody>{checks}</tbody></table>
+      <table><thead><tr><th>Header</th><th>Status</th><th>Valore</th></tr></thead><tbody>{checks}</tbody></table>
     </section>
   </main>
 </body>
@@ -2507,7 +2507,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "score": score,
                 "summary": report.get("summary") or row["summary"],
                 "generated_at": report.get("generated_at") or row["generated_at"],
-                "registrar": registrar or "non disponibile",
+                "registrar": registrar or "not available",
                 "ips": (dns.get("addresses") or [])[:6],
                 "mx": (dns.get("mx") or [])[:4],
                 "subdomains": (ct.get("subdomains") or [])[:8],
@@ -2753,7 +2753,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if not parsed.path.startswith("/api/") and parsed.path not in PUBLIC_STATIC_PATHS:
-            self.send_json({"error": "File non disponibile"}, 404)
+            self.send_json({"error": "File not available"}, 404)
             return
         if parsed.path == "/api/health":
             self.send_json({"ok": True})
@@ -2796,13 +2796,13 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/admin/status":
             user, headers = self.get_or_create_user()
             if not is_admin_user(user):
-                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                self.send_json({"error": "Admin required."}, 403, headers)
                 return
             self.send_json(self.admin_overview(), headers=headers)
             return
         if parsed.path == "/api/cron/backup/download":
             if not cron_secret():
-                self.send_json({"error": "Cron non configurato."}, 503)
+                self.send_json({"error": "Cron is not configured."}, 503)
                 return
             if not cron_authorized(self.headers):
                 self.send_json({"error": "Cron non autorizzato."}, 403)
@@ -2818,12 +2818,12 @@ class Handler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(body)
             except Exception:
-                self.send_json({"error": "Download backup non completato. Nessun dettaglio interno esposto."}, 500)
+                self.send_json({"error": "Backup download failed. No internal details exposed."}, 500)
             return
         if parsed.path == "/api/admin/export":
             user, headers = self.get_or_create_user()
             if not is_admin_user(user):
-                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                self.send_json({"error": "Admin required."}, 403, headers)
                 return
             body = json.dumps(self.admin_export(), indent=2).encode("utf-8")
             self.send_response(200)
@@ -2838,13 +2838,13 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path.startswith("/api/admin/backups/"):
             user, headers = self.get_or_create_user()
             if not is_admin_user(user):
-                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                self.send_json({"error": "Admin required."}, 403, headers)
                 return
             try:
                 name = parsed.path.split("/")[-1]
                 path = backup_path(name)
                 if not path.exists():
-                    self.send_json({"error": "Backup non trovato."}, 404, headers)
+                    self.send_json({"error": "Backup not found."}, 404, headers)
                     return
                 body = path.read_bytes()
                 self.send_response(200)
@@ -2863,7 +2863,7 @@ class Handler(SimpleHTTPRequestHandler):
             report_id = parsed.path.split("/")[3]
             report = self.fetch_report(str(user["_id"]), report_id)
             if not report:
-                self.send_json({"error": "Report non trovato"}, 404, headers)
+                self.send_json({"error": "Report not found"}, 404, headers)
                 return
             self.send_html(report_document(report), headers=headers)
             return
@@ -2892,7 +2892,7 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 payload = self.read_raw_body(MAX_WEBHOOK_BYTES)
                 if not verify_stripe_signature(payload, self.headers.get("Stripe-Signature", "")):
-                    self.send_json({"error": "Firma Stripe non valida."}, 400)
+                    self.send_json({"error": "Invalid Stripe signature."}, 400)
                     return
                 event = json.loads(payload.decode("utf-8"))
                 if not isinstance(event, dict):
@@ -2917,11 +2917,11 @@ class Handler(SimpleHTTPRequestHandler):
                 with db() as connection:
                     existing = connection.execute("SELECT id FROM users WHERE nickname = ?", (nickname,)).fetchone()
                     if existing:
-                        self.send_json({"error": "Nickname gia registrato. Accedi con login."}, 409, headers)
+                        self.send_json({"error": "Nickname already registered. Sign in instead."}, 409, headers)
                         return
                     if not is_admin_user(user) and self.registration_limited(connection, str(user["_id"])):
                         self.send_json(
-                            {"error": "Limite account Free raggiunto per questa connessione. Accedi o passa a Pro."},
+                            {"error": "Free account limit reached for this connection. Sign in or upgrade to Pro."},
                             429,
                             headers,
                         )
@@ -2966,7 +2966,7 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/auth/password":
             user, headers = self.get_or_create_user()
             if not user.get("authenticated"):
-                self.send_json({"error": "Accedi per cambiare password."}, 401, headers)
+                self.send_json({"error": "Sign in to change your password."}, 401, headers)
                 return
             try:
                 body = self.read_json()
@@ -2976,7 +2976,7 @@ class Handler(SimpleHTTPRequestHandler):
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                     if not row or not verify_password(current_password, row["password_hash"]):
-                        self.send_json({"error": "Password attuale non valida."}, 403, headers)
+                        self.send_json({"error": "Current password is invalid."}, 403, headers)
                         return
                     connection.execute(
                         "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
@@ -2995,7 +2995,7 @@ class Handler(SimpleHTTPRequestHandler):
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
-                        self.send_json({"error": "Crediti Free esauriti. Passa a Pro per continuare."}, 402, headers)
+                        self.send_json({"error": "Free credits exhausted. Upgrade to Pro to continue."}, 402, headers)
                         return
 
                     report = analyze(target)
@@ -3011,7 +3011,7 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
             except Exception:
-                self.send_json({"error": "Errore analisi. Nessun dettaglio interno esposto."}, 500, headers)
+                self.send_json({"error": "Analysis failed. No internal details exposed."}, 500, headers)
             return
 
         if parsed.path == "/api/social/analyze":
@@ -3022,7 +3022,7 @@ class Handler(SimpleHTTPRequestHandler):
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
-                        self.send_json({"error": "Crediti Free esauriti. Passa a Pro per continuare."}, 402, headers)
+                        self.send_json({"error": "Free credits exhausted. Upgrade to Pro to continue."}, 402, headers)
                         return
 
                     report = analyze_username(target)
@@ -3038,7 +3038,7 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
             except Exception:
-                self.send_json({"error": "Errore social OSINT. Nessun dettaglio interno esposto."}, 500, headers)
+                self.send_json({"error": "Social OSINT failed. No internal details exposed."}, 500, headers)
             return
 
         if parsed.path == "/api/wallet/analyze":
@@ -3049,7 +3049,7 @@ class Handler(SimpleHTTPRequestHandler):
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
-                        self.send_json({"error": "Crediti Free esauriti. Passa a Pro per continuare."}, 402, headers)
+                        self.send_json({"error": "Free credits exhausted. Upgrade to Pro to continue."}, 402, headers)
                         return
 
                     report = analyze_wallet(address)
@@ -3065,13 +3065,13 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
             except Exception:
-                self.send_json({"error": "Errore wallet OSINT. Nessun dettaglio interno esposto."}, 500, headers)
+                self.send_json({"error": "Wallet OSINT failed. No internal details exposed."}, 500, headers)
             return
 
         if parsed.path == "/api/monitors":
             user, headers = self.get_or_create_user()
             if not user.get("authenticated"):
-                self.send_json({"error": "Accedi o crea un account per salvare domini monitorati."}, 401, headers)
+                self.send_json({"error": "Sign in or create an account to save monitored domains."}, 401, headers)
                 return
             try:
                 body = self.read_json()
@@ -3084,7 +3084,7 @@ class Handler(SimpleHTTPRequestHandler):
                     ).fetchone()["count"]
                     limit = PLAN_LIMITS.get(row["plan"], PLAN_LIMITS["Free"])["monitors"]
                     if current_count >= limit:
-                        self.send_json({"error": f"Limite monitor raggiunto per il piano {row['plan']}."}, 402, headers)
+                        self.send_json({"error": f"Monitor limit reached for plan {row['plan']}."}, 402, headers)
                         return
                     now = utc_now()
                     connection.execute(
@@ -3096,7 +3096,7 @@ class Handler(SimpleHTTPRequestHandler):
                     )
                 self.send_json({"monitors": self.monitors_for_user(str(user["_id"]))}, status=201, headers=headers)
             except sqlite3.IntegrityError:
-                self.send_json({"error": "Dominio gia monitorato."}, 409, headers)
+                self.send_json({"error": "Domain already monitored."}, 409, headers)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
             return
@@ -3104,7 +3104,7 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/monitors/run":
             user, headers = self.get_or_create_user()
             if not user.get("authenticated"):
-                self.send_json({"error": "Accedi per eseguire monitor salvati."}, 401, headers)
+                self.send_json({"error": "Sign in to run saved monitors."}, 401, headers)
                 return
             try:
                 with db() as connection:
@@ -3119,12 +3119,12 @@ class Handler(SimpleHTTPRequestHandler):
                     "summary": summary,
                 }, headers=headers)
             except Exception:
-                self.send_json({"error": "Monitor non completato. Nessun dettaglio interno esposto."}, 500, headers)
+                self.send_json({"error": "Monitor run failed. No internal details exposed."}, 500, headers)
             return
 
         if parsed.path == "/api/cron/monitors":
             if not cron_secret():
-                self.send_json({"error": "Cron non configurato."}, 503)
+                self.send_json({"error": "Cron is not configured."}, 503)
                 return
             if not cron_authorized(self.headers):
                 self.send_json({"error": "Cron non autorizzato."}, 403)
@@ -3161,12 +3161,12 @@ class Handler(SimpleHTTPRequestHandler):
                     **summary,
                 })
             except Exception:
-                self.send_json({"error": "Cron monitor non completato. Nessun dettaglio interno esposto."}, 500)
+                self.send_json({"error": "Monitor cron failed. No internal details exposed."}, 500)
             return
 
         if parsed.path == "/api/cron/backup":
             if not cron_secret():
-                self.send_json({"error": "Cron non configurato."}, 503)
+                self.send_json({"error": "Cron is not configured."}, 503)
                 return
             if not cron_authorized(self.headers):
                 self.send_json({"error": "Cron non autorizzato."}, 403)
@@ -3175,7 +3175,7 @@ class Handler(SimpleHTTPRequestHandler):
                 backup = create_sqlite_backup("cron")
                 self.send_json({"ok": True, "backup": backup})
             except Exception:
-                self.send_json({"error": "Backup non completato. Nessun dettaglio interno esposto."}, 500)
+                self.send_json({"error": "Backup failed. No internal details exposed."}, 500)
             return
 
         if parsed.path == "/api/admin/login":
@@ -3207,19 +3207,19 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/admin/users/plan":
             user, headers = self.get_or_create_user()
             if not is_admin_user(user):
-                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                self.send_json({"error": "Admin required."}, 403, headers)
                 return
             try:
                 body = self.read_json()
                 nickname = normalize_nickname(str(body.get("nickname", "")))
                 plan = str(body.get("plan", "")).capitalize()
                 if plan not in PLAN_LIMITS:
-                    self.send_json({"error": "Piano non valido."}, 400, headers)
+                    self.send_json({"error": "Invalid plan."}, 400, headers)
                     return
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE nickname = ?", (nickname,)).fetchone()
                     if not row:
-                        self.send_json({"error": "Utente non trovato."}, 404, headers)
+                        self.send_json({"error": "User not found."}, 404, headers)
                         return
                     if row["id"] == user["_id"] and plan != "Admin":
                         self.send_json({"error": "Non puoi rimuovere Admin dall'account admin corrente."}, 400, headers)
@@ -3236,7 +3236,7 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/admin/backups":
             user, headers = self.get_or_create_user()
             if not is_admin_user(user):
-                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                self.send_json({"error": "Admin required."}, 403, headers)
                 return
             try:
                 backup = create_sqlite_backup("manual")
@@ -3244,16 +3244,16 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
             except Exception:
-                self.send_json({"error": "Backup non completato. Nessun dettaglio interno esposto."}, 500, headers)
+                self.send_json({"error": "Backup failed. No internal details exposed."}, 500, headers)
             return
 
         if parsed.path == "/api/admin/restore":
             user, headers = self.get_or_create_user()
             if not is_admin_user(user):
-                self.send_json({"error": "Admin richiesto."}, 403, headers)
+                self.send_json({"error": "Admin required."}, 403, headers)
                 return
             if self.headers.get("X-OSINTPRO-RESTORE") != "RESTORE":
-                self.send_json({"error": "Conferma restore mancante."}, 400, headers)
+                self.send_json({"error": "Missing restore confirmation."}, 400, headers)
                 return
             try:
                 payload = self.read_raw_body(MAX_RESTORE_BYTES)
@@ -3263,7 +3263,7 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
             except Exception:
-                self.send_json({"error": "Restore non completato. Nessun dettaglio interno esposto."}, 500, headers)
+                self.send_json({"error": "Restore failed. No internal details exposed."}, 500, headers)
             return
 
         if parsed.path == "/api/billing/checkout":
@@ -3271,10 +3271,10 @@ class Handler(SimpleHTTPRequestHandler):
             body = self.read_json()
             plan = str(body.get("plan", "Pro")).capitalize()
             if plan not in {"Pro", "Agency"}:
-                self.send_json({"error": "Piano non valido."}, 400, headers)
+                self.send_json({"error": "Invalid plan."}, 400, headers)
                 return
             if not user.get("authenticated"):
-                self.send_json({"error": "Crea un account o accedi prima di acquistare un piano."}, 401, headers)
+                self.send_json({"error": "Create an account or sign in before buying a plan."}, 401, headers)
                 return
             env_name = "OSINTPRO_STRIPE_AGENCY_URL" if plan == "Agency" else "OSINTPRO_STRIPE_PRO_URL"
             checkout_url = os.getenv(env_name)
@@ -3284,11 +3284,11 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({
                 "url": "",
                 "mode": "setup",
-                "message": f"Configura {env_name} con un Payment Link Stripe per vendere il piano {plan}.",
+                "message": f"Configure {env_name} with a Stripe Payment Link to sell the {plan} plan.",
             }, headers=headers)
             return
 
-        self.send_json({"error": "Endpoint non trovato"}, 404)
+        self.send_json({"error": "Endpoint not found"}, 404)
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
@@ -3321,7 +3321,7 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/account":
             user, headers = self.get_or_create_user()
             if not user.get("authenticated"):
-                self.send_json({"error": "Accedi per eliminare l'account."}, 401, headers)
+                self.send_json({"error": "Sign in to delete your account."}, 401, headers)
                 return
             if is_admin_user(user):
                 self.send_json({"error": "L'account Admin corrente non puo essere eliminato da qui."}, 403, headers)
@@ -3345,7 +3345,7 @@ class Handler(SimpleHTTPRequestHandler):
                 connection.execute("DELETE FROM monitors WHERE user_id = ? AND id = ?", (user["_id"], monitor_id))
             self.send_json({"monitors": self.monitors_for_user(str(user["_id"]))}, headers=headers)
             return
-        self.send_json({"error": "Endpoint non trovato"}, 404)
+        self.send_json({"error": "Endpoint not found"}, 404)
 
 
 def server_config() -> tuple[str, int]:

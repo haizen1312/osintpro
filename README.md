@@ -1,232 +1,204 @@
 # OSINTPRO
 
-OSINTPRO e un SaaS freemium per intelligence passiva su domini, brand e nickname pubblici.
+OSINTPRO is a freemium passive OSINT SaaS for domain intelligence, brand monitoring, social username checks and blockchain wallet tracing.
 
-Questo repository e pubblicabile per trasparenza e deploy reference, ma OSINTPRO non e open source. Vedi `LICENSE.md`.
+It is built for consultants, small agencies, fraud analysts and security-minded founders who need fast, readable intelligence from public sources without running aggressive scans.
 
-## Sito live
+Live app:
 
 ```text
 https://osintpro-48j4.onrender.com/
 ```
 
-Apri il sito live, crea un account con nickname/password e prova:
+This repository is public for product visibility and deployment transparency, but OSINTPRO is proprietary software. See `LICENSE.md`.
 
-- Domain OSINT su un dominio pubblico.
-- Social OSINT su un nickname pubblico.
-- Schema intelligence con grafo entita e dossier persona/sito.
-- Wallet OSINT su address Bitcoin o Ethereum/EVM pubblici.
-- Report PDF/CSV.
-- Monitoring domini.
-- Upgrade Pro/Agency tramite Stripe.
+## What It Does
 
-Analizza domini usando raccolta passiva:
+OSINTPRO collects passive public signals and turns them into client-ready reports:
 
-- DNS/IP resolution
-- record A/AAAA/MX/NS/TXT/CAA/SOA tramite `dig`, se disponibile
-- certificato HTTPS
-- security header pubblici
-- scoring sintetico del dominio
-- RDAP/registrar pubblico
-- postura email: SPF, DMARC, MTA-STS, TLS-RPT
-- well-known pubblici: security.txt, robots.txt, sitemap.xml
-- Certificate Transparency per nomi e sottodomini osservabili
-- fingerprint tecnologico passivo da header e segnali web
-- ipotesi di vulnerabilita derivate da evidenze passive
-- DNSSEC, BIMI, well-known account/security endpoints
-- CNAME review da subdomini Certificate Transparency per possibili takeover da verificare
-- percorsi red team autorizzati e controlli purple team consigliati
+- Domain OSINT: DNS/IP resolution, A/AAAA/MX/NS/TXT/CAA/SOA, HTTPS certificate, public security headers and RDAP.
+- Email posture: SPF, DMARC, MTA-STS, TLS-RPT and brand impersonation signals.
+- Web exposure: security.txt, robots.txt, sitemap.xml and public well-known endpoints.
+- Certificate Transparency: observable names and subdomains from public CT logs.
+- Passive technology fingerprinting from headers and web signals.
+- Risk findings, vulnerability hypotheses and Red/Purple Team recommendations derived only from passive evidence.
+- Social OSINT: public username presence checks across social, developer and community platforms.
+- Wallet OSINT: public Bitcoin and Ethereum/EVM balance, recent movements, counterparties and explorer links.
+- Entity graph: a workspace view that connects domains, usernames, profiles, DNS, findings, technologies, wallets, transactions and counterparties.
+- Monitoring: saved domains can be rechecked for public drift.
+- PDF/CSV exports for client delivery and internal case notes.
 
-OSINTPRO non esegue exploit, brute force o scansioni aggressive. Le sezioni Red/Purple Team trasformano segnali pubblici in ipotesi, priorita e controlli operativi vendibili a clienti o agency.
+OSINTPRO does not run exploits, brute force, credential attacks, invasive scans or wallet transactions. Wallet analysis is limited to public blockchain data and investigative visualization.
 
-## Stato prodotto
+## Product Status
 
-- App pubblicata su Render.
-- Repository GitHub collegato al deploy automatico.
-- `.gitignore`, `.env.example` e `SECURITY.md` pronti per audit pubblico.
-- Licenza proprietaria `All rights reserved`.
-- API Python con endpoint health, sessione, analisi e report.
-- Database SQLite in `data/osintpro.sqlite3`.
-- Account nickname/password con hash PBKDF2 e cookie HTTP-only.
-- Crediti Free salvati lato server, non piu in `localStorage`.
-- Cookie HTTP-only per distinguere workspace anonimi prima della registrazione.
-- Storico report persistente lato server.
-- Storici visibili solo dopo login e isolati per account.
-- Cancellazione storico domini, social o completa per ogni account.
-- Cancellazione account e dati collegati per utenti loggati.
-- Export CSV dello storico.
-- Export admin sanitizzato per backup operativo senza password hash o secret.
-- Export report stampabile, salvabile come PDF dal browser.
-- Monitoraggio domini con limiti per piano.
-- Cron monitor protetto da secret per rieseguire controlli in batch.
-- Workflow GitHub Actions giornaliero per richiamare il cron monitor in produzione.
-- Alert webhook opzionale quando un monitor cambia o va in errore.
-- Path database e backup configurabili via env.
-- Backup SQLite manuali da admin, automatici via cron protetto e salvati come GitHub Actions artifact.
-- Limite anti multi-account Free basato su fingerprint hashato della connessione.
-- Checkout Stripe tramite Payment Link configurabile con riferimento utente.
-- Webhook Stripe firmato per attivare Pro/Agency dopo pagamento completato.
-- Pannello operativo privato per stato produzione, utenti, piani e ultimi eventi Stripe.
-- Pagina Social OSINT per analizzare nickname pubblici su social/dev platform.
-- Pagina Wallet OSINT per analizzare address Bitcoin/Ethereum, saldo pubblico, movimenti recenti, controparti e pattern investigativi.
-- Pagina Schema per correlare domini, nickname, profili, DNS, email posture, finding, tecnologie, wallet, transazioni e controparti in un grafo.
+- Deployed on Render: `https://osintpro-48j4.onrender.com/`
+- Public GitHub repository connected to automatic deploys.
+- Python backend with health, auth, analysis, report, monitoring, billing and admin endpoints.
+- SQLite persistence with configurable database and backup paths.
+- Nickname/password accounts with PBKDF2 password hashes and HTTP-only session cookies.
+- Server-side freemium credits and plan limits.
+- Account-isolated history: users only see their own domain, social and wallet reports.
+- History deletion controls for domain, social, wallet and full workspace data.
+- Stripe Payment Links and signed webhook activation for Pro/Agency plans.
+- Private operational admin panel for production status, plans, backups and Stripe events.
+- Cron-protected monitoring and backup endpoints.
+- GitHub Actions workflow for free scheduled monitor runs and SQLite backup artifacts.
+- Security-conscious repository hygiene: `.gitignore`, `.env.example`, `SECURITY.md`, no committed secrets.
 
-## Avvio locale
+## Local Development
 
 ```bash
 python3 server.py
 ```
 
-Poi apri:
+Open:
 
 ```text
 http://127.0.0.1:8765
 ```
 
-Il database viene creato automaticamente al primo avvio.
-Per usare un path persistente:
+The SQLite database is created automatically on first run.
+
+Optional persistent paths:
 
 ```bash
-OSINTPRO_DB_PATH="/path/persistente/osintpro.sqlite3" python3 server.py
-```
-
-Il deploy pubblico usa Render:
-
-```text
-https://osintpro-48j4.onrender.com/
-```
-
-Per configurare l'ambiente, copia `.env.example` e sostituisci solo valori locali o variabili Render.
-
-Il pannello operativo e protetto da `OSINTPRO_ADMIN_CODE` e non deve essere considerato un'interfaccia pubblica.
-
-## Monetizzazione
-
-Piani implementati nella UI:
-
-- Free tier: 5 report iniziali e 1 dominio monitorato.
-- Pro: 19 EUR/mese, report illimitati e 5 domini monitorati.
-- Agency: 79 EUR/mese, report per clienti e 25 domini monitorati.
-
-In produzione Stripe e configurato tramite variabili ambiente. In locale puoi usare:
-
-```bash
-OSINTPRO_STRIPE_PRO_URL="https://buy.stripe.com/..." \
-OSINTPRO_STRIPE_AGENCY_URL="https://buy.stripe.com/..." \
-OSINTPRO_STRIPE_WEBHOOK_SECRET="whsec_..." \
+OSINTPRO_DB_PATH="/path/to/osintpro.sqlite3" \
+OSINTPRO_BACKUP_DIR="/path/to/backups" \
 python3 server.py
 ```
 
-Endpoint webhook:
+Copy `.env.example` for local configuration. Production secrets should be set in Render environment variables, never committed to GitHub.
+
+## Monetization
+
+Current pricing model:
+
+- Free: 5 starter reports and 1 monitored domain.
+- Pro: 19 EUR/month, unlimited reports and 5 monitored domains.
+- Agency: 79 EUR/month, client reporting workflows and 25 monitored domains.
+
+Stripe Payment Links are configured through environment variables:
+
+```bash
+OSINTPRO_STRIPE_PRO_URL="https://buy.stripe.com/..."
+OSINTPRO_STRIPE_AGENCY_URL="https://buy.stripe.com/..."
+OSINTPRO_STRIPE_WEBHOOK_SECRET="whsec_..."
+```
+
+Stripe webhook endpoint:
 
 ```text
 https://osintpro-48j4.onrender.com/api/stripe/webhook
 ```
 
-Evento Stripe da collegare:
+Required Stripe event:
 
 ```text
 checkout.session.completed
 ```
 
-Il Free tier serve per valutare il prodotto. L'uso continuativo e il monitoraggio esteso sono pensati per i piani Pro e Agency.
+The free tier is for evaluation. Ongoing usage, monitoring and agency workflows are positioned for paid plans.
 
-## Export PDF
+## Admin And Operations
 
-Ogni report ha un link `PDF`. Si apre una pagina HTML pulita e stampabile: dal browser usa `Salva come PDF`.
-Questo e il primo artefatto vendibile per agenzie e consulenti.
+The private admin panel is protected by `OSINTPRO_ADMIN_CODE`.
+
+Operational capabilities:
+
+- production status checks
+- user and plan overview
+- manual plan updates
+- sanitized operational export
+- SQLite snapshot creation and restore
+- recent Stripe event review
+
+The admin code is an environment secret and should not appear in GitHub, screenshots or public documentation.
 
 ## Monitoring
 
-Il tab `Monitoring` salva domini in SQLite e `Run checks` riesegue le analisi passive.
-In produzione il cron puo richiamare:
+Saved domains can be rechecked manually in the app or through the protected cron endpoint:
 
 ```bash
 curl -X POST "https://<host>/api/cron/monitors" \
   -H "Authorization: Bearer $OSINTPRO_CRON_SECRET"
 ```
 
-Variabili:
+Useful variables:
 
 ```text
 OSINTPRO_CRON_SECRET
 OSINTPRO_MONITOR_BATCH_LIMIT=20
 OSINTPRO_REGISTRATION_IP_LIMIT=3
 OSINTPRO_REGISTRATION_IP_ALLOWLIST="203.0.113.10,198.51.100.0/24"
-OSINTPRO_DB_PATH="/path/persistente/osintpro.sqlite3"
-OSINTPRO_BACKUP_DIR="/path/persistente/backups"
+OSINTPRO_DB_PATH="/path/to/osintpro.sqlite3"
+OSINTPRO_BACKUP_DIR="/path/to/backups"
 OSINTPRO_BACKUP_RETENTION=30
-```
-
-Il secret cron e configurato in produzione. Il repository include anche un workflow GitHub Actions giornaliero in `.github/workflows/monitor-cron.yml`.
-
-`OSINTPRO_REGISTRATION_IP_ALLOWLIST` e opzionale e serve per escludere connessioni fidate dal limite anti multi-account.
-
-## Persistenza gratuita e backup
-
-Render Free non offre Persistent Disk. Per non spendere soldi, OSINTPRO resta compatibile con SQLite locale e usa backup esterni gratuiti tramite GitHub Actions artifacts.
-
-Il cron giornaliero:
-
-- richiama `/api/cron/monitors`
-- richiama `/api/cron/backup`
-- scarica `/api/cron/backup/download`
-- salva lo snapshot SQLite come artifact privato GitHub Actions per 30 giorni
-
-In locale o su hosting con filesystem persistente puoi comunque impostare:
-
-```text
-OSINTPRO_DB_PATH="/path/persistente/osintpro.sqlite3"
-OSINTPRO_BACKUP_DIR="/path/persistente/backups"
-```
-
-Dal pannello operativo privato puoi creare e scaricare snapshot SQLite manuali.
-
-### Restore da artifact GitHub Actions
-
-Se Render Free resetta il filesystem:
-
-1. Apri GitHub Actions nel repository.
-2. Entra nell'ultima run `OSINTPRO monitor cron` completata con successo.
-3. Scarica l'artifact `osintpro-sqlite-backup-<run_id>`.
-4. Estrai il file `osintpro.sqlite3`.
-5. Entra nel pannello operativo privato.
-6. Usa `Restore snapshot SQLite` e carica `osintpro.sqlite3`.
-
-Il restore valida lo snapshot SQLite, crea prima un backup `pre-restore` del database corrente e poi sostituisce il DB.
-
-## Alert webhook
-
-Per ricevere alert su cambi monitor:
-
-```text
 OSINTPRO_ALERT_WEBHOOK_URL="https://example.com/webhook"
 ```
 
-Eventi inviati:
+`OSINTPRO_REGISTRATION_IP_ALLOWLIST` can exclude trusted connections from the free-account anti-abuse limit.
 
-- `monitor.changed`
-- `monitor.error`
+## Free Persistence Strategy
 
-## Social OSINT
+Render Free does not include a persistent disk. OSINTPRO stays usable without paid infrastructure by combining SQLite with GitHub Actions artifacts.
 
-Il tab `Social` controlla passivamente la presenza pubblica di un nickname su social network e developer platform.
-Genera score, profili probabili, risultati incerti, findings e percorsi Red/Purple Team per brand monitoring, anti-impersonation e due diligence.
+The scheduled workflow can:
 
-## Schema e Wallet OSINT
+- call `/api/cron/monitors`
+- call `/api/cron/backup`
+- download `/api/cron/backup/download`
+- store a SQLite snapshot as a private GitHub Actions artifact
 
-Il tab `Schema` crea un grafo passivo dai report salvati nell'account: siti, persone/nickname, IP, nameserver, MX, profili social, tecnologie, finding, wallet blockchain, transazioni e controparti.
+If the Render filesystem resets:
 
-Il tab `Wallet` accetta address Bitcoin o Ethereum/EVM pubblici e raccoglie saldo, movimenti recenti, controparti, link explorer e finding euristici come fan-in/fan-out, alta attivita, contract/account smart e tag pubblici. Serve per ricostruzioni autorizzate su wallet sospetti o truffaldini; non esegue transazioni e non fornisce funzioni di offuscamento.
+1. Open GitHub Actions.
+2. Select the latest successful `OSINTPRO monitor cron` run.
+3. Download the `osintpro-sqlite-backup-<run_id>` artifact.
+4. Extract `osintpro.sqlite3`.
+5. Open the private admin panel.
+6. Upload the snapshot through `Restore SQLite snapshot`.
 
-## Prossimi step tecnici
+The restore flow validates the SQLite snapshot, creates a pre-restore backup and then replaces the current database.
 
-Rendere OSINTPRO piu solido per uso continuativo:
+## Wallet OSINT Scope
 
-1. Aggiungere reset password se si introduce un canale di recupero account.
-2. Workspace agency multi-cliente.
-3. Onboarding guidato per convertire utenti Free in Pro/Agency.
+Wallet OSINT accepts public Bitcoin or Ethereum/EVM addresses and returns:
 
-## Checklist monetizzazione
+- public balance
+- recent transactions
+- counterparties
+- direction and approximate flow
+- explorer links
+- heuristic findings such as high fan-in/fan-out, smart contract/account type and activity bursts
 
-Vedi `MONETIZATION.md` per la checklist pratica: Payment Link Stripe, deploy Render, pricing iniziale e primo messaggio di vendita.
+This feature is designed for authorized fraud reconstruction, scam wallet triage and compliance-style case mapping. It does not move funds, deanonymize private users, bypass mixers or provide evasion guidance.
+
+## GitHub Discovery Plan
+
+Free ways to improve repository traffic:
+
+- Keep the README in English with clear keywords: passive OSINT, domain intelligence, brand monitoring, crypto wallet OSINT, blockchain tracing, fraud investigation, threat intelligence.
+- Use GitHub topics that match real search intent.
+- Keep the live demo URL in the repository homepage.
+- Add screenshots or short demo GIFs after the UI stabilizes.
+- Publish small example reports with sanitized public targets.
+- Open roadmap issues for high-value features so GitHub has searchable project activity.
+- Share the live demo in relevant communities only with a passive/intelligence framing, not as an offensive scanner.
+
+## Roadmap
+
+See `ROADMAP.md` for the public product roadmap.
+
+Near-term technical work:
+
+1. Password reset only if an account recovery channel is introduced.
+2. Agency workspaces with client folders.
+3. Better onboarding from Free to Pro/Agency.
+4. Server-side PDF generation.
+5. Wallet graph improvements with manual tags, case notes and hop expansion.
+6. PostgreSQL migration only when paid usage justifies the cost.
+
+## Safety Boundary
+
+OSINTPRO is a passive intelligence and monitoring product. It should be used only for domains, brands, usernames, wallets and investigations where the user has authorization or a legitimate public-interest reason.

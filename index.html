@@ -1,10 +1,12 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
-  <title>OSINTPRO Domain Intel</title>
+  <meta name="robots" content="index,follow">
+  <meta name="description" content="OSINTPRO is a passive OSINT workspace for domain intelligence, brand monitoring, social username checks and blockchain wallet tracing.">
+  <meta name="keywords" content="passive OSINT, domain intelligence, brand monitoring, wallet OSINT, blockchain tracing, threat intelligence">
+  <title>OSINTPRO Intelligence Workspace</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,17 +17,22 @@
         <div class="mark">OP</div>
         <div>
           <strong>OSINTPRO</strong>
-          <span>Domain Intel</span>
+          <span>Intel Workspace</span>
         </div>
       </div>
 
-      <nav class="nav" aria-label="Navigazione principale">
-        <button class="nav-btn active" data-section="scan">Scan</button>
-        <button class="nav-btn" data-section="social">Social</button>
-        <button class="nav-btn" data-section="schema">Schema</button>
-        <button class="nav-btn" data-section="wallet">Wallet</button>
-        <button class="nav-btn" data-section="reports">Reports</button>
+      <nav class="nav" aria-label="Primary navigation">
+        <span class="nav-label">Overview</span>
+        <button class="nav-btn active" data-section="dashboard">Dashboard</button>
+        <span class="nav-label">Analyze</span>
+        <button class="nav-btn" data-section="scan">Domain Intel</button>
+        <button class="nav-btn" data-section="social">Social Intel</button>
+        <button class="nav-btn" data-section="wallet">Wallet Trace</button>
+        <span class="nav-label">Workspace</span>
+        <button class="nav-btn" data-section="schema">Entity Graph</button>
+        <button class="nav-btn" data-section="reports">History</button>
         <button class="nav-btn" data-section="monitoring">Monitoring</button>
+        <span class="nav-label">Business</span>
         <button class="nav-btn" data-section="billing">Billing</button>
         <button class="nav-btn" data-section="account">Account</button>
       </nav>
@@ -34,7 +41,7 @@
         <span class="tiny" id="workspacePlan">Free workspace</span>
         <strong><span id="credits">5</span> credits</strong>
         <div class="bar"><span id="creditBar"></span></div>
-        <small><span id="monitorUsage">0/1</span> domini monitorati.</small>
+        <small><span id="monitorUsage">0/1</span> monitored domains.</small>
       </div>
     </aside>
 
@@ -48,8 +55,8 @@
       <section class="hero">
         <div>
           <span class="pill">Passive reconnaissance</span>
-          <h1>Report vendibili per domini, SSL, DNS ed email security.</h1>
-          <p>Scansiona passivamente un dominio, genera un report stampabile e monitora cambiamenti pubblici nel tempo.</p>
+          <h1>Passive OSINT for domains, identities and blockchain wallets.</h1>
+          <p>Build sellable intelligence reports, trace public wallet activity and connect evidence in an account-level graph.</p>
         </div>
         <div class="status-card">
           <span>Backend</span>
@@ -60,10 +67,40 @@
         </div>
       </section>
 
+      <section class="section active" id="dashboard">
+        <div class="dashboard-grid">
+          <article class="dash-card primary-dash">
+            <span class="pill">Start here</span>
+            <h2>Run a passive investigation</h2>
+            <p>Choose a domain, social handle or wallet address. Results are stored privately per account and connected in the entity graph.</p>
+            <div class="actions">
+              <button class="primary" type="button" data-section-jump="scan">Domain</button>
+              <button class="secondary" type="button" data-section-jump="social">Social</button>
+              <button class="secondary" type="button" data-section-jump="wallet">Wallet</button>
+            </div>
+          </article>
+          <article class="dash-card">
+            <span>Plan</span>
+            <strong id="dashPlan">Free</strong>
+            <p id="dashCredits">5 credits available</p>
+          </article>
+          <article class="dash-card">
+            <span>Graph</span>
+            <strong id="dashGraph">0 nodes</strong>
+            <p>Domains, profiles, wallets and counterparties.</p>
+          </article>
+          <article class="dash-card">
+            <span>Monitors</span>
+            <strong id="dashMonitors">0/1</strong>
+            <p>Saved domains checked over time.</p>
+          </article>
+        </div>
+      </section>
+
       <section class="panel section" id="social">
         <form id="socialForm" class="scan-form">
           <div class="target-field">
-            <label for="username">Nickname social</label>
+            <label for="username">Social username</label>
             <input id="username" name="username" placeholder="@nickname" autocomplete="off" spellcheck="false">
           </div>
           <button class="primary" type="submit" id="socialButton">Run social OSINT</button>
@@ -71,32 +108,32 @@
 
         <div class="notice">
           <strong>Social OSINT</strong>
-          <span>Controlla passivamente handle pubblici su social e dev platform per brand monitoring, impersonation e due diligence.</span>
+          <span>Passively checks public handles across social and developer platforms for brand monitoring, impersonation and due diligence.</span>
         </div>
 
         <div id="socialResult" class="result empty">
-          <h2>Nessun social report</h2>
-          <p>Prova con un nickname pubblico, senza password o dati privati.</p>
+          <h2>No social report yet</h2>
+          <p>Try a public username. No passwords or private data are required.</p>
         </div>
       </section>
 
-      <section class="panel section active" id="scan">
+      <section class="panel section" id="scan">
         <form id="scanForm" class="scan-form">
           <div class="target-field">
-            <label for="target">Dominio</label>
+            <label for="target">Domain</label>
             <input id="target" name="target" placeholder="example.com" autocomplete="off" spellcheck="false">
           </div>
           <button class="primary" type="submit" id="scanButton">Run intel</button>
         </form>
 
         <div class="notice">
-          <strong>Nota prodotto</strong>
-          <span>Raccolta passiva: DNS lookup, certificato TLS e security header pubblici. Nessuno scanner aggressivo.</span>
+          <strong>Product boundary</strong>
+          <span>Passive collection only: DNS, TLS certificate, public web posture and security headers. No aggressive scanning.</span>
         </div>
 
         <div id="result" class="result empty">
-          <h2>Nessun report ancora</h2>
-          <p>Prova con un dominio reale tipo <button class="linklike" data-example="openai.com">openai.com</button> o <button class="linklike" data-example="stripe.com">stripe.com</button>.</p>
+          <h2>No domain report yet</h2>
+          <p>Try a public domain such as <button class="linklike" data-example="openai.com">openai.com</button> or <button class="linklike" data-example="stripe.com">stripe.com</button>.</p>
         </div>
       </section>
 
@@ -104,18 +141,18 @@
         <div class="section-head">
           <div>
             <span class="pill">Entity graph</span>
-            <h2>Schema intelligence</h2>
+            <h2>Entity graph</h2>
           </div>
-          <button class="secondary" id="refreshWorkspace" type="button">Aggiorna schema</button>
+          <button class="secondary" id="refreshWorkspace" type="button">Refresh graph</button>
         </div>
         <div class="notice">
-          <strong>Correlazione passiva</strong>
-          <span>Unisce domini, nickname, profili, DNS, email posture, tecnologie e finding gia raccolti nel tuo account.</span>
+          <strong>Passive correlation</strong>
+          <span>Connects domains, usernames, profiles, DNS, email posture, technologies, wallets, transactions and findings collected in your account.</span>
         </div>
         <div id="schemaResult" class="schema-layout">
           <div class="result empty">
-            <h2>Nessuno schema ancora</h2>
-            <p>Accedi e genera almeno un report dominio o social per costruire il grafo.</p>
+            <h2>No graph yet</h2>
+            <p>Sign in and generate at least one domain, social or wallet report to build the graph.</p>
           </div>
         </div>
       </section>
@@ -124,31 +161,31 @@
         <div class="section-head">
           <div>
             <span class="pill">Blockchain OSINT</span>
-            <h2>Wallet tracing e movimenti pubblici</h2>
+            <h2>Wallet tracing and public movements</h2>
           </div>
-          <button class="secondary" id="clearWalletReports" type="button">Cancella wallet</button>
+          <button class="secondary" id="clearWalletReports" type="button">Clear wallets</button>
         </div>
         <form id="walletForm" class="scan-form">
           <div class="target-field">
             <label for="walletAddress">Wallet address</label>
-            <input id="walletAddress" name="walletAddress" placeholder="BTC o 0x Ethereum/EVM" autocomplete="off" spellcheck="false">
+            <input id="walletAddress" name="walletAddress" placeholder="BTC or 0x Ethereum/EVM" autocomplete="off" spellcheck="false">
           </div>
           <button class="primary" type="submit" id="walletButton">Trace wallet</button>
         </form>
         <div class="notice">
-          <strong>Ricostruzione antifrode</strong>
-          <span>Raccoglie saldo, movimenti recenti, controparti e pattern fan-in/fan-out da fonti blockchain pubbliche. Usa gli indizi per investigazioni autorizzate.</span>
+          <strong>Fraud reconstruction</strong>
+          <span>Collects balance, recent movements, counterparties and fan-in/fan-out patterns from public blockchain sources for authorized investigations.</span>
         </div>
         <div id="walletResult" class="result empty">
-          <h2>Nessun wallet analizzato</h2>
-          <p>Inserisci un address Bitcoin o Ethereum/EVM pubblico.</p>
+          <h2>No wallet analyzed yet</h2>
+          <p>Enter a public Bitcoin or Ethereum/EVM address.</p>
         </div>
         <div class="section-head secondary-head">
           <div>
             <span class="pill">Wallet history</span>
-            <h2>Address tracciati</h2>
+            <h2>Traced addresses</h2>
           </div>
-          <button class="secondary" id="refreshWallet" type="button">Aggiorna schema</button>
+          <button class="secondary" id="refreshWallet" type="button">Refresh graph</button>
         </div>
         <div class="report-list" id="walletReportList"></div>
       </section>
@@ -157,25 +194,25 @@
         <div class="section-head">
           <div>
             <span class="pill">Account history</span>
-            <h2>Report generati</h2>
+            <h2>Generated reports</h2>
           </div>
           <div class="actions">
             <a class="secondary button-link" href="/api/reports.csv">CSV</a>
-            <button class="secondary" id="clearReports" type="button">Cancella domini</button>
-            <button class="secondary" id="clearAllHistory" type="button">Cancella tutto</button>
+            <button class="secondary" id="clearReports" type="button">Clear domains</button>
+            <button class="secondary" id="clearAllHistory" type="button">Clear all</button>
           </div>
         </div>
         <div class="notice history-notice" id="historyNotice">
-          <strong>Storico privato</strong>
-          <span>Gli storici sono disponibili solo dopo login e ogni account vede esclusivamente i propri report.</span>
+          <strong>Private history</strong>
+          <span>History is available only after login. Each account can only see its own reports.</span>
         </div>
         <div class="report-list" id="reportList"></div>
         <div class="section-head secondary-head">
           <div>
             <span class="pill">Social history</span>
-            <h2>Nickname analizzati</h2>
+            <h2>Analyzed usernames</h2>
           </div>
-          <button class="secondary" id="clearSocialReports" type="button">Cancella social</button>
+          <button class="secondary" id="clearSocialReports" type="button">Clear social</button>
         </div>
         <div class="report-list" id="socialReportList"></div>
       </section>
@@ -184,20 +221,20 @@
         <div class="section-head">
           <div>
             <span class="pill">Paid retention</span>
-            <h2>Domini monitorati</h2>
+            <h2>Monitored domains</h2>
           </div>
           <button class="primary" id="runMonitors">Run checks</button>
         </div>
         <form id="monitorForm" class="scan-form compact">
           <div class="target-field">
-            <label for="monitorDomain">Dominio da monitorare</label>
-            <input id="monitorDomain" name="monitorDomain" placeholder="cliente.com" autocomplete="off" spellcheck="false">
+            <label for="monitorDomain">Domain to monitor</label>
+            <input id="monitorDomain" name="monitorDomain" placeholder="client.com" autocomplete="off" spellcheck="false">
           </div>
-          <button class="secondary" type="submit">Aggiungi</button>
+          <button class="secondary" type="submit">Add</button>
         </form>
         <div class="notice">
-          <strong>Monetizzazione</strong>
-          <span>Free monitora 1 dominio. Pro monitora 5 domini. Agency monitora 25 domini per clienti.</span>
+          <strong>Monetization</strong>
+          <span>Free monitors 1 domain. Pro monitors 5 domains. Agency monitors 25 client domains.</span>
         </div>
         <div class="monitor-list" id="monitorList"></div>
       </section>
@@ -208,24 +245,24 @@
           <article>
             <span class="pill">Free</span>
             <h2>€0</h2>
-            <p>Acquisizione utenti: report limitati e 1 dominio monitorato.</p>
+            <p>Lead capture: limited reports and 1 monitored domain.</p>
             <ul>
-              <li>5 report iniziali</li>
-              <li>DNS e IP pubblici</li>
-              <li>Storico locale</li>
-              <li>1 dominio monitorato</li>
+              <li>5 starter reports</li>
+              <li>Public DNS and IP data</li>
+              <li>Private account history</li>
+              <li>1 monitored domain</li>
             </ul>
-            <button class="secondary" type="button" disabled>Free attivo</button>
+            <button class="secondary" type="button" disabled>Free active</button>
           </article>
           <article class="pro">
             <span class="pill">Pro</span>
             <h2>€19/mese</h2>
-            <p>Per founder, consulenti e piccoli team che vogliono controllo continuo.</p>
+            <p>For founders, consultants and small teams that need continuous visibility.</p>
             <ul>
-              <li>Report illimitati</li>
-              <li>5 domini monitorati</li>
+              <li>Unlimited reports</li>
+              <li>5 monitored domains</li>
               <li>Export PDF/CSV</li>
-              <li>Alert su cambiamenti</li>
+              <li>Change alerts</li>
             </ul>
             <div class="price-actions">
               <button class="primary" data-checkout="Pro">Checkout</button>
@@ -234,12 +271,12 @@
           <article class="agency">
             <span class="pill">Agency</span>
             <h2>€79/mese</h2>
-            <p>Per agenzie web che vogliono report per clienti e manutenzione ricorrente.</p>
+            <p>For agencies selling client reporting and recurring monitoring.</p>
             <ul>
-              <li>25 domini monitorati</li>
-              <li>Report condivisibili</li>
-              <li>CSV per portfolio clienti</li>
-              <li>Base per white-label</li>
+              <li>25 monitored domains</li>
+              <li>Shareable reports</li>
+              <li>CSV for client portfolios</li>
+              <li>White-label foundation</li>
             </ul>
             <div class="price-actions">
               <button class="primary" data-checkout="Agency">Checkout</button>
@@ -252,24 +289,24 @@
         <div class="section-head">
           <div>
             <span class="pill">Identity</span>
-            <h2>Account e accesso</h2>
+            <h2>Account and access</h2>
           </div>
           <button class="secondary" id="logoutButton" hidden>Logout</button>
         </div>
         <div class="auth-grid">
           <article class="auth-card">
-            <h2>Stato account</h2>
-            <p id="accountState">Sessione anonima</p>
+            <h2>Account status</h2>
+            <p id="accountState">Anonymous session</p>
             <p class="mono" id="accountMeta"></p>
           </article>
           <article class="auth-card">
-            <h2>Registrati</h2>
+            <h2>Register</h2>
             <form id="registerForm" class="auth-form">
               <label for="registerNickname">Nickname</label>
               <input id="registerNickname" type="text" autocomplete="username" placeholder="operator" spellcheck="false">
               <label for="registerPassword">Password</label>
-              <input id="registerPassword" type="password" autocomplete="new-password" placeholder="Minimo 8 caratteri">
-              <button class="primary" type="submit">Crea account</button>
+              <input id="registerPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+              <button class="primary" type="submit">Create account</button>
             </form>
           </article>
           <article class="auth-card">
@@ -279,23 +316,23 @@
               <input id="loginNickname" type="text" autocomplete="username" placeholder="operator" spellcheck="false">
               <label for="loginPassword">Password</label>
               <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
-              <button class="secondary" type="submit">Accedi</button>
+              <button class="secondary" type="submit">Sign in</button>
             </form>
           </article>
           <article class="auth-card">
-            <h2>Cambia password</h2>
+            <h2>Change password</h2>
             <form id="passwordForm" class="auth-form">
-              <label for="currentPassword">Password attuale</label>
-              <input id="currentPassword" type="password" autocomplete="current-password" placeholder="Password attuale">
-              <label for="newPassword">Nuova password</label>
-              <input id="newPassword" type="password" autocomplete="new-password" placeholder="Minimo 8 caratteri">
-              <button class="secondary" type="submit">Aggiorna password</button>
+              <label for="currentPassword">Current password</label>
+              <input id="currentPassword" type="password" autocomplete="current-password" placeholder="Current password">
+              <label for="newPassword">New password</label>
+              <input id="newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+              <button class="secondary" type="submit">Update password</button>
             </form>
           </article>
           <article class="auth-card danger-card">
-            <h2>Elimina account</h2>
-            <p>Rimuove account, report, social history, wallet history e monitor salvati.</p>
-            <button class="secondary" id="deleteAccountButton" type="button">Elimina account</button>
+            <h2>Delete account</h2>
+            <p>Removes the account, reports, social history, wallet history and saved monitors.</p>
+            <button class="secondary" id="deleteAccountButton" type="button">Delete account</button>
           </article>
         </div>
         <div class="billing-message" id="accountMessage"></div>
