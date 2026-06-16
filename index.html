@@ -37,6 +37,7 @@
         <button class="nav-btn" data-section="monitoring">Monitoring</button>
         <span class="nav-label">Business</span>
         <button class="nav-btn" data-section="billing">Billing</button>
+        <button class="nav-btn" data-section="api-preview">API Preview</button>
         <button class="nav-btn" data-section="account">Account</button>
       </nav>
 
@@ -109,6 +110,23 @@
             <span>Monitors</span>
             <strong id="dashMonitors">0/0</strong>
             <p>Saved domains checked over time.</p>
+          </article>
+        </div>
+        <div class="onboarding-strip product-focus-strip">
+          <article>
+            <span class="pill">Difference</span>
+            <strong>Evidence package, not raw noise</strong>
+            <p>OSINTPRO normalizes public signals into graph nodes, findings, notes and exports that a client can actually read.</p>
+          </article>
+          <article>
+            <span class="pill">Core</span>
+            <strong>Investigation graph first</strong>
+            <p>Domain, social, wallet, web audit and network views all feed the same case workspace instead of becoming disconnected tools.</p>
+          </article>
+          <article>
+            <span class="pill">Boundary</span>
+            <strong>Passive and sellable</strong>
+            <p>No aggressive scanner positioning: useful for consultants, agencies and fraud analysts who need defensible public-source evidence.</p>
           </article>
         </div>
       </section>
@@ -439,6 +457,48 @@
               <button class="primary" data-checkout="Agency">Checkout</button>
             </div>
           </article>
+        </div>
+      </section>
+
+      <section class="section" id="api-preview">
+        <div class="section-head">
+          <div>
+            <span class="pill">Integration roadmap</span>
+            <h2>API Preview</h2>
+          </div>
+        </div>
+        <div class="notice boundary-notice">
+          <strong>Passive API boundary</strong>
+          <span>The future public API will expose the same passive investigation workflow: no exploit execution, brute force, credential attacks, unauthorized packet capture or wallet movement.</span>
+        </div>
+        <div class="onboarding-strip">
+          <article>
+            <span class="pill">Now</span>
+            <strong>Internal JSON endpoints</strong>
+            <p>The app already uses structured endpoints for session, reports, workspace graph, monitors and exports.</p>
+          </article>
+          <article>
+            <span class="pill">Next</span>
+            <strong>Agency API keys</strong>
+            <p>API keys should be added after persistent production storage and paid usage justify the operational cost.</p>
+          </article>
+          <article>
+            <span class="pill">Use case</span>
+            <strong>Client workflows</strong>
+            <p>Agencies can eventually push passive reports into ticketing, CRM, compliance or case-management systems.</p>
+          </article>
+        </div>
+        <div class="result">
+          <h2>Public metadata endpoint</h2>
+          <p>A small public endpoint is available for product metadata and safety boundaries.</p>
+          <pre><code>GET /api/meta</code></pre>
+          <h2>Candidate API surface</h2>
+          <div class="finding-list">
+            <div class="finding"><span class="severity low">planned</span><strong>POST /api/v1/domain-reports</strong><p>Run passive domain intelligence and return a report ID.</p></div>
+            <div class="finding"><span class="severity low">planned</span><strong>POST /api/v1/wallet-reports</strong><p>Run public wallet OSINT and return graph-ready evidence.</p></div>
+            <div class="finding"><span class="severity low">planned</span><strong>GET /api/v1/cases/{id}/graph</strong><p>Fetch normalized nodes and edges for an agency case.</p></div>
+            <div class="finding"><span class="severity low">planned</span><strong>GET /api/v1/reports/{id}.pdf</strong><p>Download a client-ready report generated server-side.</p></div>
+          </div>
         </div>
       </section>
 

@@ -1,5 +1,5 @@
 const state = {
-  user: { plan: "Free", credits: 0, free_credits: 5, monitor_limit: 1 },
+  user: { plan: "Free", credits: 0, free_credits: 10, monitor_limit: 0 },
   reports: [],
   socialReports: [],
   walletReports: [],
@@ -10,7 +10,8 @@ const state = {
   checkoutConfigured: false,
   currentWallet: null,
   currentWebAuditReportId: null,
-  graphFilter: "all"
+  graphFilter: "all",
+  trackedSections: new Set()
 };
 
 if (localStorage.getItem("op-performance-mode") === "on") {
@@ -105,6 +106,10 @@ function setLiveSignal(text) {
 function setSection(id) {
   document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === id));
   document.querySelectorAll(".nav-btn").forEach(button => button.classList.toggle("active", button.dataset.section === id));
+  if (id === "billing" && !state.trackedSections.has("billing")) {
+    state.trackedSections.add("billing");
+    trackEvent("billing_view", { source: "navigation", plan: state.user?.plan || "Free" });
+  }
 }
 
 function redactClient(value) {
@@ -1654,6 +1659,14 @@ async function api(path, options = {}) {
   return data;
 }
 
+function trackEvent(event, { plan = null, source = "app", metadata = {} } = {}) {
+  fetch("/api/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ event, plan, source, metadata })
+  }).catch(() => {});
+}
+
 async function loadSession() {
   const data = await api("/api/session");
   state.user = data.user;
@@ -1686,6 +1699,7 @@ async function checkApi() {
 async function analyze(target) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
+    trackEvent("free_credits_exhausted", { plan: "Pro", source: "domain_intel", metadata: { current_plan: state.user.plan } });
     showBillingMessage("You have used all Free credits. Upgrade to Pro to continue.");
     return;
   }
@@ -1729,6 +1743,7 @@ async function analyze(target) {
 async function buildWebAuditLab(target) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
+    trackEvent("free_credits_exhausted", { plan: "Pro", source: "web_audit_lab", metadata: { current_plan: state.user.plan } });
     showBillingMessage("You have used all Free credits. Web Audit Lab continues on Pro/Agency.");
     return;
   }
@@ -1771,6 +1786,7 @@ async function buildWebAuditLab(target) {
 async function buildNetworkLab(target) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
+    trackEvent("free_credits_exhausted", { plan: "Pro", source: "network_lab", metadata: { current_plan: state.user.plan } });
     showBillingMessage("You have used all Free credits. Network Traffic Lab continues on Pro/Agency.");
     return;
   }
@@ -1833,6 +1849,7 @@ async function buildLocalNetworkLab() {
 async function analyzeSocial(username) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
+    trackEvent("free_credits_exhausted", { plan: "Pro", source: "social_intel", metadata: { current_plan: state.user.plan } });
     showBillingMessage("You have used all Free credits. Social OSINT continues on Pro/Agency.");
     return;
   }
@@ -1873,6 +1890,7 @@ async function analyzeSocial(username) {
 async function analyzeWallet(address) {
   if (state.user.plan === "Free" && state.user.credits <= 0) {
     setSection("billing");
+    trackEvent("free_credits_exhausted", { plan: "Pro", source: "wallet_trace", metadata: { current_plan: state.user.plan } });
     showBillingMessage("You have used all Free credits. Wallet OSINT continues on Pro/Agency.");
     return;
   }
@@ -1928,17 +1946,20 @@ async function addMonitor(domain) {
       return;
     }
     setSection("billing");
+    trackEvent("monitor_limit_hit", { plan: "Pro", source: "monitoring", metadata: { current_plan: state.user.plan } });
     showBillingMessage(error.message);
   }
 }
 
 async function checkout(plan) {
   try {
+    trackEvent("checkout_click", { plan, source: "pricing_card" });
     const data = await api("/api/billing/checkout", {
       method: "POST",
       body: JSON.stringify({ plan })
     });
     if (data.url) {
+      trackEvent("checkout_redirect_client", { plan, source: "stripe" });
       showBillingMessage("Secure redirect to Stripe...");
       window.location.href = data.url;
       return;

@@ -1382,6 +1382,10 @@ textarea:focus {
   margin: 16px 0;
 }
 
+.product-focus-strip {
+  margin-top: 12px;
+}
+
 .onboarding-strip article {
   padding: 16px;
   border: 1px solid var(--line);

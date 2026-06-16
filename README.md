@@ -58,6 +58,7 @@ That focus makes OSINTPRO useful for small agencies and investigators that need 
 - GitHub growth playbook: `docs/GITHUB_GROWTH.md`
 - Data sources and unit costs: `docs/DATA_SOURCES.md`
 - Distribution plan: `docs/DISTRIBUTION.md`
+- API preview: `docs/API_PREVIEW.md`
 - Showcase and share copy: `docs/SHOWCASE.md`
 - Sanitized example reports: `docs/EXAMPLE_REPORTS.md`
 - Product roadmap: `ROADMAP.md`

@@ -57,8 +57,17 @@ Status: server-side PDF export, Web Audit Lab CSV/playbook export, sanitized exa
 - Agency workspaces with client folders.
 - Billing status visibility after Stripe checkout.
 - Paid plan value messaging inside the app.
+- First-party conversion signals for checkout clicks, paywall hits and monitor-limit hits.
 
-Status: Free-to-Pro/Agency onboarding, billing status messaging and agency client folder value are implemented in the app.
+Status: Free-to-Pro/Agency onboarding, billing status messaging, agency client folder value and first-party conversion signals are implemented in the app.
+
+### API
+
+- Keep `/api/meta` public for product metadata and safety boundaries.
+- Design paid agency API keys only after persistent production storage is available.
+- Add per-key usage metering, quotas, logs and deletion controls before selling API access.
+
+Status: API preview documentation and public metadata endpoint are implemented. Paid API keys remain intentionally deferred.
 
 ### Infrastructure
 

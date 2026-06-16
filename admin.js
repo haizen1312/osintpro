@@ -51,6 +51,7 @@ function renderAdmin(data) {
     statusCard("Social reports", totals.social_reports || 0),
     statusCard("Wallet reports", totals.wallet_reports || 0),
     statusCard("Monitor", totals.monitors || 0),
+    statusCard("Conversion signals", totals.conversion_events || 0, totals.conversion_events ? "ok" : "muted"),
     statusCard("Stripe link Pro", production.stripe_pro_link ? "OK" : "Missing", production.stripe_pro_link ? "ok" : "warn"),
     statusCard("Stripe link Agency", production.stripe_agency_link ? "OK" : "Missing", production.stripe_agency_link ? "ok" : "warn"),
     statusCard("Stripe webhook", production.stripe_webhook ? "OK" : "Missing", production.stripe_webhook ? "ok" : "warn"),
@@ -76,6 +77,37 @@ function renderAdmin(data) {
       </button>
     `).join("")}
   ` : `<div class="empty">No registered users.</div>`;
+
+  const funnel = admin.conversion_funnel || [];
+  const conversionEvents = admin.conversion_events || [];
+  document.querySelector("#adminConversion").innerHTML = (funnel.length || conversionEvents.length) ? `
+    ${funnel.length ? `
+      <div class="admin-row header">
+        <span>Event</span><span>Plan</span><span>Count</span><span>Window</span>
+      </div>
+      ${funnel.map(item => `
+        <div class="admin-row">
+          <span>${escapeHtml(item.event)}</span>
+          <span>${escapeHtml(item.plan || "-")}</span>
+          <span>${escapeHtml(item.count || 0)}</span>
+          <span>30 days</span>
+        </div>
+      `).join("")}
+    ` : ""}
+    ${conversionEvents.length ? `
+      <div class="admin-row header">
+        <span>Latest signal</span><span>Plan</span><span>Source</span><span>Date</span>
+      </div>
+      ${conversionEvents.map(event => `
+        <div class="admin-row">
+          <span>${escapeHtml(event.event)}</span>
+          <span>${escapeHtml(event.plan || "-")}</span>
+          <span>${escapeHtml(event.source || "-")}</span>
+          <span>${escapeHtml(event.created_at)}</span>
+        </div>
+      `).join("")}
+    ` : ""}
+  ` : `<div class="empty">No conversion signals yet.</div>`;
 
   const events = admin.stripe_events || [];
   document.querySelector("#adminEvents").innerHTML = events.length ? `

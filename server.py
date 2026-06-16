@@ -45,6 +45,8 @@ USERNAME_RE = re.compile(r"^[a-zA-Z0-9._-]{2,32}$")
 BTC_ADDRESS_RE = re.compile(r"^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,90}$", re.IGNORECASE)
 EVM_ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
 UUID_RE = re.compile(r"^[a-f0-9-]{36}$")
+EVENT_NAME_RE = re.compile(r"^[a-z0-9_:-]{2,48}$")
+EVENT_SOURCE_RE = re.compile(r"^[a-z0-9_:-]{0,48}$")
 SECRET_KEY_RE = re.compile(
     r"(?i)\b(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret|authorization|bearer)\b"
 )
@@ -63,6 +65,7 @@ RATE_LIMITS = {
     "/api/auth/login": 12,
     "/api/auth/password": 8,
     "/api/auth/register": 10,
+    "/api/events": 60,
     "/api/analyze": 30,
     "/api/social/analyze": 30,
     "/api/wallet/analyze": 30,
@@ -356,6 +359,17 @@ def init_db() -> None:
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
+
+            CREATE TABLE IF NOT EXISTS conversion_events (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                event TEXT NOT NULL,
+                plan TEXT,
+                source TEXT,
+                metadata_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
             """
         )
         ensure_column(connection, "users", "email", "TEXT")
@@ -373,6 +387,8 @@ def init_db() -> None:
         connection.execute("CREATE INDEX IF NOT EXISTS idx_social_reports_folder ON social_reports(user_id, folder_id)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_wallet_reports_folder ON wallet_reports(user_id, folder_id)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_monitors_folder ON monitors(user_id, folder_id)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_conversion_events_event ON conversion_events(event, created_at)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_conversion_events_user ON conversion_events(user_id, created_at)")
 
 
 def ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
@@ -401,6 +417,75 @@ def internal_user(row: sqlite3.Row) -> dict[str, object]:
 
 def public_user(user: dict[str, object]) -> dict[str, object]:
     return {key: value for key, value in user.items() if not key.startswith("_")}
+
+
+def clean_event_name(value: object) -> str:
+    event = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    if not EVENT_NAME_RE.match(event):
+        raise ValueError("Invalid event name.")
+    return event
+
+
+def clean_event_source(value: object) -> str:
+    source = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    if not EVENT_SOURCE_RE.match(source):
+        raise ValueError("Invalid event source.")
+    return source
+
+
+def clean_event_plan(value: object) -> str | None:
+    if value is None or value == "":
+        return None
+    plan = str(value).strip().capitalize()
+    if plan not in PLAN_LIMITS:
+        raise ValueError("Invalid event plan.")
+    return plan
+
+
+def clean_event_metadata(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    allowed: dict[str, object] = {}
+    for key, raw in value.items():
+        name = str(key or "").strip().lower().replace("-", "_").replace(" ", "_")
+        if not EVENT_SOURCE_RE.match(name) or not name:
+            continue
+        if isinstance(raw, bool):
+            allowed[name] = raw
+        elif isinstance(raw, (int, float)):
+            allowed[name] = raw
+        else:
+            text = str(raw or "").strip()
+            if text:
+                allowed[name] = text[:80]
+        if len(allowed) >= 8:
+            break
+    return redact_data(allowed)
+
+
+def record_conversion_event(
+    connection: sqlite3.Connection,
+    user_id: str | None,
+    event: str,
+    plan: str | None = None,
+    source: str | None = None,
+    metadata: dict[str, object] | None = None,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO conversion_events (id, user_id, event, plan, source, metadata_json, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            str(uuid.uuid4()),
+            user_id,
+            clean_event_name(event),
+            clean_event_plan(plan),
+            clean_event_source(source) if source else None,
+            json.dumps(clean_event_metadata(metadata or {})),
+            utc_now(),
+        ),
+    )
 
 
 def is_admin_user(user: dict[str, object]) -> bool:
@@ -3152,6 +3237,7 @@ class Handler(SimpleHTTPRequestHandler):
         })
 
     def admin_overview(self) -> dict[str, object]:
+        funnel_start = (dt.datetime.now(dt.UTC).replace(microsecond=0) - dt.timedelta(days=30)).isoformat()
         with db() as connection:
             totals = {
                 "users": connection.execute(
@@ -3162,6 +3248,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "wallet_reports": connection.execute("SELECT COUNT(*) AS count FROM wallet_reports").fetchone()["count"],
                 "monitors": connection.execute("SELECT COUNT(*) AS count FROM monitors").fetchone()["count"],
                 "stripe_events": connection.execute("SELECT COUNT(*) AS count FROM stripe_events").fetchone()["count"],
+                "conversion_events": connection.execute("SELECT COUNT(*) AS count FROM conversion_events").fetchone()["count"],
             }
             users = connection.execute(
                 """
@@ -3194,6 +3281,25 @@ class Handler(SimpleHTTPRequestHandler):
                 LIMIT 10
                 """
             ).fetchall()
+            conversion_events = connection.execute(
+                """
+                SELECT event, plan, source, created_at
+                FROM conversion_events
+                ORDER BY created_at DESC
+                LIMIT 15
+                """
+            ).fetchall()
+            conversion_funnel = connection.execute(
+                """
+                SELECT event, COALESCE(plan, '-') AS plan, COUNT(*) AS count
+                FROM conversion_events
+                WHERE created_at >= ?
+                GROUP BY event, plan
+                ORDER BY count DESC, event ASC
+                LIMIT 20
+                """,
+                (funnel_start,),
+            ).fetchall()
         return {
             "totals": totals,
             "production": {
@@ -3208,6 +3314,8 @@ class Handler(SimpleHTTPRequestHandler):
             },
             "users": [dict(row) for row in users],
             "stripe_events": [dict(row) for row in events],
+            "conversion_events": [dict(row) for row in conversion_events],
+            "conversion_funnel": [dict(row) for row in conversion_funnel],
             "backups": list_backups(),
         }
 
@@ -3257,6 +3365,13 @@ class Handler(SimpleHTTPRequestHandler):
                 ORDER BY created_at ASC
                 """
             ).fetchall()
+            conversion_events = connection.execute(
+                """
+                SELECT id, user_id, event, plan, source, metadata_json, created_at
+                FROM conversion_events
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
             folders = connection.execute(
                 """
                 SELECT id, user_id, name, created_at, updated_at
@@ -3287,6 +3402,7 @@ class Handler(SimpleHTTPRequestHandler):
             "wallet_reports": [dict(row) for row in wallet_reports],
             "monitors": [dict(row) for row in monitors],
             "stripe_events": [dict(row) for row in stripe_events],
+            "conversion_events": [dict(row) for row in conversion_events],
             "client_folders": [dict(row) for row in folders],
             "wallet_annotations": [dict(row) for row in wallet_annotations],
             "web_audit_playbooks": [dict(row) for row in playbooks],
@@ -3309,6 +3425,37 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/health":
             self.send_json({"ok": True})
+            return
+        if parsed.path == "/api/meta":
+            self.send_json({
+                "product": "OSINTPRO",
+                "positioning": "Client-ready passive investigation graph for domains, public identities and blockchain wallets.",
+                "live_demo": "https://osintpro-48j4.onrender.com/",
+                "safety_boundary": [
+                    "passive public-source intelligence",
+                    "no exploit execution",
+                    "no brute force",
+                    "no credential attacks",
+                    "no unauthorized packet capture",
+                    "no wallet movement or evasion guidance",
+                ],
+                "modules": [
+                    "domain_intel",
+                    "social_intel",
+                    "wallet_osint",
+                    "entity_graph",
+                    "web_audit_lab",
+                    "network_traffic_lab",
+                    "monitoring",
+                    "exports",
+                ],
+                "plans": PLAN_LIMITS,
+                "public_docs": {
+                    "data_sources": "/docs/DATA_SOURCES.md",
+                    "distribution": "/docs/DISTRIBUTION.md",
+                    "roadmap": "/ROADMAP.md",
+                },
+            })
             return
         if parsed.path == "/api/session":
             user, headers = self.get_or_create_user()
@@ -3614,6 +3761,24 @@ class Handler(SimpleHTTPRequestHandler):
             })
             return
 
+        if parsed.path == "/api/events":
+            user, headers = self.get_or_create_user()
+            try:
+                body = self.read_json()
+                with db() as connection:
+                    record_conversion_event(
+                        connection,
+                        str(user["_id"]),
+                        clean_event_name(body.get("event")),
+                        clean_event_plan(body.get("plan")),
+                        clean_event_source(body.get("source")),
+                        clean_event_metadata(body.get("metadata", {})),
+                    )
+                self.send_json({"ok": True}, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            return
+
         if parsed.path == "/api/auth/password":
             user, headers = self.get_or_create_user()
             if not user.get("authenticated"):
@@ -3742,6 +3907,14 @@ class Handler(SimpleHTTPRequestHandler):
                         self.send_json({"error": "Client folder not found."}, 404, headers)
                         return
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
+                        record_conversion_event(
+                            connection,
+                            str(user["_id"]),
+                            "free_credits_exhausted",
+                            "Pro",
+                            "domain_intel",
+                            {"current_plan": row["plan"]},
+                        )
                         self.send_json({"error": "Free credits exhausted. Upgrade to Pro to continue."}, 402, headers)
                         return
 
@@ -3773,6 +3946,14 @@ class Handler(SimpleHTTPRequestHandler):
                         self.send_json({"error": "Client folder not found."}, 404, headers)
                         return
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
+                        record_conversion_event(
+                            connection,
+                            str(user["_id"]),
+                            "free_credits_exhausted",
+                            "Pro",
+                            "social_intel",
+                            {"current_plan": row["plan"]},
+                        )
                         self.send_json({"error": "Free credits exhausted. Upgrade to Pro to continue."}, 402, headers)
                         return
 
@@ -3804,6 +3985,14 @@ class Handler(SimpleHTTPRequestHandler):
                         self.send_json({"error": "Client folder not found."}, 404, headers)
                         return
                     if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
+                        record_conversion_event(
+                            connection,
+                            str(user["_id"]),
+                            "free_credits_exhausted",
+                            "Pro",
+                            "wallet_trace",
+                            {"current_plan": row["plan"]},
+                        )
                         self.send_json({"error": "Free credits exhausted. Upgrade to Pro to continue."}, 402, headers)
                         return
 
@@ -3843,6 +4032,14 @@ class Handler(SimpleHTTPRequestHandler):
                     ).fetchone()["count"]
                     limit = PLAN_LIMITS.get(row["plan"], PLAN_LIMITS["Free"])["monitors"]
                     if current_count >= limit:
+                        record_conversion_event(
+                            connection,
+                            str(user["_id"]),
+                            "monitor_limit_hit",
+                            "Pro",
+                            "monitoring",
+                            {"current_plan": row["plan"], "monitor_count": current_count, "monitor_limit": limit},
+                        )
                         self.send_json({"error": f"Monitor limit reached for plan {row['plan']}."}, 402, headers)
                         return
                     now = utc_now()
@@ -4033,13 +4230,21 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Invalid plan."}, 400, headers)
                 return
             if not user.get("authenticated"):
+                with db() as connection:
+                    record_conversion_event(connection, str(user["_id"]), "checkout_auth_required", plan, "billing")
                 self.send_json({"error": "Create an account or sign in before buying a plan."}, 401, headers)
                 return
             env_name = "OSINTPRO_STRIPE_AGENCY_URL" if plan == "Agency" else "OSINTPRO_STRIPE_PRO_URL"
             checkout_url = os.getenv(env_name)
+            with db() as connection:
+                record_conversion_event(connection, str(user["_id"]), "checkout_requested", plan, "billing")
             if checkout_url:
+                with db() as connection:
+                    record_conversion_event(connection, str(user["_id"]), "checkout_redirect", plan, "stripe")
                 self.send_json({"url": add_checkout_reference(checkout_url, str(user["_id"]), plan), "mode": "stripe"}, headers=headers)
                 return
+            with db() as connection:
+                record_conversion_event(connection, str(user["_id"]), "checkout_setup_missing", plan, "billing")
             self.send_json({
                 "url": "",
                 "mode": "setup",
