@@ -6,6 +6,7 @@ const state = {
   monitors: [],
   folders: [],
   playbooks: [],
+  apiKeys: [],
   workspace: null,
   checkoutConfigured: false,
   currentWallet: null,
@@ -117,6 +118,9 @@ function setSection(id) {
   if (id === "billing" && !state.trackedSections.has("billing")) {
     state.trackedSections.add("billing");
     trackEvent("billing_view", { source: "navigation", plan: state.user?.plan || "Free" });
+  }
+  if (id === "api-preview") {
+    loadApiKeys();
   }
 }
 
@@ -1653,6 +1657,52 @@ function showAccountMessage(message, isError = false) {
   box.classList.toggle("error", isError);
 }
 
+function showApiKeyMessage(message, isError = false) {
+  const box = document.querySelector("#apiKeyMessage");
+  if (!box) return;
+  box.textContent = message;
+  box.classList.add("visible");
+  box.classList.toggle("error", isError);
+}
+
+function renderApiKeys() {
+  const holder = document.querySelector("#apiKeyList");
+  if (!holder) return;
+  const keys = state.apiKeys || [];
+  if (!["Agency", "Admin"].includes(state.user.plan)) {
+    holder.innerHTML = `<div class="empty">API keys are available on Agency accounts. Upgrade when you need workflow integrations.</div>`;
+    return;
+  }
+  holder.innerHTML = keys.length ? `
+    <div class="admin-row header">
+      <span>Name</span><span>Prefix</span><span>Created</span><span>Last used</span><span>Action</span>
+    </div>
+    ${keys.map(item => `
+      <div class="admin-row">
+        <span>${escapeHtml(item.name)}</span>
+        <span>${escapeHtml(item.prefix)}</span>
+        <span>${escapeHtml(formatDate(item.created_at))}</span>
+        <span>${escapeHtml(item.last_used_at ? formatDate(item.last_used_at) : "Never")}</span>
+        <span>${item.revoked_at ? "Revoked" : `<button class="secondary small" type="button" data-revoke-api-key="${escapeHtml(item.id)}">Revoke</button>`}</span>
+      </div>
+    `).join("")}
+  ` : `<div class="empty">No API keys yet.</div>`;
+}
+
+async function loadApiKeys() {
+  if (!["Agency", "Admin"].includes(state.user.plan)) {
+    renderApiKeys();
+    return;
+  }
+  try {
+    const data = await api("/api/api-keys");
+    state.apiKeys = data.api_keys || [];
+    renderApiKeys();
+  } catch (error) {
+    showApiKeyMessage(error.message, true);
+  }
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
@@ -2209,9 +2259,33 @@ document.addEventListener("click", async event => {
   if (jump) {
     setSection(jump.dataset.sectionJump);
   }
+
+  const revokeApiKey = event.target.closest("[data-revoke-api-key]");
+  if (revokeApiKey) {
+    const data = await api(`/api/api-keys/${encodeURIComponent(revokeApiKey.dataset.revokeApiKey)}`, { method: "DELETE" });
+    state.apiKeys = data.api_keys || [];
+    renderApiKeys();
+    showApiKeyMessage("API key revoked.");
+  }
 });
 
 document.addEventListener("submit", async event => {
+  if (event.target.id === "apiKeyForm") {
+    event.preventDefault();
+    try {
+      const data = await api("/api/api-keys", {
+        method: "POST",
+        body: JSON.stringify({ name: document.querySelector("#apiKeyName").value })
+      });
+      state.apiKeys = data.api_keys || [];
+      renderApiKeys();
+      showApiKeyMessage(`Copy now: ${data.credential}`);
+      document.querySelector("#apiKeyName").value = "";
+    } catch (error) {
+      showApiKeyMessage(error.message, true);
+    }
+    return;
+  }
   if (event.target.id !== "walletAnnotationForm") return;
   event.preventDefault();
   if (!state.currentWallet) return;

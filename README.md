@@ -117,6 +117,7 @@ Current public traction:
 - Live demo is online.
 - Stripe Payment Links are configured.
 - First-party conversion signals are tracked in the private admin panel.
+- Agency/Admin API key MVP is available for controlled workflow integrations.
 - Public MRR/signups are not published yet because usage is still early MVP stage.
 
 ## Quick Links
@@ -128,7 +129,9 @@ Current public traction:
 - GitHub growth playbook: `docs/GITHUB_GROWTH.md`
 - Data sources and unit costs: `docs/DATA_SOURCES.md`
 - Distribution plan: `docs/DISTRIBUTION.md`
+- Outreach playbook: `docs/OUTREACH_PLAYBOOK.md`
 - API preview: `docs/API_PREVIEW.md`
+- Production readiness: `docs/PRODUCTION_READINESS.md`
 - Showcase and share copy: `docs/SHOWCASE.md`
 - Sanitized example reports: `docs/EXAMPLE_REPORTS.md`
 - Product roadmap: `ROADMAP.md`
@@ -142,6 +145,7 @@ Current public traction:
 - SQLite persistence with configurable database and backup paths.
 - Nickname/password accounts with PBKDF2 password hashes and HTTP-only session cookies.
 - Server-side freemium credits and plan limits.
+- Agency/Admin API keys for passive JSON report workflows.
 - Account-isolated history: users only see their own domain, social and wallet reports.
 - History deletion controls for domain, social, wallet and full workspace data.
 - Agency client folders for grouping domain, social, wallet and monitoring work by client or case.
@@ -267,6 +271,7 @@ Useful variables:
 ```text
 OSINTPRO_CRON_SECRET
 OSINTPRO_MONITOR_BATCH_LIMIT=20
+OSINTPRO_API_KEY_RATE_LIMIT=30
 OSINTPRO_REGISTRATION_IP_LIMIT=3
 OSINTPRO_REGISTRATION_IP_ALLOWLIST="203.0.113.10,198.51.100.0/24"
 OSINTPRO_FREE_TIER_VARIANT="A"

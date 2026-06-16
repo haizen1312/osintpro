@@ -1,37 +1,85 @@
 # API Preview
 
-OSINTPRO is not ready to sell a public API yet. The app already uses structured JSON endpoints internally, but external API keys should come after persistent production storage and real paid usage.
+OSINTPRO now includes an MVP API-key workflow for Agency/Admin accounts. It is a controlled integration surface for passive report automation, not a high-volume public API product yet.
 
-## Current Public Endpoint
+## Public Metadata
 
 ```http
 GET /api/meta
 ```
 
-Returns product metadata, safety boundaries, available modules and plan limits.
+Returns product metadata, safety boundaries, modules and plan limits. No authentication is required.
 
-No authentication is required for this metadata endpoint.
+## API Key Access
 
-## Current Internal App Endpoints
+Agency/Admin users can create API keys from the app's `API Preview` section.
 
-These endpoints power the web app today. They are not sold as a stable public API yet.
+Security model:
+
+- API keys start with `opk_`.
+- The full key is shown only once.
+- Only an HMAC hash and short prefix are stored.
+- Keys can be revoked from the app.
+- API access is blocked for Free and Pro accounts.
+
+Use:
+
+```http
+Authorization: Bearer opk_your_key_here
+```
+
+## Live API Endpoints
+
+These endpoints are available with an Agency/Admin API key.
+
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/api/v1/domain-reports` | `POST` | Run passive domain intelligence and store the report. |
+| `/api/v1/social-reports` | `POST` | Run a public username presence check and store the report. |
+| `/api/v1/wallet-reports` | `POST` | Run public wallet OSINT and store the report. |
+| `/api/v1/reports/{id}` | `GET` | Fetch JSON for a report owned by the API key account. |
+
+Examples:
+
+```bash
+curl -X POST "https://osintpro-48j4.onrender.com/api/v1/domain-reports" \
+  -H "Authorization: Bearer $OSINTPRO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"target":"example.com"}'
+```
+
+```bash
+curl -X POST "https://osintpro-48j4.onrender.com/api/v1/social-reports" \
+  -H "Authorization: Bearer $OSINTPRO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"example"}'
+```
+
+```bash
+curl -X POST "https://osintpro-48j4.onrender.com/api/v1/wallet-reports" \
+  -H "Authorization: Bearer $OSINTPRO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"address":"0x0000000000000000000000000000000000000000"}'
+```
+
+## Internal App Endpoints
+
+These endpoints power the web app and remain session-cookie based.
 
 | Endpoint | Method | Auth | Purpose |
 | --- | --- | --- | --- |
 | `/api/health` | `GET` | none | Service health check. |
-| `/api/meta` | `GET` | none | Public product metadata and safety boundary. |
 | `/api/session` | `GET` | session cookie | Current user, reports, monitors, folders and pricing state. |
 | `/api/analyze` | `POST` | session cookie | Passive domain intelligence report. |
 | `/api/social/analyze` | `POST` | session cookie | Public username presence check. |
 | `/api/wallet/analyze` | `POST` | session cookie | Public wallet OSINT report. |
 | `/api/intel/workspace` | `GET` | session cookie | Entity graph, dossiers, case summaries and workspace stats. |
 | `/api/reports/{id}/pdf` | `GET` | session cookie | Server-side PDF export for a report owned by the account. |
-| `/api/monitors` | `GET/POST` | session cookie | List or create passive domain monitors. |
-| `/api/billing/checkout` | `POST` | session cookie | Create a Stripe Payment Link redirect for Pro/Agency. |
+| `/api/api-keys` | `GET/POST` | Agency/Admin session | List or create API keys. |
 
 ## Current Auth Model
 
-The app currently uses:
+The web app currently uses:
 
 - nickname/password accounts
 - PBKDF2 password hashes
@@ -39,7 +87,7 @@ The app currently uses:
 - account-isolated report history
 - server-side plan limits
 
-Public API keys are intentionally not available yet. API keys should be added only after persistent production storage, usage metering and per-key quotas exist.
+The API-key flow is intended for Agency/Admin workflow automation. High-volume API selling should wait for persistent production storage, stronger metering and per-key quotas.
 
 ## Current Rate Limits
 
@@ -53,23 +101,20 @@ The app has simple IP/path rate limits for abuse control:
 | domain/social/wallet analysis | 30 requests/minute each |
 | event telemetry | 60 requests/minute |
 | monitor run | 12 requests/minute |
+| API key calls | 30 requests/minute per key by default |
 
-These limits are not a final API pricing model. Paid API access should use per-key metering and plan quotas.
+`OSINTPRO_API_KEY_RATE_LIMIT` can tune API key calls per minute.
 
-## Candidate Paid API
+These limits are not a final API pricing model. Higher-volume paid API access should use stronger per-key metering and plan quotas.
 
-The first paid API should be built for agencies that want OSINTPRO reports inside their own workflow.
+## Next API Work
 
-Candidate endpoints:
+Next endpoints to consider:
 
-```http
-POST /api/v1/domain-reports
-POST /api/v1/social-reports
-POST /api/v1/wallet-reports
-GET /api/v1/reports/{id}
-GET /api/v1/reports/{id}.pdf
-GET /api/v1/cases/{id}/graph
-```
+- `GET /api/v1/reports/{id}.pdf`
+- `GET /api/v1/cases/{id}/graph`
+- `GET /api/v1/usage`
+- `DELETE /api/v1/reports/{id}`
 
 ## API Safety Boundary
 
@@ -83,13 +128,12 @@ The API must keep the same boundaries as the web app:
 - no unauthorized packet capture
 - no wallet movement, mixing, laundering, obfuscation or evasion guidance
 
-## Before Launching API Keys
+## Before Selling Higher-Volume API Access
 
 Required technical work:
 
 - persistent database or managed PostgreSQL
-- per-key rate limits
-- per-key usage metering
+- stronger per-key usage metering
 - API usage logs in the admin panel
 - plan-based quotas
 - clear error contracts
@@ -97,12 +141,12 @@ Required technical work:
 
 ## Pricing Direction
 
-API access should not be included in Free.
+API access is not included in Free or Pro.
 
 Suggested packaging:
 
-- Pro: no public API, web app only.
-- Agency: limited API access for client workflows.
+- Pro: web app only.
+- Agency: controlled API access for client workflows.
 - Enterprise or custom: higher limits, dedicated support and custom retention.
 
 Potential pricing metric:

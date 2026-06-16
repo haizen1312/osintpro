@@ -52,6 +52,7 @@ function renderAdmin(data) {
     statusCard("Wallet reports", totals.wallet_reports || 0),
     statusCard("Monitor", totals.monitors || 0),
     statusCard("Conversion signals", totals.conversion_events || 0, totals.conversion_events ? "ok" : "muted"),
+    statusCard("API keys", totals.api_keys || 0, totals.api_keys ? "ok" : "muted"),
     statusCard("Stripe link Pro", production.stripe_pro_link ? "OK" : "Missing", production.stripe_pro_link ? "ok" : "warn"),
     statusCard("Stripe link Agency", production.stripe_agency_link ? "OK" : "Missing", production.stripe_agency_link ? "ok" : "warn"),
     statusCard("Stripe webhook", production.stripe_webhook ? "OK" : "Missing", production.stripe_webhook ? "ok" : "warn"),

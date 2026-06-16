@@ -56,6 +56,7 @@ Useful local variables:
 OSINTPRO_ADMIN_CODE="change-me"
 OSINTPRO_SECRET_KEY="generate-a-long-random-secret"
 OSINTPRO_FREE_TIER_VARIANT="A"
+OSINTPRO_API_KEY_RATE_LIMIT="30"
 OSINTPRO_DB_PATH="./data/osintpro.sqlite3"
 OSINTPRO_BACKUP_DIR="./data/backups"
 OSINTPRO_REPORT_BRAND="OSINTPRO"

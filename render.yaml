@@ -20,6 +20,8 @@ services:
         generateValue: true
       - key: OSINTPRO_MONITOR_BATCH_LIMIT
         value: "20"
+      - key: OSINTPRO_API_KEY_RATE_LIMIT
+        value: "30"
       - key: OSINTPRO_REGISTRATION_IP_LIMIT
         value: "3"
       - key: OSINTPRO_REGISTRATION_IP_ALLOWLIST

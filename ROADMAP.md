@@ -67,7 +67,7 @@ Status: Free-to-Pro/Agency onboarding, billing status messaging, agency client f
 - Design paid agency API keys only after persistent production storage is available.
 - Add per-key usage metering, quotas, logs and deletion controls before selling API access.
 
-Status: API preview documentation and public metadata endpoint are implemented. Paid API keys remain intentionally deferred.
+Status: API preview documentation, public metadata endpoint and Agency/Admin API key MVP are implemented. Higher-volume API selling remains deferred until persistent storage and stronger metering are in place.
 
 ### Infrastructure
 
@@ -75,7 +75,7 @@ Status: API preview documentation and public metadata endpoint are implemented. 
 - Add persistent disk or PostgreSQL when paid usage, real customer data or recurring monitor volume makes data durability more important than zero-cost hosting.
 - Keep secrets in environment variables and out of GitHub.
 
-Status: SQLite remains the default zero-cost database. PostgreSQL is intentionally deferred because the project is currently constrained to no paid infrastructure. This is an MVP tradeoff, not the final production design.
+Status: SQLite remains the default zero-cost database. PostgreSQL is intentionally deferred because the project is currently constrained to no paid infrastructure. A production readiness and migration checklist is documented in `docs/PRODUCTION_READINESS.md`.
 
 ## Safety Boundary
 

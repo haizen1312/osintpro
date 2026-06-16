@@ -74,6 +74,7 @@ USERNAME_RE = re.compile(r"^[a-zA-Z0-9._-]{2,32}$")
 BTC_ADDRESS_RE = re.compile(r"^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,90}$", re.IGNORECASE)
 EVM_ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
 UUID_RE = re.compile(r"^[a-f0-9-]{36}$")
+API_KEY_RE = re.compile(r"^opk_[A-Za-z0-9_-]{32,96}$")
 EVENT_NAME_RE = re.compile(r"^[a-z0-9_:-]{2,48}$")
 EVENT_SOURCE_RE = re.compile(r"^[a-z0-9_:-]{0,48}$")
 SECRET_KEY_RE = re.compile(
@@ -101,6 +102,7 @@ RATE_LIMITS = {
     "/api/monitors/run": 12,
 }
 RATE_BUCKETS: dict[tuple[str, str], list[float]] = {}
+API_RATE_BUCKETS: dict[tuple[str, str], list[float]] = {}
 RATE_LOCK = threading.Lock()
 SECURITY_HEADERS = [
     "strict-transport-security",
@@ -116,6 +118,7 @@ MAX_BODY_BYTES = 16384
 MAX_WEBHOOK_BYTES = 262144
 MAX_RESTORE_BYTES = 25 * 1024 * 1024
 DEFAULT_MONITOR_BATCH_LIMIT = 20
+DEFAULT_API_KEY_RATE_LIMIT = 30
 DEFAULT_REGISTRATION_IP_LIMIT = 3
 DEFAULT_BACKUP_RETENTION = 14
 PUBLIC_STATIC_PATHS = {
@@ -399,6 +402,19 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
+
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                key_hash TEXT NOT NULL UNIQUE,
+                prefix TEXT NOT NULL,
+                scopes_json TEXT NOT NULL DEFAULT '["reports:write","reports:read"]',
+                created_at TEXT NOT NULL,
+                last_used_at TEXT,
+                revoked_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
             """
         )
         ensure_column(connection, "users", "email", "TEXT")
@@ -418,6 +434,8 @@ def init_db() -> None:
         connection.execute("CREATE INDEX IF NOT EXISTS idx_monitors_folder ON monitors(user_id, folder_id)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_conversion_events_event ON conversion_events(event, created_at)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_conversion_events_user ON conversion_events(user_id, created_at)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id, revoked_at, created_at)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash)")
 
 
 def ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
@@ -659,6 +677,13 @@ def backup_retention() -> int:
         return DEFAULT_BACKUP_RETENTION
 
 
+def api_key_rate_limit() -> int:
+    try:
+        return max(1, min(300, int(os.getenv("OSINTPRO_API_KEY_RATE_LIMIT", str(DEFAULT_API_KEY_RATE_LIMIT)))))
+    except ValueError:
+        return DEFAULT_API_KEY_RATE_LIMIT
+
+
 def registration_allowlist() -> list[str]:
     raw = os.getenv("OSINTPRO_REGISTRATION_IP_ALLOWLIST", "")
     return [item.strip() for item in raw.split(",") if item.strip()]
@@ -876,6 +901,44 @@ def send_alert(event: str, payload: dict[str, object]) -> None:
 
 def is_paid_plan(plan: str) -> bool:
     return plan in PAID_PLANS
+
+
+def can_use_api(plan: str) -> bool:
+    return plan in {"Agency", "Admin"}
+
+
+def clean_api_key_name(value: object) -> str:
+    name = re.sub(r"\s+", " ", str(value or "").strip())
+    if not name:
+        name = "Agency API key"
+    if len(name) > 64:
+        raise ValueError("API key name is too long.")
+    if SECRET_KEY_RE.search(name):
+        raise ValueError("API key name cannot contain secret-like words.")
+    return name
+
+
+def generate_api_key() -> str:
+    return "opk_" + secrets.token_urlsafe(36)
+
+
+def hash_api_key(token: str) -> str:
+    return hmac.new(server_secret().encode("utf-8"), token.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def api_key_prefix(token: str) -> str:
+    return token[:12]
+
+
+def public_api_key(row: sqlite3.Row) -> dict[str, object]:
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "prefix": row["prefix"],
+        "created_at": row["created_at"],
+        "last_used_at": row["last_used_at"],
+        "revoked_at": row["revoked_at"],
+    }
 
 
 def report_credit_limit(plan: str) -> int | None:
@@ -2586,6 +2649,79 @@ class Handler(SimpleHTTPRequestHandler):
             RATE_BUCKETS[key] = bucket
         return False
 
+    def api_rate_limited(self, key_id: str, path: str) -> bool:
+        limit = api_key_rate_limit()
+        bucket_key = (key_id, path)
+        now = time.time()
+        with RATE_LOCK:
+            bucket = [stamp for stamp in API_RATE_BUCKETS.get(bucket_key, []) if now - stamp < RATE_LIMIT_WINDOW]
+            if len(bucket) >= limit:
+                API_RATE_BUCKETS[bucket_key] = bucket
+                return True
+            bucket.append(now)
+            API_RATE_BUCKETS[bucket_key] = bucket
+        return False
+
+    def api_user_from_key(self) -> tuple[dict[str, object] | None, dict[str, object] | None, str | None]:
+        authorization = str(self.headers.get("Authorization", ""))
+        if not authorization.lower().startswith("bearer "):
+            return None, None, "Missing API key."
+        token = authorization.split(" ", 1)[1].strip()
+        if not API_KEY_RE.match(token):
+            return None, None, "Invalid API key."
+        token_hash = hash_api_key(token)
+        now = utc_now()
+        with db() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    api_keys.*,
+                    users.nickname,
+                    users.plan,
+                    users.credits
+                FROM api_keys
+                JOIN users ON users.id = api_keys.user_id
+                WHERE api_keys.key_hash = ?
+                  AND api_keys.revoked_at IS NULL
+                  AND (users.nickname IS NOT NULL OR users.plan = 'Admin')
+                """,
+                (token_hash,),
+            ).fetchone()
+            if not row:
+                return None, None, "API key not found or revoked."
+            if not can_use_api(str(row["plan"])):
+                return None, None, "API access requires Agency or Admin."
+            connection.execute("UPDATE api_keys SET last_used_at = ? WHERE id = ?", (now, row["id"]))
+        api_key = {
+            "id": row["id"],
+            "name": row["name"],
+            "prefix": row["prefix"],
+            "scopes": json.loads(row["scopes_json"] or "[]"),
+        }
+        user = {
+            "_id": row["user_id"],
+            "nickname": row["nickname"],
+            "authenticated": True,
+            "plan": row["plan"],
+            "credits": row["credits"],
+            "free_credits": None,
+            "monitor_limit": PLAN_LIMITS.get(row["plan"], PLAN_LIMITS["Free"])["monitors"],
+        }
+        return user, api_key, None
+
+    def api_key_rows_for_user(self, user_id: str) -> list[dict[str, object]]:
+        with db() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, name, prefix, created_at, last_used_at, revoked_at
+                FROM api_keys
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                """,
+                (user_id,),
+            ).fetchall()
+        return [dict(public_api_key(row)) for row in rows]
+
     def registration_limited(self, connection: sqlite3.Connection, user_id: str) -> bool:
         limit = registration_ip_limit()
         ip_value = self.client_ip()
@@ -3296,6 +3432,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "monitors": connection.execute("SELECT COUNT(*) AS count FROM monitors").fetchone()["count"],
                 "stripe_events": connection.execute("SELECT COUNT(*) AS count FROM stripe_events").fetchone()["count"],
                 "conversion_events": connection.execute("SELECT COUNT(*) AS count FROM conversion_events").fetchone()["count"],
+                "api_keys": connection.execute("SELECT COUNT(*) AS count FROM api_keys WHERE revoked_at IS NULL").fetchone()["count"],
             }
             users = connection.execute(
                 """
@@ -3503,6 +3640,34 @@ class Handler(SimpleHTTPRequestHandler):
                     "roadmap": "/ROADMAP.md",
                 },
             })
+            return
+        if parsed.path == "/api/api-keys":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated") and not is_admin_user(user):
+                self.send_json({"error": "Sign in to manage API keys."}, 401, headers)
+                return
+            if not can_use_api(str(user.get("plan", "Free"))):
+                self.send_json({"error": "API keys require Agency or Admin."}, 403, headers)
+                return
+            self.send_json({"api_keys": self.api_key_rows_for_user(str(user["_id"]))}, headers=headers)
+            return
+        if parsed.path.startswith("/api/v1/reports/"):
+            user, api_key, error = self.api_user_from_key()
+            if error:
+                self.send_json({"error": error}, 401)
+                return
+            if self.api_rate_limited(str(api_key["id"]), parsed.path):
+                self.send_json({"error": "API rate limit reached."}, 429)
+                return
+            report_id = parsed.path.split("/")[-1]
+            if not UUID_RE.match(report_id):
+                self.send_json({"error": "Invalid report id."}, 400)
+                return
+            report = self.fetch_report(str(user["_id"]), report_id)
+            if not report:
+                self.send_json({"error": "Report not found."}, 404)
+                return
+            self.send_json({"report": report, "credential_info": {"prefix": api_key["prefix"]}})
             return
         if parsed.path == "/api/session":
             user, headers = self.get_or_create_user()
@@ -3848,6 +4013,117 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"ok": True}, headers=headers)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
+            return
+
+        if parsed.path == "/api/api-keys":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated") and not is_admin_user(user):
+                self.send_json({"error": "Sign in to create API keys."}, 401, headers)
+                return
+            if not can_use_api(str(user.get("plan", "Free"))):
+                self.send_json({"error": "API keys require Agency or Admin."}, 403, headers)
+                return
+            try:
+                body = self.read_json()
+                name = clean_api_key_name(body.get("name", "Agency API key"))
+                token = generate_api_key()
+                now = utc_now()
+                with db() as connection:
+                    active_count = connection.execute(
+                        "SELECT COUNT(*) AS count FROM api_keys WHERE user_id = ? AND revoked_at IS NULL",
+                        (user["_id"],),
+                    ).fetchone()["count"]
+                    if active_count >= 5 and not is_admin_user(user):
+                        self.send_json({"error": "API key limit reached for this account."}, 402, headers)
+                        return
+                    connection.execute(
+                        """
+                        INSERT INTO api_keys (id, user_id, name, key_hash, prefix, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (str(uuid.uuid4()), user["_id"], name, hash_api_key(token), api_key_prefix(token), now),
+                    )
+                    rows = connection.execute(
+                        """
+                        SELECT id, name, prefix, created_at, last_used_at, revoked_at
+                        FROM api_keys
+                        WHERE user_id = ?
+                        ORDER BY created_at DESC
+                        """,
+                        (user["_id"],),
+                    ).fetchall()
+                    record_conversion_event(connection, str(user["_id"]), "api_key_created", user.get("plan"), "api_preview")
+                self.send_json({
+                    "credential": token,
+                    "prefix": api_key_prefix(token),
+                    "api_keys": [dict(public_api_key(row)) for row in rows],
+                    "message": "Copy this API key now. It will not be shown again.",
+                }, status=201, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            return
+
+        if parsed.path == "/api/v1/domain-reports":
+            user, api_key, error = self.api_user_from_key()
+            if error:
+                self.send_json({"error": error}, 401)
+                return
+            if self.api_rate_limited(str(api_key["id"]), parsed.path):
+                self.send_json({"error": "API rate limit reached."}, 429)
+                return
+            try:
+                body = self.read_json()
+                report = analyze(str(body.get("target", "")))
+                with db() as connection:
+                    store_report(connection, str(user["_id"]), report, None)
+                    record_conversion_event(connection, str(user["_id"]), "api_domain_report", user.get("plan"), "api_v1")
+                self.send_json({"report": report, "credential_info": {"prefix": api_key["prefix"]}}, status=201)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400)
+            except Exception:
+                self.send_json({"error": "API domain report failed. No internal details exposed."}, 500)
+            return
+
+        if parsed.path == "/api/v1/social-reports":
+            user, api_key, error = self.api_user_from_key()
+            if error:
+                self.send_json({"error": error}, 401)
+                return
+            if self.api_rate_limited(str(api_key["id"]), parsed.path):
+                self.send_json({"error": "API rate limit reached."}, 429)
+                return
+            try:
+                body = self.read_json()
+                report = analyze_username(str(body.get("username", "")))
+                with db() as connection:
+                    store_social_report(connection, str(user["_id"]), report, None)
+                    record_conversion_event(connection, str(user["_id"]), "api_social_report", user.get("plan"), "api_v1")
+                self.send_json({"report": report, "credential_info": {"prefix": api_key["prefix"]}}, status=201)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400)
+            except Exception:
+                self.send_json({"error": "API social report failed. No internal details exposed."}, 500)
+            return
+
+        if parsed.path == "/api/v1/wallet-reports":
+            user, api_key, error = self.api_user_from_key()
+            if error:
+                self.send_json({"error": error}, 401)
+                return
+            if self.api_rate_limited(str(api_key["id"]), parsed.path):
+                self.send_json({"error": "API rate limit reached."}, 429)
+                return
+            try:
+                body = self.read_json()
+                report = analyze_wallet(str(body.get("address", "")))
+                with db() as connection:
+                    store_wallet_report(connection, str(user["_id"]), report, None)
+                    record_conversion_event(connection, str(user["_id"]), "api_wallet_report", user.get("plan"), "api_v1")
+                self.send_json({"report": report, "credential_info": {"prefix": api_key["prefix"]}}, status=201)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400)
+            except Exception:
+                self.send_json({"error": "API wallet report failed. No internal details exposed."}, 500)
             return
 
         if parsed.path == "/api/client-folders":
@@ -4347,12 +4623,42 @@ class Handler(SimpleHTTPRequestHandler):
                 connection.execute("DELETE FROM web_audit_playbooks WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM client_folders WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM monitors WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM api_keys WHERE user_id = ?", (user["_id"],))
                 connection.execute("UPDATE stripe_events SET user_id = NULL WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM users WHERE id = ?", (user["_id"],))
             self.send_json({"ok": True}, headers={
                 **headers,
                 "Set-Cookie": self.make_session_cookie("", max_age=0),
             })
+            return
+        if parsed.path.startswith("/api/api-keys/"):
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated") and not is_admin_user(user):
+                self.send_json({"error": "Sign in to manage API keys."}, 401, headers)
+                return
+            key_id = parsed.path.split("/")[-1]
+            if not UUID_RE.match(key_id):
+                self.send_json({"error": "Invalid API key."}, 400, headers)
+                return
+            with db() as connection:
+                connection.execute(
+                    """
+                    UPDATE api_keys
+                    SET revoked_at = ?
+                    WHERE id = ? AND user_id = ? AND revoked_at IS NULL
+                    """,
+                    (utc_now(), key_id, user["_id"]),
+                )
+                rows = connection.execute(
+                    """
+                    SELECT id, name, prefix, created_at, last_used_at, revoked_at
+                    FROM api_keys
+                    WHERE user_id = ?
+                    ORDER BY created_at DESC
+                    """,
+                    (user["_id"],),
+                ).fetchall()
+            self.send_json({"api_keys": [dict(public_api_key(row)) for row in rows]}, headers=headers)
             return
         if parsed.path.startswith("/api/monitors/"):
             user, headers = self.get_or_create_user()
