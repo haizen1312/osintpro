@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Live demo
+    url: https://osintpro-48j4.onrender.com/
+    about: Try OSINTPRO before opening a feature request.
+  - name: Product explanation
+    url: https://github.com/haizen1312/osintpro/blob/main/docs/EXPLAIN_OSINTPRO.md
+    about: Read the pitch, demo flow and safety boundary.

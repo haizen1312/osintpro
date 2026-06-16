@@ -10,6 +10,17 @@ assignees: ""
 
 Describe the domain intelligence, brand monitoring, social OSINT, wallet OSINT or reporting workflow this would improve.
 
+## Target User
+
+Who needs this most?
+
+- consultant
+- agency
+- fraud analyst
+- founder
+- learner
+- other
+
 ## Expected Outcome
 
 What should the user be able to do after this feature exists?

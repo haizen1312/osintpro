@@ -2,7 +2,9 @@
 
 Live demo: https://osintpro-48j4.onrender.com/
 
-Sections: [Positioning](#positioning) | [Passive OSINT](#safety-boundary) | [Web Audit Lab](#web-audit-lab-scope) | [Wallet OSINT](#wallet-osint-scope) | [GitHub Growth](docs/GITHUB_GROWTH.md)
+Status: Live demo online | Python backend | SQLite MVP | Stripe Payment Links | Passive-only safety boundary
+
+Sections: [Try It](#try-it) | [Local Setup](#local-development) | [Positioning](#positioning) | [Safety](#safety-boundary) | [Explain It](docs/EXPLAIN_OSINTPRO.md) | [Growth](docs/GITHUB_GROWTH.md)
 
 OSINTPRO is a freemium passive OSINT SaaS for client-ready investigation graphs, domain intelligence, brand monitoring, social username checks and blockchain wallet tracing.
 
@@ -10,10 +12,26 @@ It is built for consultants, small agencies, fraud analysts, security-minded fou
 
 If this project is useful, star the repository and share the live demo. That helps the project reach more builders, investigators and defenders.
 
+## Try It
+
 Live app:
 
 ```text
 https://osintpro-48j4.onrender.com/
+```
+
+Fast local start:
+
+```bash
+git clone https://github.com/haizen1312/osintpro.git
+cd osintpro
+python3 server.py
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8765
 ```
 
 This repository is public for product visibility and deployment transparency, but OSINTPRO is proprietary software. See `LICENSE.md`.
@@ -54,6 +72,8 @@ That focus makes OSINTPRO useful for small agencies and investigators that need 
 ## Quick Links
 
 - Live demo: `https://osintpro-48j4.onrender.com/`
+- Local setup guide: `docs/LOCAL_SETUP.md`
+- How to explain OSINTPRO: `docs/EXPLAIN_OSINTPRO.md`
 - Web Audit Lab guide: `docs/WEB_AUDIT_LAB.md`
 - GitHub growth playbook: `docs/GITHUB_GROWTH.md`
 - Data sources and unit costs: `docs/DATA_SOURCES.md`
@@ -89,6 +109,8 @@ That focus makes OSINTPRO useful for small agencies and investigators that need 
 
 ## Local Development
 
+Full guide: `docs/LOCAL_SETUP.md`
+
 ```bash
 python3 server.py
 ```
@@ -110,6 +132,20 @@ python3 server.py
 ```
 
 Copy `.env.example` for local configuration. Production secrets should be set in Render environment variables, never committed to GitHub.
+
+## How To Explain The Tool
+
+Short version:
+
+```text
+OSINTPRO turns passive public evidence from domains, usernames and blockchain wallets into client-ready investigation graphs, reports and monitoring.
+```
+
+Longer explanation:
+
+OSINTPRO is for consultants, agencies, founders and fraud analysts who need to understand public exposure without running aggressive scans. It collects public DNS, HTTPS, email posture, web exposure, username and wallet signals, then converts them into readable findings, graph relationships and exportable reports.
+
+See `docs/EXPLAIN_OSINTPRO.md` for demo scripts, customer pitch, GitHub pitch and safe disclaimers.
 
 ## Monetization
 
@@ -253,6 +289,7 @@ Free ways to improve repository traffic:
 - Keep the README in English with clear keywords: passive OSINT, domain intelligence, brand monitoring, crypto wallet OSINT, blockchain tracing, fraud investigation, network traffic analysis, Wireshark workflow, threat intelligence.
 - Use GitHub topics that match real search intent.
 - Keep the live demo URL in the repository homepage.
+- Keep `docs/LOCAL_SETUP.md` and `docs/EXPLAIN_OSINTPRO.md` linked near the top.
 - Maintain `docs/SHOWCASE.md` with copy/paste launch posts and sanitized workflows.
 - Publish small example reports with sanitized public targets.
 - Open roadmap issues for high-value features so GitHub has searchable project activity.

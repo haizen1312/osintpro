@@ -4,12 +4,13 @@ Use this page to explain OSINTPRO quickly when sharing the project.
 
 ## One-Line Pitch
 
-OSINTPRO is a passive OSINT SaaS workspace for domain intelligence, brand monitoring, beginner-friendly web audit workflows, social username checks and blockchain wallet tracing.
+OSINTPRO is a passive OSINT SaaS workspace that turns public domain, username and wallet signals into client-ready investigation graphs, reports and monitoring.
 
 ## Why People Should Try It
 
 - It runs in the browser with a live demo.
 - It turns public technical signals into readable reports.
+- It connects evidence in an entity graph instead of leaving users with raw scanner output.
 - It includes a Burp-style Web Audit Lab for beginners without exploit automation.
 - It maps domains, profiles, wallets, transactions and findings into an entity graph.
 - It stays within a passive OSINT safety boundary.
@@ -17,7 +18,7 @@ OSINTPRO is a passive OSINT SaaS workspace for domain intelligence, brand monito
 ## Suggested GitHub Share Copy
 
 ```text
-I am building OSINTPRO: a passive OSINT SaaS for domain intelligence, web audit workflows, brand monitoring and wallet tracing.
+I am building OSINTPRO: a passive OSINT SaaS for client-ready investigation graphs, domain intelligence, web audit workflows, brand monitoring and wallet tracing.
 
 It includes a Burp-style Web Audit Lab for beginners, an entity graph, reports, monitoring and blockchain wallet OSINT.
 
