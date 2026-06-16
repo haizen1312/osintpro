@@ -55,10 +55,19 @@ Useful local variables:
 ```text
 OSINTPRO_ADMIN_CODE="change-me"
 OSINTPRO_SECRET_KEY="generate-a-long-random-secret"
+OSINTPRO_FREE_TIER_VARIANT="A"
 OSINTPRO_DB_PATH="./data/osintpro.sqlite3"
 OSINTPRO_BACKUP_DIR="./data/backups"
 OSINTPRO_REPORT_BRAND="OSINTPRO"
 ```
+
+Free tier variants:
+
+- `A`: 10 starter reports and no monitors.
+- `B`: 3 starter reports and 1 monitor.
+- `C`: unlimited reports and 1 monitor.
+
+Use variants only for deliberate conversion tests. Keep the admin funnel open while testing so checkout clicks, exhausted credits and monitor-limit hits can be compared.
 
 ## Admin Access
 

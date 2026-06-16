@@ -24,6 +24,8 @@ services:
         value: "3"
       - key: OSINTPRO_REGISTRATION_IP_ALLOWLIST
         sync: false
+      - key: OSINTPRO_FREE_TIER_VARIANT
+        value: "A"
       - key: OSINTPRO_DB_PATH
         sync: false
       - key: OSINTPRO_BACKUP_DIR

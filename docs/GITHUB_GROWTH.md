@@ -41,6 +41,11 @@ Passive OSINT workspace for client-ready domain, social and wallet investigation
 - `python`
 - Keep the live demo in the repository homepage field.
 - Keep roadmap and issue templates active.
+- Keep public roadmap issues active:
+
+```text
+https://github.com/haizen1312/osintpro/issues
+```
 
 ## README Conversion Checklist
 

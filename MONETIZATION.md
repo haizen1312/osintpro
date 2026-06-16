@@ -12,9 +12,21 @@ https://osintpro-48j4.onrender.com/
 
 ## Offer
 
-- Free: 10 starter reports and no monitored domains.
+- Free default: 10 starter reports and no monitored domains.
 - Pro: 19 EUR/month, unlimited reports, 5 monitored domains, PDF/CSV and wallet OSINT.
 - Agency: 79 EUR/month, client reporting workflows, 25 monitored domains, Red/Purple Team guidance, Web Audit Lab, wallet OSINT and entity graph.
+
+## Free Tier Experiments
+
+`OSINTPRO_FREE_TIER_VARIANT` controls the Free tier experiment:
+
+| Variant | Reports | Monitors | Hypothesis |
+| --- | --- | --- | --- |
+| A | 10 starter reports | 0 | More reports improve trust before checkout. |
+| B | 3 starter reports | 1 | One monitor creates a habit and stronger upgrade intent. |
+| C | Unlimited reports | 1 | Report freedom plus one monitor improves activation. |
+
+Track conversion through billing views, checkout clicks, exhausted credits and monitor-limit hits in the admin panel.
 
 ## Stripe Setup
 

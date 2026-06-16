@@ -103,6 +103,14 @@ function setLiveSignal(text) {
   if (node) node.textContent = text;
 }
 
+function freeReportsUnlimited() {
+  return state.user.plan === "Free" && state.user.free_credits === null;
+}
+
+function freeCreditsExhausted() {
+  return state.user.plan === "Free" && !freeReportsUnlimited() && Number(state.user.credits || 0) <= 0;
+}
+
 function setSection(id) {
   document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === id));
   document.querySelectorAll(".nav-btn").forEach(button => button.classList.toggle("active", button.dataset.section === id));
@@ -881,9 +889,9 @@ function updateAccount() {
   const isPaid = state.user.plan !== "Free";
   const isAuthenticated = Boolean(state.user.authenticated);
   const nickname = state.user.nickname || "Guest";
-  const maxCredits = state.user.free_credits || 5;
-  const label = isPaid ? "∞" : state.user.credits;
-  const width = isPaid ? 100 : Math.max(0, Math.min(100, (state.user.credits / maxCredits) * 100));
+  const maxCredits = state.user.free_credits || 10;
+  const label = isPaid || freeReportsUnlimited() ? "∞" : state.user.credits;
+  const width = isPaid || freeReportsUnlimited() ? 100 : Math.max(0, Math.min(100, (state.user.credits / maxCredits) * 100));
 
   document.querySelector("#credits").textContent = label;
   document.querySelector("#creditBar").style.width = `${width}%`;
@@ -906,7 +914,7 @@ function updateAccount() {
 }
 
 function updateDashboard() {
-  const creditLabel = state.user.plan === "Free" ? `${state.user.credits} credits available` : "Unlimited reports";
+  const creditLabel = state.user.plan === "Free" && !freeReportsUnlimited() ? `${state.user.credits} credits available` : "Unlimited reports";
   const nodes = state.workspace?.nodes?.length || 0;
   const edges = state.workspace?.edges?.length || 0;
   const dashPlan = document.querySelector("#dashPlan");
@@ -1605,7 +1613,7 @@ function renderWorkspace() {
     </div>
   `;
 
-  const creditLabel = wallet.plan === "Free" ? wallet.credits : "∞";
+  const creditLabel = wallet.plan === "Free" && wallet.credits !== null ? wallet.credits : "∞";
   renderFolders();
   renderWalletReports();
   const walletStats = document.querySelector("#walletResult");
@@ -1615,7 +1623,7 @@ function renderWorkspace() {
       <article class="wallet-card hero-wallet">
         <span class="pill">Current plan</span>
         <strong>${escapeHtml(wallet.plan || "Free")}</strong>
-        <p>Credits: <b>${escapeHtml(creditLabel)}</b>. Wallet report: <b>${wallet.wallet_reports || 0}</b>. Domain monitors: <b>${wallet.monitor_used || 0}/${wallet.monitor_limit || 1}</b>.</p>
+        <p>Credits: <b>${escapeHtml(creditLabel)}</b>. Wallet report: <b>${wallet.wallet_reports || 0}</b>. Domain monitors: <b>${wallet.monitor_used || 0}/${wallet.monitor_limit ?? 0}</b>.</p>
       </article>
       <article class="wallet-card"><span>Exposure index</span><strong>${wallet.exposure_index || 0}/100</strong><p>Average score across collected assets.</p></article>
       <article class="wallet-card"><span>Domain report</span><strong>${wallet.domain_reports || 0}</strong><p>Analyzed sites and brands.</p></article>
@@ -1697,7 +1705,7 @@ async function checkApi() {
 }
 
 async function analyze(target) {
-  if (state.user.plan === "Free" && state.user.credits <= 0) {
+  if (freeCreditsExhausted()) {
     setSection("billing");
     trackEvent("free_credits_exhausted", { plan: "Pro", source: "domain_intel", metadata: { current_plan: state.user.plan } });
     showBillingMessage("You have used all Free credits. Upgrade to Pro to continue.");
@@ -1741,7 +1749,7 @@ async function analyze(target) {
 }
 
 async function buildWebAuditLab(target) {
-  if (state.user.plan === "Free" && state.user.credits <= 0) {
+  if (freeCreditsExhausted()) {
     setSection("billing");
     trackEvent("free_credits_exhausted", { plan: "Pro", source: "web_audit_lab", metadata: { current_plan: state.user.plan } });
     showBillingMessage("You have used all Free credits. Web Audit Lab continues on Pro/Agency.");
@@ -1784,7 +1792,7 @@ async function buildWebAuditLab(target) {
 }
 
 async function buildNetworkLab(target) {
-  if (state.user.plan === "Free" && state.user.credits <= 0) {
+  if (freeCreditsExhausted()) {
     setSection("billing");
     trackEvent("free_credits_exhausted", { plan: "Pro", source: "network_lab", metadata: { current_plan: state.user.plan } });
     showBillingMessage("You have used all Free credits. Network Traffic Lab continues on Pro/Agency.");
@@ -1847,7 +1855,7 @@ async function buildLocalNetworkLab() {
 }
 
 async function analyzeSocial(username) {
-  if (state.user.plan === "Free" && state.user.credits <= 0) {
+  if (freeCreditsExhausted()) {
     setSection("billing");
     trackEvent("free_credits_exhausted", { plan: "Pro", source: "social_intel", metadata: { current_plan: state.user.plan } });
     showBillingMessage("You have used all Free credits. Social OSINT continues on Pro/Agency.");
@@ -1888,7 +1896,7 @@ async function analyzeSocial(username) {
 }
 
 async function analyzeWallet(address) {
-  if (state.user.plan === "Free" && state.user.credits <= 0) {
+  if (freeCreditsExhausted()) {
     setSection("billing");
     trackEvent("free_credits_exhausted", { plan: "Pro", source: "wallet_trace", metadata: { current_plan: state.user.plan } });
     showBillingMessage("You have used all Free credits. Wallet OSINT continues on Pro/Agency.");

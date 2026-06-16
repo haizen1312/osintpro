@@ -69,6 +69,56 @@ The core workflow is:
 
 That focus makes OSINTPRO useful for small agencies and investigators that need repeatable evidence packages, not just another pile of raw signals.
 
+Strategy docs:
+
+- Data sources and unit economics: `docs/DATA_SOURCES.md`
+- Go-to-market and distribution plan: `docs/DISTRIBUTION.md`
+- API preview and integration roadmap: `docs/API_PREVIEW.md`
+- How to explain and sell OSINTPRO: `docs/EXPLAIN_OSINTPRO.md`
+
+## How OSINTPRO Is Different
+
+OSINTPRO competes on workflow and delivery, not on being the biggest raw-data scanner.
+
+| Feature | OSINTPRO | VirusTotal | Maltego | Shodan | SecurityTrails |
+| --- | --- | --- | --- | --- | --- |
+| Passive domain OSINT | Yes | Yes | Yes | Limited | Yes |
+| Client-ready reports | Yes | Limited | Limited | No | Limited |
+| Entity graph | Yes | No | Yes | No | Limited |
+| Web Audit Lab | Yes | No | No | No | No |
+| Wallet tracing | Yes | No | Limited | No | No |
+| Monitoring for agencies | Yes | Limited | Limited | Yes | Yes |
+| Offensive scanning focus | No | No | No | Yes | No |
+| Best for | Small agencies and investigators | Threat intel lookups | Enterprise investigations | Internet-exposed services | Domain intelligence teams |
+
+Pricing changes over time, so the table avoids exact competitor prices. The practical difference is simpler: OSINTPRO is for people who need understandable evidence packages, not only raw lookup results.
+
+## Go-To-Market
+
+Target audience:
+
+- small security consulting agencies
+- privacy, GDPR and web agencies
+- fraud analysts
+- blockchain compliance and scam-research teams
+- SaaS founders who need lightweight public exposure checks
+
+First 6-month plan:
+
+| Period | Channel | Goal |
+| --- | --- | --- |
+| Month 1-2 | GitHub, Product Hunt preparation, Hacker News technical post | Validate positioning and collect feedback. |
+| Month 3-4 | LinkedIn outreach to 100 small agencies | Convert report usage into Pro/Agency trials. |
+| Month 5-6 | Reddit cybersecurity, OSINT and crypto safety communities | Build repeat visibility with educational workflows. |
+| Ongoing | GitHub issues, docs SEO, sanitized examples | Keep searchable product activity alive. |
+
+Current public traction:
+
+- Live demo is online.
+- Stripe Payment Links are configured.
+- First-party conversion signals are tracked in the private admin panel.
+- Public MRR/signups are not published yet because usage is still early MVP stage.
+
 ## Quick Links
 
 - Live demo: `https://osintpro-48j4.onrender.com/`
@@ -82,6 +132,7 @@ That focus makes OSINTPRO useful for small agencies and investigators that need 
 - Showcase and share copy: `docs/SHOWCASE.md`
 - Sanitized example reports: `docs/EXAMPLE_REPORTS.md`
 - Product roadmap: `ROADMAP.md`
+- Public roadmap issues: `https://github.com/haizen1312/osintpro/issues`
 
 ## Product Status
 
@@ -155,6 +206,16 @@ Current pricing model:
 - Pro: 19 EUR/month, unlimited reports and 5 monitored domains.
 - Agency: 79 EUR/month, client reporting workflows and 25 monitored domains.
 
+Free tier experiments can be tested with `OSINTPRO_FREE_TIER_VARIANT`:
+
+| Variant | Reports | Monitors | Purpose |
+| --- | --- | --- | --- |
+| A | 10 starter reports | 0 | Current conservative acquisition baseline. |
+| B | 3 starter reports | 1 | Tests whether one monitor creates stronger upgrade intent. |
+| C | Unlimited reports | 1 | Tests whether report freedom plus monitor habit improves activation. |
+
+The app records first-party conversion signals such as billing views, checkout clicks, exhausted credits and monitor-limit hits.
+
 Stripe Payment Links are configured through environment variables:
 
 ```bash
@@ -208,6 +269,7 @@ OSINTPRO_CRON_SECRET
 OSINTPRO_MONITOR_BATCH_LIMIT=20
 OSINTPRO_REGISTRATION_IP_LIMIT=3
 OSINTPRO_REGISTRATION_IP_ALLOWLIST="203.0.113.10,198.51.100.0/24"
+OSINTPRO_FREE_TIER_VARIANT="A"
 OSINTPRO_DB_PATH="/path/to/osintpro.sqlite3"
 OSINTPRO_BACKUP_DIR="/path/to/backups"
 OSINTPRO_BACKUP_RETENTION=30
@@ -293,6 +355,7 @@ Free ways to improve repository traffic:
 - Maintain `docs/SHOWCASE.md` with copy/paste launch posts and sanitized workflows.
 - Publish small example reports with sanitized public targets.
 - Open roadmap issues for high-value features so GitHub has searchable project activity.
+- Keep public roadmap issues active: `https://github.com/haizen1312/osintpro/issues`
 - Share the live demo in relevant communities only with a passive/intelligence framing, not as an offensive scanner.
 
 ## Roadmap

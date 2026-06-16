@@ -31,10 +31,39 @@ DATA_DIR = Path(os.getenv("OSINTPRO_DATA_DIR", str(ROOT / "data"))).expanduser()
 DB_PATH = Path(os.getenv("OSINTPRO_DB_PATH", str(DATA_DIR / "osintpro.sqlite3"))).expanduser()
 BACKUP_DIR = Path(os.getenv("OSINTPRO_BACKUP_DIR", str(DATA_DIR / "backups"))).expanduser()
 SECRET_PATH = DATA_DIR / ".osintpro_secret"
-FREE_CREDITS = 10
 SESSION_COOKIE = "osintpro_session"
+FREE_TIER_VARIANTS = {
+    "A": {
+        "credits": 10,
+        "monitors": 0,
+        "monitor_trial_days": None,
+        "description": "10 starter reports and no monitors.",
+    },
+    "B": {
+        "credits": 3,
+        "monitors": 1,
+        "monitor_trial_days": 30,
+        "description": "3 starter reports and 1 monitor for a 30-day trial.",
+    },
+    "C": {
+        "credits": None,
+        "monitors": 1,
+        "monitor_trial_days": 30,
+        "description": "Unlimited reports and 1 monitor for a 30-day trial.",
+    },
+}
+
+
+def configured_free_tier() -> str:
+    value = os.getenv("OSINTPRO_FREE_TIER_VARIANT", "A").strip().upper()
+    return value if value in FREE_TIER_VARIANTS else "A"
+
+
+FREE_TIER_VARIANT = configured_free_tier()
+FREE_PLAN_LIMITS = FREE_TIER_VARIANTS[FREE_TIER_VARIANT]
+FREE_CREDITS = -1 if FREE_PLAN_LIMITS["credits"] is None else int(FREE_PLAN_LIMITS["credits"])
 PLAN_LIMITS = {
-    "Free": {"credits": 10, "monitors": 0},
+    "Free": FREE_PLAN_LIMITS,
     "Pro": {"credits": None, "monitors": 5},
     "Agency": {"credits": None, "monitors": 25},
     "Admin": {"credits": None, "monitors": 9999},
@@ -399,13 +428,16 @@ def ensure_column(connection: sqlite3.Connection, table: str, column: str, defin
 
 def row_to_user(row: sqlite3.Row) -> dict[str, object]:
     limits = PLAN_LIMITS.get(row["plan"], PLAN_LIMITS["Free"])
+    credit_limit = limits.get("credits")
     return {
         "nickname": row["nickname"],
         "authenticated": bool(row["nickname"]),
         "plan": row["plan"],
-        "credits": row["credits"],
-        "free_credits": FREE_CREDITS,
+        "credits": None if credit_limit is None and row["plan"] == "Free" else row["credits"],
+        "free_credits": credit_limit if row["plan"] == "Free" else None,
         "monitor_limit": limits["monitors"],
+        "monitor_trial_days": limits.get("monitor_trial_days"),
+        "free_tier_variant": FREE_TIER_VARIANT,
     }
 
 
@@ -844,6 +876,21 @@ def send_alert(event: str, payload: dict[str, object]) -> None:
 
 def is_paid_plan(plan: str) -> bool:
     return plan in PAID_PLANS
+
+
+def report_credit_limit(plan: str) -> int | None:
+    return PLAN_LIMITS.get(plan, PLAN_LIMITS["Free"]).get("credits")
+
+
+def has_report_access(row: sqlite3.Row) -> bool:
+    if is_paid_plan(row["plan"]):
+        return True
+    limit = report_credit_limit(row["plan"])
+    return limit is None or int(row["credits"]) > 0
+
+
+def should_decrement_report_credit(row: sqlite3.Row) -> bool:
+    return not is_paid_plan(row["plan"]) and report_credit_limit(row["plan"]) is not None
 
 
 def normalize_nickname(raw: str) -> str:
@@ -2836,7 +2883,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "assets": [],
                     "credits": user.get("credits", 0),
                     "plan": user.get("plan", "Free"),
-                    "monitor_limit": user.get("monitor_limit", 1),
+                    "monitor_limit": user.get("monitor_limit", 0),
                     "monitor_used": 0,
                     "domain_reports": 0,
                     "social_reports": 0,
@@ -3227,7 +3274,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "assets": assets[:60],
                 "credits": user.get("credits", 0),
                 "plan": user.get("plan", "Free"),
-                "monitor_limit": user.get("monitor_limit", 1),
+                "monitor_limit": user.get("monitor_limit", 0),
                 "monitor_used": len(monitor_rows),
                 "domain_reports": len(report_rows),
                 "social_reports": len(social_rows),
@@ -3906,7 +3953,7 @@ class Handler(SimpleHTTPRequestHandler):
                     if not folder_exists(connection, str(user["_id"]), folder_id):
                         self.send_json({"error": "Client folder not found."}, 404, headers)
                         return
-                    if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
+                    if not has_report_access(row):
                         record_conversion_event(
                             connection,
                             str(user["_id"]),
@@ -3919,7 +3966,7 @@ class Handler(SimpleHTTPRequestHandler):
                         return
 
                     report = analyze(target)
-                    if not is_paid_plan(row["plan"]):
+                    if should_decrement_report_credit(row):
                         connection.execute(
                             "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
                             (utc_now(), user["_id"]),
@@ -3945,7 +3992,7 @@ class Handler(SimpleHTTPRequestHandler):
                     if not folder_exists(connection, str(user["_id"]), folder_id):
                         self.send_json({"error": "Client folder not found."}, 404, headers)
                         return
-                    if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
+                    if not has_report_access(row):
                         record_conversion_event(
                             connection,
                             str(user["_id"]),
@@ -3958,7 +4005,7 @@ class Handler(SimpleHTTPRequestHandler):
                         return
 
                     report = analyze_username(target)
-                    if not is_paid_plan(row["plan"]):
+                    if should_decrement_report_credit(row):
                         connection.execute(
                             "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
                             (utc_now(), user["_id"]),
@@ -3984,7 +4031,7 @@ class Handler(SimpleHTTPRequestHandler):
                     if not folder_exists(connection, str(user["_id"]), folder_id):
                         self.send_json({"error": "Client folder not found."}, 404, headers)
                         return
-                    if not is_paid_plan(row["plan"]) and row["credits"] <= 0:
+                    if not has_report_access(row):
                         record_conversion_event(
                             connection,
                             str(user["_id"]),
@@ -3997,7 +4044,7 @@ class Handler(SimpleHTTPRequestHandler):
                         return
 
                     report = analyze_wallet(address)
-                    if not is_paid_plan(row["plan"]):
+                    if should_decrement_report_credit(row):
                         connection.execute(
                             "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
                             (utc_now(), user["_id"]),

@@ -72,3 +72,22 @@ Early success should be measured by:
 - outreach replies from agencies
 
 Stars are useful, but paid intent is more important.
+
+## Go-To-Market Timeline
+
+| Period | Channel | Concrete motion |
+| --- | --- | --- |
+| Month 1-2 | Product Hunt prep, Hacker News technical write-up, GitHub docs SEO | Publish one polished passive investigation workflow and collect feedback. |
+| Month 3-4 | LinkedIn direct outreach | Contact 100 small agencies with one free passive report offer. |
+| Month 5-6 | Reddit, OSINT, cybersecurity and crypto-safety communities | Share educational mini-cases, not generic ads. |
+| Ongoing | GitHub issues, roadmap updates, example reports | Keep search-friendly activity visible. |
+
+## Public Traction
+
+Current public traction should stay honest:
+
+- Live demo is deployed.
+- Stripe checkout is configured.
+- GitHub repository has English docs, topics, issues and discussions enabled.
+- First-party conversion signals are tracked in the private admin panel.
+- Public signups, paid conversions and MRR should be published only when the numbers are real and stable enough to report.
