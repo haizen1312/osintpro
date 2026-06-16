@@ -1,6 +1,6 @@
 # OSINTPRO Monetization Checklist
 
-OSINTPRO should be sold as passive intelligence for domains, brands, public usernames and public blockchain wallets.
+OSINTPRO should be sold as a passive investigation graph and client-ready reporting workspace for domains, brands, public usernames and public blockchain wallets.
 
 Do not position it as an offensive scanner. The value is in readable reporting, monitoring, prioritization and investigative workflow.
 
@@ -12,7 +12,7 @@ https://osintpro-48j4.onrender.com/
 
 ## Offer
 
-- Free: 5 starter reports and 1 monitored domain.
+- Free: 10 starter reports and no monitored domains.
 - Pro: 19 EUR/month, unlimited reports, 5 monitored domains, PDF/CSV and wallet OSINT.
 - Agency: 79 EUR/month, client reporting workflows, 25 monitored domains, Red/Purple Team guidance, Web Audit Lab, wallet OSINT and entity graph.
 
@@ -79,7 +79,7 @@ If you want recurring monitoring, beginner-friendly web audit playbooks, client-
 
 Free users should feel value quickly but hit a natural ceiling:
 
-- Free gives enough reports to understand the product.
+- Free gives enough investigations to understand the product.
 - Pro removes report friction and adds practical monitoring.
 - Agency is for repeat client work, case tracking and higher-volume monitoring.
 

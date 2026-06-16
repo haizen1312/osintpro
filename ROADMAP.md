@@ -2,6 +2,12 @@
 
 OSINTPRO is moving toward a focused passive intelligence workspace for domains, brands, public identities and blockchain wallets.
 
+## Product Thesis
+
+The primary product is the client-ready investigation graph: passive evidence from domains, public profiles and wallets gets normalized into readable findings, relationships, notes, exports and monitoring.
+
+Web Audit Lab, Network Traffic Lab, Social OSINT and Wallet OSINT are input modules for that workspace. They should strengthen the investigation graph instead of becoming separate products.
+
 ## Current Focus
 
 - Keep the core app fast, readable and fully English.
@@ -11,6 +17,7 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 - Expand beginner-friendly Web Audit Lab workflows without adding invasive scanning.
 - Add beginner-friendly network traffic analysis without unauthorized packet capture.
 - Keep hosting costs at zero until paid usage justifies infrastructure spend.
+- Keep infrastructure risk visible while the project stays on zero-cost hosting.
 
 ## Near-Term Milestones
 
@@ -56,10 +63,10 @@ Status: Free-to-Pro/Agency onboarding, billing status messaging and agency clien
 ### Infrastructure
 
 - Continue with SQLite and free Render/GitHub Actions backup artifacts while traffic is early.
-- Add PostgreSQL only after revenue supports persistent managed hosting.
+- Add persistent disk or PostgreSQL when paid usage, real customer data or recurring monitor volume makes data durability more important than zero-cost hosting.
 - Keep secrets in environment variables and out of GitHub.
 
-Status: SQLite remains the default zero-cost database. PostgreSQL is intentionally deferred until paid usage justifies managed infrastructure.
+Status: SQLite remains the default zero-cost database. PostgreSQL is intentionally deferred because the project is currently constrained to no paid infrastructure. This is an MVP tradeoff, not the final production design.
 
 ## Safety Boundary
 

@@ -31,10 +31,10 @@ DATA_DIR = Path(os.getenv("OSINTPRO_DATA_DIR", str(ROOT / "data"))).expanduser()
 DB_PATH = Path(os.getenv("OSINTPRO_DB_PATH", str(DATA_DIR / "osintpro.sqlite3"))).expanduser()
 BACKUP_DIR = Path(os.getenv("OSINTPRO_BACKUP_DIR", str(DATA_DIR / "backups"))).expanduser()
 SECRET_PATH = DATA_DIR / ".osintpro_secret"
-FREE_CREDITS = 5
+FREE_CREDITS = 10
 SESSION_COOKIE = "osintpro_session"
 PLAN_LIMITS = {
-    "Free": {"credits": 5, "monitors": 1},
+    "Free": {"credits": 10, "monitors": 0},
     "Pro": {"credits": None, "monitors": 5},
     "Agency": {"credits": None, "monitors": 25},
     "Admin": {"credits": None, "monitors": 9999},
@@ -255,7 +255,7 @@ def init_db() -> None:
                 nickname TEXT UNIQUE,
                 password_hash TEXT,
                 plan TEXT NOT NULL DEFAULT 'Free',
-                credits INTEGER NOT NULL DEFAULT 5,
+                credits INTEGER NOT NULL DEFAULT 10,
                 signup_fingerprint TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL

@@ -2,9 +2,9 @@
 
 Live demo: https://osintpro-48j4.onrender.com/
 
-Sections: [Passive OSINT](#safety-boundary) | [Web Audit Lab](#web-audit-lab-scope) | [Wallet OSINT](#wallet-osint-scope) | [GitHub Growth](docs/GITHUB_GROWTH.md)
+Sections: [Positioning](#positioning) | [Passive OSINT](#safety-boundary) | [Web Audit Lab](#web-audit-lab-scope) | [Wallet OSINT](#wallet-osint-scope) | [GitHub Growth](docs/GITHUB_GROWTH.md)
 
-OSINTPRO is a freemium passive OSINT SaaS for domain intelligence, brand monitoring, social username checks and blockchain wallet tracing.
+OSINTPRO is a freemium passive OSINT SaaS for client-ready investigation graphs, domain intelligence, brand monitoring, social username checks and blockchain wallet tracing.
 
 It is built for consultants, small agencies, fraud analysts, security-minded founders and learners who need fast, readable intelligence from public sources without running aggressive scans.
 
@@ -20,7 +20,7 @@ This repository is public for product visibility and deployment transparency, bu
 
 ## What It Does
 
-OSINTPRO collects passive public signals and turns them into client-ready reports:
+OSINTPRO collects passive public signals and turns them into client-ready reports and relationship graphs:
 
 - Domain OSINT: DNS/IP resolution, A/AAAA/MX/NS/TXT/CAA/SOA, HTTPS certificate, public security headers and RDAP.
 - Email posture: SPF, DMARC, MTA-STS, TLS-RPT and brand impersonation signals.
@@ -38,11 +38,26 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 
 OSINTPRO does not run exploits, brute force, credential attacks, invasive scans, unauthorized packet capture or wallet transactions. Wallet analysis is limited to public blockchain data and investigative visualization.
 
+## Positioning
+
+OSINTPRO is not trying to be a raw scanner, a Maltego clone or an offensive security toolkit. Its main job is to make passive public evidence easier to understand, connect and deliver to a client.
+
+The core workflow is:
+
+1. Run a passive investigation on a domain, public username or wallet.
+2. Review normalized findings, posture risks and plain-English explanations.
+3. Connect assets, identities, wallets, transactions, technologies and findings in the entity graph.
+4. Export the case as PDF/CSV or keep it in a client folder for monitoring and follow-up.
+
+That focus makes OSINTPRO useful for small agencies and investigators that need repeatable evidence packages, not just another pile of raw signals.
+
 ## Quick Links
 
 - Live demo: `https://osintpro-48j4.onrender.com/`
 - Web Audit Lab guide: `docs/WEB_AUDIT_LAB.md`
 - GitHub growth playbook: `docs/GITHUB_GROWTH.md`
+- Data sources and unit costs: `docs/DATA_SOURCES.md`
+- Distribution plan: `docs/DISTRIBUTION.md`
 - Showcase and share copy: `docs/SHOWCASE.md`
 - Sanitized example reports: `docs/EXAMPLE_REPORTS.md`
 - Product roadmap: `ROADMAP.md`
@@ -99,7 +114,7 @@ Copy `.env.example` for local configuration. Production secrets should be set in
 
 Current pricing model:
 
-- Free: 5 starter reports and 1 monitored domain.
+- Free: 10 starter reports and no monitored domains.
 - Pro: 19 EUR/month, unlimited reports and 5 monitored domains.
 - Agency: 79 EUR/month, client reporting workflows and 25 monitored domains.
 
@@ -123,7 +138,7 @@ Required Stripe event:
 checkout.session.completed
 ```
 
-The free tier is for evaluation. Ongoing usage, monitoring and agency workflows are positioned for paid plans.
+The free tier is for evaluation and product trust. Ongoing usage, monitoring and agency workflows are positioned for paid plans.
 
 ## Admin And Operations
 
@@ -169,6 +184,8 @@ OSINTPRO_REPORT_BRAND="OSINTPRO"
 ## Free Persistence Strategy
 
 Render Free does not include a persistent disk. OSINTPRO stays usable without paid infrastructure by combining SQLite with GitHub Actions artifacts.
+
+This is acceptable for a zero-cost MVP, but it is not the target production architecture for paying customers. Once real paid usage starts, the first infrastructure upgrade should be persistent storage or managed PostgreSQL so Stripe billing state, user accounts, history and monitor data do not depend on artifact restores.
 
 The scheduled workflow can:
 
