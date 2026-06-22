@@ -1,5 +1,5 @@
 const state = {
-  user: { plan: "Free", credits: 0, free_credits: 10, monitor_limit: 0 },
+  user: { plan: "Free", credits: 0, free_credits: 5, monitor_limit: 1 },
   reports: [],
   socialReports: [],
   walletReports: [],
@@ -7,6 +7,7 @@ const state = {
   folders: [],
   playbooks: [],
   apiKeys: [],
+  currentRepoAudit: null,
   workspace: null,
   checkoutConfigured: false,
   currentWallet: null,
@@ -127,7 +128,7 @@ function setSection(id) {
 function redactClient(value) {
   return String(value ?? "")
     .replace(/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, "[redacted]")
-    .replace(/\b(?:sk|pk|rk|whsec|ghp|github_pat|xox[baprs])-[-A-Za-z0-9_]{12,}\b/g, "[redacted]")
+    .replace(/\b(?:sk|pk|rk|whsec|ghp|github_pat|xox[baprs])[_-][-A-Za-z0-9_]{12,}\b/g, "[redacted]")
     .replace(/\bAKIA[0-9A-Z]{16}\b/g, "[redacted]")
     .replace(/\b[A-Za-z0-9_=-]{24,}\.[A-Za-z0-9_=-]{12,}\.[A-Za-z0-9_=-]{12,}\b/g, "[redacted]")
     .replace(/(\b(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret)\b\s*[:=]\s*)[^\s,;"'<>]+/gi, "$1[redacted]")
@@ -149,6 +150,136 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" });
+}
+
+const REPO_IGNORED_SEGMENTS = new Set([
+  ".git", "node_modules", "vendor", "dist", "build", "coverage", ".next",
+  ".nuxt", ".venv", "venv", "__pycache__", "target", "bin", "obj"
+]);
+
+const REPO_TEXT_EXTENSIONS = new Set([
+  "", ".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".php", ".rb",
+  ".go", ".rs", ".java", ".cs", ".html", ".htm", ".css", ".scss", ".sql",
+  ".json", ".toml", ".ini", ".cfg", ".conf", ".xml", ".yml", ".yaml", ".md",
+  ".txt", ".sh", ".zsh", ".bash", ".env", ".example", ".lock"
+]);
+
+function repositoryFileAllowed(file) {
+  const path = String(file.webkitRelativePath || file.name || "").replaceAll("\\", "/");
+  const parts = path.split("/").filter(Boolean);
+  if (parts.some(part => REPO_IGNORED_SEGMENTS.has(part))) return false;
+  if (file.size > 180000) return false;
+  const name = parts.at(-1)?.toLowerCase() || "";
+  const extensionIndex = name.lastIndexOf(".");
+  const extension = extensionIndex >= 0 ? name.slice(extensionIndex) : "";
+  return REPO_TEXT_EXTENSIONS.has(extension)
+    || ["dockerfile", "gemfile", "procfile", "makefile", "license"].includes(name);
+}
+
+function repoSeverityTone(severity) {
+  return ["critical", "high", "medium", "low"].includes(severity) ? severity : "info";
+}
+
+function renderRepoAudit(audit) {
+  state.currentRepoAudit = audit;
+  const holder = document.querySelector("#repoAuditResult");
+  const findings = audit.findings || [];
+  const counts = audit.counts || {};
+  holder.className = "result";
+  holder.innerHTML = `
+    <div class="report-top">
+      <div>
+        <span class="pill">Static repository review</span>
+        <h2>${escapeHtml(audit.repository)}</h2>
+        <p>${escapeHtml(audit.files_scanned)} text files reviewed without executing code. Treat findings as prioritized review leads.</p>
+      </div>
+      <div class="score">
+        <div><span>Code posture</span><strong>${escapeHtml(audit.score)}</strong></div>
+      </div>
+    </div>
+    <div class="summary-strip">
+      <div><strong>${escapeHtml(counts.critical || 0)}</strong><span>critical</span></div>
+      <div><strong>${escapeHtml(counts.high || 0)}</strong><span>high</span></div>
+      <div><strong>${escapeHtml(counts.medium || 0)}</strong><span>medium</span></div>
+      <div><strong>${escapeHtml(counts.low || 0)}</strong><span>low</span></div>
+      <div><strong>${escapeHtml(audit.files_scanned)}</strong><span>files</span></div>
+    </div>
+    <section class="repo-context">
+      <div>
+        <span class="pill">Detected context</span>
+        <strong>${escapeHtml((audit.languages || []).join(", ") || "Configuration/text repository")}</strong>
+        <p>${Object.entries(audit.context || {}).filter(([, enabled]) => enabled).map(([name]) => escapeHtml(name)).join(" · ") || "No application capability confidently detected."}</p>
+      </div>
+      <div>
+        <span class="pill">Manifests</span>
+        <strong>${escapeHtml((audit.manifests || []).join(", ") || "None detected")}</strong>
+        <p>${escapeHtml(Math.round((audit.bytes_scanned || 0) / 1024))} KB of source text analyzed.</p>
+      </div>
+    </section>
+    <section class="repo-findings">
+      <div class="mini-head">
+        <span class="pill">Prioritized review</span>
+        <h3>${escapeHtml(audit.total_findings ?? findings.length)} findings</h3>
+      </div>
+      ${audit.suppressed_findings ? `<p class="muted">${escapeHtml(audit.suppressed_findings)} repeated occurrences were compacted to keep the review readable.</p>` : ""}
+      ${findings.length ? findings.map(item => `
+        <article class="repo-finding ${repoSeverityTone(item.severity)}">
+          <div class="repo-finding-head">
+            <span class="severity ${repoSeverityTone(item.severity)}">${escapeHtml(item.severity)}</span>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span class="tag">${escapeHtml(item.confidence)} confidence</span>
+          </div>
+          <code>${escapeHtml(item.path)}:${escapeHtml(item.line)}</code>
+          <pre>${escapeHtml(item.evidence || "Evidence redacted")}</pre>
+          <p><strong>Why:</strong> ${escapeHtml(item.why)}</p>
+          <p><strong>Applies when:</strong> ${escapeHtml(item.applicability)}</p>
+          <p><strong>Fix:</strong> ${escapeHtml(item.remediation)}</p>
+        </article>
+      `).join("") : `<div class="finding"><span class="tag">Review complete</span><strong>No rule match found</strong><p>This does not prove the repository is vulnerability-free. Continue with dependency, architecture and runtime testing.</p></div>`}
+    </section>
+    <section class="lab-panel disclaimer-panel">
+      <div class="mini-head">
+        <span class="pill">Limitations</span>
+        <h3>What this result means</h3>
+      </div>
+      <ul class="step-list">${(audit.limitations || []).map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+    </section>
+  `;
+  document.querySelector("#downloadRepoAudit").hidden = false;
+}
+
+async function buildRepoAudit(files, repository) {
+  if (freeCreditsExhausted()) {
+    setSection("billing");
+    trackEvent("free_credits_exhausted", { plan: "Pro", source: "repository_audit", metadata: { current_plan: state.user.plan } });
+    showBillingMessage("You have used all Free credits. Repository Audit Lab continues on Pro/Agency.");
+    return;
+  }
+  const eligible = [...files].filter(repositoryFileAllowed).slice(0, 180);
+  if (!eligible.length) {
+    throw new Error("No eligible text source files found in this folder.");
+  }
+  let totalBytes = 0;
+  const payloadFiles = [];
+  for (const file of eligible) {
+    if (totalBytes + file.size > 1500000) break;
+    const content = await file.text();
+    totalBytes += new TextEncoder().encode(content).length;
+    payloadFiles.push({
+      path: file.webkitRelativePath || file.name,
+      content
+    });
+  }
+  if (!payloadFiles.length) {
+    throw new Error("The selected source files exceed the audit size limit.");
+  }
+  const data = await api("/api/repository/audit", {
+    method: "POST",
+    body: JSON.stringify({ repository, files: payloadFiles })
+  });
+  state.user = data.user;
+  updateAccount();
+  renderRepoAudit(data.audit);
 }
 
 function nicknameInitials(nickname) {
@@ -893,7 +1024,7 @@ function updateAccount() {
   const isPaid = state.user.plan !== "Free";
   const isAuthenticated = Boolean(state.user.authenticated);
   const nickname = state.user.nickname || "Guest";
-  const maxCredits = state.user.free_credits || 10;
+  const maxCredits = state.user.free_credits || 5;
   const label = isPaid || freeReportsUnlimited() ? "∞" : state.user.credits;
   const width = isPaid || freeReportsUnlimited() ? 100 : Math.max(0, Math.min(100, (state.user.credits / maxCredits) * 100));
 
@@ -1075,7 +1206,7 @@ function renderReport(report) {
 
     <div class="summary-strip">
       <div><strong>${report.dns.addresses?.length || 0}</strong><span>IP</span></div>
-      <div><strong>${email.score ?? 0}</strong><span>email score</span></div>
+      <div><strong>${email.applicable ? email.score ?? 0 : "N/A"}</strong><span>email posture</span></div>
       <div><strong>${subdomains.length}</strong><span>CT names</span></div>
     </div>
 
@@ -1116,7 +1247,8 @@ function renderReport(report) {
 
     <div class="deep-grid">
       <article class="intel-card">
-        <div><span class="pill">Email Security</span><strong>${email.score ?? 0}/100</strong></div>
+        <div><span class="pill">Email Security</span><strong>${email.applicable ? `${email.score ?? 0}/100` : "N/A"}</strong></div>
+        <p>${escapeHtml(email.scope_note || "Email scope could not be determined.")}</p>
         <div class="flag-grid">
           <span>${flag(flags.spf_present)} SPF</span>
           <span>${flag(flags.dmarc_present)} DMARC</span>
@@ -2065,6 +2197,54 @@ document.querySelector("#webAuditForm").addEventListener("submit", event => {
     return;
   }
   buildWebAuditLab(target);
+});
+
+document.querySelector("#repoAuditFiles").addEventListener("change", event => {
+  const files = [...event.target.files];
+  const eligible = files.filter(repositoryFileAllowed);
+  const root = String(files[0]?.webkitRelativePath || "").split("/")[0];
+  if (root && !document.querySelector("#repoAuditName").value) {
+    document.querySelector("#repoAuditName").value = root;
+  }
+  document.querySelector("#repoAuditSelection").textContent = files.length
+    ? `${eligible.length} eligible text files selected from ${files.length} files.`
+    : "No folder selected.";
+});
+
+document.querySelector("#repoAuditForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const fileInput = document.querySelector("#repoAuditFiles");
+  const button = document.querySelector("#repoAuditButton");
+  if (!fileInput.files.length) {
+    fileInput.focus();
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "Auditing...";
+  setLiveSignal("reviewing repository source without executing it");
+  document.querySelector("#repoAuditResult").className = "result empty";
+  document.querySelector("#repoAuditResult").innerHTML = `<h2>Repository audit in progress</h2><p>Filtering source files and checking defensive static-analysis rules.</p>`;
+  try {
+    await buildRepoAudit(fileInput.files, document.querySelector("#repoAuditName").value.trim());
+  } catch (error) {
+    document.querySelector("#repoAuditResult").className = "result empty";
+    document.querySelector("#repoAuditResult").innerHTML = `<h2 class="error">Audit failed</h2><p>${escapeHtml(error.message)}</p>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Audit repository";
+    setLiveSignal("passive sensors idle");
+  }
+});
+
+document.querySelector("#downloadRepoAudit").addEventListener("click", () => {
+  if (!state.currentRepoAudit) return;
+  const blob = new Blob([JSON.stringify(state.currentRepoAudit, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${String(state.currentRepoAudit.repository || "repository").replace(/[^a-z0-9_-]+/gi, "-").toLowerCase()}-audit.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
 });
 
 document.querySelector("#loadOwnAudit").addEventListener("click", () => {

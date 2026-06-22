@@ -6,7 +6,7 @@ Status: Live demo online | Python backend | SQLite MVP | Stripe Payment Links | 
 
 Sections: [Try It](#try-it) | [Local Setup](#local-development) | [Positioning](#positioning) | [Safety](#safety-boundary) | [Explain It](docs/EXPLAIN_OSINTPRO.md) | [Growth](docs/GITHUB_GROWTH.md)
 
-OSINTPRO is a freemium passive OSINT SaaS for client-ready investigation graphs, domain intelligence, brand monitoring, social username checks and blockchain wallet tracing.
+OSINTPRO is a freemium passive OSINT and defensive review SaaS for client-ready investigation graphs, domain intelligence, brand monitoring, repository security review, social username checks and blockchain wallet tracing.
 
 It is built for consultants, small agencies, fraud analysts, security-minded founders and learners who need fast, readable intelligence from public sources without running aggressive scans.
 
@@ -47,6 +47,7 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 - Passive technology fingerprinting from headers and web signals.
 - Risk findings, vulnerability hypotheses and Red/Purple Team recommendations derived only from passive evidence.
 - Web Audit Lab: Burp-style beginner workflow with safe commands, evidence checklist and technical glossary.
+- Repository Audit Lab: static source review with file/line evidence, confidence, applicability and remediation without executing uploaded code.
 - Network Traffic Lab: Wireshark-style website traffic mode plus own-network mode for local authorized LAN analysis.
 - Social OSINT: public username presence checks across social, developer and community platforms.
 - Wallet OSINT: public Bitcoin and Ethereum/EVM balance, recent movements, counterparties and explorer links.
@@ -62,7 +63,7 @@ OSINTPRO is not trying to be a raw scanner, a Maltego clone or an offensive secu
 
 The core workflow is:
 
-1. Run a passive investigation on a domain, public username or wallet.
+1. Run a passive investigation on a domain, public username or wallet, or review an authorized source repository.
 2. Review normalized findings, posture risks and plain-English explanations.
 3. Connect assets, identities, wallets, transactions, technologies and findings in the entity graph.
 4. Export the case as PDF/CSV or keep it in a client folder for monitoring and follow-up.
@@ -71,10 +72,10 @@ That focus makes OSINTPRO useful for small agencies and investigators that need 
 
 Strategy docs:
 
-- Data sources and unit economics: `docs/DATA_SOURCES.md`
-- Go-to-market and distribution plan: `docs/DISTRIBUTION.md`
-- API preview and integration roadmap: `docs/API_PREVIEW.md`
-- How to explain and sell OSINTPRO: `docs/EXPLAIN_OSINTPRO.md`
+- [Data sources and unit economics](docs/DATA_SOURCES.md)
+- [Go-to-market and distribution plan](docs/DISTRIBUTION.md)
+- [API preview and integration roadmap](docs/API_PREVIEW.md)
+- [How to explain and sell OSINTPRO](docs/EXPLAIN_OSINTPRO.md)
 
 ## How OSINTPRO Is Different
 
@@ -86,6 +87,7 @@ OSINTPRO competes on workflow and delivery, not on being the biggest raw-data sc
 | Client-ready reports | Yes | Limited | Limited | No | Limited |
 | Entity graph | Yes | No | Yes | No | Limited |
 | Web Audit Lab | Yes | No | No | No | No |
+| Static repository review | Yes | No | No | No | No |
 | Wallet tracing | Yes | No | Limited | No | No |
 | Monitoring for agencies | Yes | Limited | Limited | Yes | Yes |
 | Offensive scanning focus | No | No | No | Yes | No |
@@ -112,30 +114,34 @@ First 6-month plan:
 | Month 5-6 | Reddit cybersecurity, OSINT and crypto safety communities | Build repeat visibility with educational workflows. |
 | Ongoing | GitHub issues, docs SEO, sanitized examples | Keep searchable product activity alive. |
 
-Current public traction:
+Current public traction as of June 23, 2026:
 
 - Live demo is online.
+- GitHub stars: 2.
+- GitHub forks: 0.
+- Open public roadmap issues: 1.
 - Stripe Payment Links are configured.
 - First-party conversion signals are tracked in the private admin panel.
 - Agency/Admin API key MVP is available for controlled workflow integrations.
-- Public MRR/signups are not published yet because usage is still early MVP stage.
+- Verified public signup, paid-conversion and MRR totals are not published yet because production usage is still early and those numbers should not be invented from local development data.
 
 ## Quick Links
 
-- Live demo: `https://osintpro-48j4.onrender.com/`
-- Local setup guide: `docs/LOCAL_SETUP.md`
-- How to explain OSINTPRO: `docs/EXPLAIN_OSINTPRO.md`
-- Web Audit Lab guide: `docs/WEB_AUDIT_LAB.md`
-- GitHub growth playbook: `docs/GITHUB_GROWTH.md`
-- Data sources and unit costs: `docs/DATA_SOURCES.md`
-- Distribution plan: `docs/DISTRIBUTION.md`
-- Outreach playbook: `docs/OUTREACH_PLAYBOOK.md`
-- API preview: `docs/API_PREVIEW.md`
-- Production readiness: `docs/PRODUCTION_READINESS.md`
-- Showcase and share copy: `docs/SHOWCASE.md`
-- Sanitized example reports: `docs/EXAMPLE_REPORTS.md`
-- Product roadmap: `ROADMAP.md`
-- Public roadmap issues: `https://github.com/haizen1312/osintpro/issues`
+- [Live demo](https://osintpro-48j4.onrender.com/)
+- [Local setup guide](docs/LOCAL_SETUP.md)
+- [How to explain OSINTPRO](docs/EXPLAIN_OSINTPRO.md)
+- [Web Audit Lab guide](docs/WEB_AUDIT_LAB.md)
+- [Repository Audit Lab guide](docs/REPOSITORY_AUDIT_LAB.md)
+- [GitHub growth playbook](docs/GITHUB_GROWTH.md)
+- [Data sources and unit costs](docs/DATA_SOURCES.md)
+- [Distribution plan](docs/DISTRIBUTION.md)
+- [Outreach playbook](docs/OUTREACH_PLAYBOOK.md)
+- [API preview](docs/API_PREVIEW.md)
+- [Production readiness](docs/PRODUCTION_READINESS.md)
+- [Showcase and share copy](docs/SHOWCASE.md)
+- [Sanitized example reports](docs/EXAMPLE_REPORTS.md)
+- [Product roadmap](ROADMAP.md)
+- [Public roadmap issues](https://github.com/haizen1312/osintpro/issues)
 
 ## Product Status
 
@@ -160,6 +166,7 @@ Current public traction:
 - Cron-protected monitoring and backup endpoints.
 - GitHub Actions workflow for free scheduled monitor runs and SQLite backup artifacts.
 - Beginner-friendly Web Audit Lab and Network Traffic Lab for authorized passive review.
+- Static Repository Audit Lab with client-side filtering, bounded uploads, redacted evidence and no code execution.
 - Security-conscious repository hygiene: `.gitignore`, `.env.example`, `SECURITY.md`, no committed secrets.
 
 ## Local Development
@@ -206,7 +213,7 @@ See `docs/EXPLAIN_OSINTPRO.md` for demo scripts, customer pitch, GitHub pitch an
 
 Current pricing model:
 
-- Free: 10 starter reports and no monitored domains.
+- Free: 5 starter reports and 1 monitored domain for a 30-day trial.
 - Pro: 19 EUR/month, unlimited reports and 5 monitored domains.
 - Agency: 79 EUR/month, client reporting workflows and 25 monitored domains.
 
@@ -214,9 +221,9 @@ Free tier experiments can be tested with `OSINTPRO_FREE_TIER_VARIANT`:
 
 | Variant | Reports | Monitors | Purpose |
 | --- | --- | --- | --- |
-| A | 10 starter reports | 0 | Current conservative acquisition baseline. |
-| B | 3 starter reports | 1 | Tests whether one monitor creates stronger upgrade intent. |
-| C | Unlimited reports | 1 | Tests whether report freedom plus monitor habit improves activation. |
+| A | 5 starter reports | 1 for 30 days | Current activation baseline. |
+| B | 3 starter reports | 1 for 30 days | Tests whether a tighter report cap creates stronger upgrade intent. |
+| C | Unlimited reports | 1 for 30 days | Tests whether report freedom plus monitor habit improves activation. |
 
 The app records first-party conversion signals such as billing views, checkout clicks, exhausted credits and monitor-limit hits.
 
@@ -334,6 +341,18 @@ The Web Audit Lab translates Burp Suite-style concepts into a beginner-friendly 
 - passive findings converted into client-ready next steps
 
 It does not provide exploit payloads, automated fuzzing, brute force, credential attacks, callback exploitation or invasive crawling. It is designed for domains the user owns or is explicitly authorized to review.
+
+## Repository Audit Lab Scope
+
+Repository Audit Lab reviews an authorized local source folder without executing it:
+
+- filters dependency directories, build output, binaries and oversized files in the browser
+- checks eligible source text for secret exposure, unsafe execution, deserialization, TLS, CORS, SQL and frontend review patterns
+- reports file, line, severity, confidence, applicability and remediation
+- redacts secret-like evidence before returning or rendering it
+- exports the result as JSON for developer follow-up
+
+It does not install dependencies, run builds, execute uploaded code, generate exploits or claim that a pattern match proves exploitability. See the [Repository Audit Lab guide](docs/REPOSITORY_AUDIT_LAB.md).
 
 ## Network Traffic Lab Scope
 

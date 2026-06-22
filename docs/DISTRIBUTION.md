@@ -26,6 +26,8 @@ They understand the value of:
 
 Use LinkedIn and direct agency outreach before broad launch platforms.
 
+This is the current growth focus. Product Hunt, Hacker News and Reddit are secondary launch moments, not substitutes for direct conversations with agencies.
+
 Weekly motion:
 
 1. Publish one sanitized investigation screenshot or mini case.
@@ -84,10 +86,15 @@ Stars are useful, but paid intent is more important.
 
 ## Public Traction
 
-Current public traction should stay honest:
+Snapshot as of June 23, 2026:
 
 - Live demo is deployed.
+- GitHub stars: 2.
+- GitHub forks: 0.
+- Open public roadmap issues: 1.
 - Stripe checkout is configured.
 - GitHub repository has English docs, topics, issues and discussions enabled.
 - First-party conversion signals are tracked in the private admin panel.
-- Public signups, paid conversions and MRR should be published only when the numbers are real and stable enough to report.
+- Public signups, paid conversions and MRR are not reported yet. Local development accounts are not production traction and should not be presented as customers.
+
+The next measurable target is 25 direct agency conversations, 5 requested sample reports and 1 verified paid conversion.

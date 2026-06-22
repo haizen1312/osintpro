@@ -64,9 +64,9 @@ OSINTPRO_REPORT_BRAND="OSINTPRO"
 
 Free tier variants:
 
-- `A`: 10 starter reports and no monitors.
-- `B`: 3 starter reports and 1 monitor.
-- `C`: unlimited reports and 1 monitor.
+- `A`: 5 starter reports and 1 monitor for a 30-day trial.
+- `B`: 3 starter reports and 1 monitor for a 30-day trial.
+- `C`: unlimited reports and 1 monitor for a 30-day trial.
 
 Use variants only for deliberate conversion tests. Keep the admin funnel open while testing so checkout clicks, exhausted credits and monitor-limit hits can be compared.
 

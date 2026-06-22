@@ -4,7 +4,7 @@ Use this page when presenting OSINTPRO to users, agencies, consultants, GitHub v
 
 ## One-Sentence Version
 
-OSINTPRO turns passive public evidence from domains, usernames and blockchain wallets into client-ready investigation graphs, reports and monitoring.
+OSINTPRO turns passive public evidence and authorized source-code review into client-ready investigation graphs, security findings, reports and monitoring.
 
 ## 30-Second Version
 
@@ -20,8 +20,9 @@ It is not an exploit scanner. It is designed for authorized public-source intell
 4. Show the score, DNS, email posture, headers, CT names and findings.
 5. Open `Entity Graph` and show how the domain, technologies, findings and related signals connect.
 6. Open `Web Audit Lab` and show beginner-friendly explanations and safe commands.
-7. Open `Wallet Trace` with a public wallet address and show public movement, counterparties and case notes.
-8. Open `Billing` and explain why monitoring, exports and client workflows are paid features.
+7. Open `Repository Audit Lab`, select an authorized source folder and show file/line findings with applicability and remediation.
+8. Open `Wallet Trace` with a public wallet address and show public movement, counterparties and case notes.
+9. Open `Billing` and explain why monitoring, exports and client workflows are paid features.
 
 ## What Makes It Different
 
@@ -33,6 +34,7 @@ Core differentiators:
 - plain-English findings
 - passive-only safety boundary
 - beginner-friendly Web Audit Lab
+- defensive Repository Audit Lab that never executes uploaded code
 - wallet tracing for public fraud reconstruction
 - account-isolated history and client folders
 - PDF/CSV exports for agencies

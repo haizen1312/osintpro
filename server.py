@@ -34,10 +34,10 @@ SECRET_PATH = DATA_DIR / ".osintpro_secret"
 SESSION_COOKIE = "osintpro_session"
 FREE_TIER_VARIANTS = {
     "A": {
-        "credits": 10,
-        "monitors": 0,
-        "monitor_trial_days": None,
-        "description": "10 starter reports and no monitors.",
+        "credits": 5,
+        "monitors": 1,
+        "monitor_trial_days": 30,
+        "description": "5 starter reports and 1 monitor for a 30-day trial.",
     },
     "B": {
         "credits": 3,
@@ -84,7 +84,7 @@ SECRET_VALUE_PATTERNS = [
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.DOTALL),
     re.compile(r"(?i)(\b(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret)\b\s*[:=]\s*)[^\s,;\"'<>]+"),
     re.compile(r"(?i)(\bauthorization\s*[:=]\s*(?:bearer|basic)\s+)[a-z0-9._~+/=-]+"),
-    re.compile(r"\b(?:sk|pk|rk|whsec|ghp|github_pat|xox[baprs])-[-A-Za-z0-9_]{12,}\b"),
+    re.compile(r"\b(?:sk|pk|rk|whsec|ghp|github_pat|xox[baprs])[_-][-A-Za-z0-9_]{12,}\b"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\b[A-Za-z0-9_=-]{24,}\.[A-Za-z0-9_=-]{12,}\.[A-Za-z0-9_=-]{12,}\b"),
 ]
@@ -99,6 +99,7 @@ RATE_LIMITS = {
     "/api/analyze": 30,
     "/api/social/analyze": 30,
     "/api/wallet/analyze": 30,
+    "/api/repository/audit": 12,
     "/api/monitors/run": 12,
 }
 RATE_BUCKETS: dict[tuple[str, str], list[float]] = {}
@@ -117,6 +118,9 @@ HTTP_LIMIT = 350000
 MAX_BODY_BYTES = 16384
 MAX_WEBHOOK_BYTES = 262144
 MAX_RESTORE_BYTES = 25 * 1024 * 1024
+MAX_REPO_AUDIT_BYTES = 2 * 1024 * 1024
+MAX_REPO_AUDIT_FILES = 180
+MAX_REPO_FILE_BYTES = 180000
 DEFAULT_MONITOR_BATCH_LIMIT = 20
 DEFAULT_API_KEY_RATE_LIMIT = 30
 DEFAULT_REGISTRATION_IP_LIMIT = 3
@@ -132,6 +136,20 @@ PUBLIC_STATIC_PATHS = {
     "/robots.txt",
     "/sitemap.xml",
     "/.well-known/security.txt",
+    "/README.md",
+    "/ROADMAP.md",
+    "/docs/API_PREVIEW.md",
+    "/docs/DATA_SOURCES.md",
+    "/docs/DISTRIBUTION.md",
+    "/docs/EXAMPLE_REPORTS.md",
+    "/docs/EXPLAIN_OSINTPRO.md",
+    "/docs/GITHUB_GROWTH.md",
+    "/docs/LOCAL_SETUP.md",
+    "/docs/OUTREACH_PLAYBOOK.md",
+    "/docs/PRODUCTION_READINESS.md",
+    "/docs/REPOSITORY_AUDIT_LAB.md",
+    "/docs/SHOWCASE.md",
+    "/docs/WEB_AUDIT_LAB.md",
 }
 CHECKOUT_REFERENCE_RE = re.compile(r"^osintpro_([a-f0-9-]{36})_(pro|agency)$")
 BACKUP_NAME_RE = re.compile(r"^osintpro-[0-9]{8}T[0-9]{6}Z-[a-z0-9-]+-[a-f0-9]{6}\.sqlite3$")
@@ -956,6 +974,375 @@ def should_decrement_report_credit(row: sqlite3.Row) -> bool:
     return not is_paid_plan(row["plan"]) and report_credit_limit(row["plan"]) is not None
 
 
+def clean_repo_path(value: object) -> str:
+    path = str(value or "").replace("\\", "/").strip().lstrip("/")
+    if not path or len(path) > 240:
+        raise ValueError("Invalid repository path.")
+    parts = [part for part in path.split("/") if part]
+    if not parts or any(part in {".", ".."} for part in parts):
+        raise ValueError("Invalid repository path.")
+    return "/".join(parts)
+
+
+def repo_line_number(content: str, offset: int) -> int:
+    return content.count("\n", 0, max(0, offset)) + 1
+
+
+def repo_evidence(line: str) -> str:
+    return redact_text(line.strip())[:220]
+
+
+def repo_finding(
+    *,
+    severity: str,
+    confidence: str,
+    category: str,
+    title: str,
+    path: str,
+    line: int,
+    evidence: str,
+    why: str,
+    remediation: str,
+    applicability: str = "Applies when this code path is reachable in production.",
+) -> dict[str, object]:
+    return {
+        "severity": severity,
+        "confidence": confidence,
+        "category": category,
+        "title": title,
+        "path": path,
+        "line": line,
+        "evidence": repo_evidence(evidence),
+        "why": why,
+        "remediation": remediation,
+        "applicability": applicability,
+    }
+
+
+REPO_AUDIT_RULES = [
+    {
+        "pattern": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
+        "severity": "critical",
+        "confidence": "high",
+        "category": "Secrets",
+        "title": "Private key material committed",
+        "why": "A private key inside source control can grant direct access to systems or signed identities.",
+        "remediation": "Revoke and rotate the key, remove it from Git history and load the replacement from a secret manager.",
+        "applicability": "Always applicable unless this is an intentionally fake fixture with no real key material.",
+    },
+    {
+        "pattern": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+        "severity": "critical",
+        "confidence": "high",
+        "category": "Secrets",
+        "title": "Possible AWS access key",
+        "why": "AWS access keys can authorize cloud API actions and create direct financial and data exposure.",
+        "remediation": "Disable the credential, inspect CloudTrail, rotate it and use workload identities or environment secrets.",
+        "applicability": "Confirm in the AWS account. Example values should still be replaced with clearly invalid placeholders.",
+    },
+    {
+        "pattern": re.compile(r"\b(?:sk_live|rk_live|ghp_|github_pat_|xox[baprs]-)[-A-Za-z0-9_]{12,}\b"),
+        "severity": "critical",
+        "confidence": "high",
+        "category": "Secrets",
+        "title": "Live service credential pattern",
+        "why": "The value resembles a production credential for a third-party service.",
+        "remediation": "Revoke it immediately, inspect provider logs and replace it with an environment variable.",
+        "applicability": "Confirm with the issuing provider; the displayed evidence is redacted by OSINTPRO.",
+    },
+    {
+        "pattern": re.compile(r"(?m)^\s*(?:SECRET_KEY|API_KEY|ACCESS_TOKEN|PASSWORD)\s*=\s*[\"'][^\"'\n]{8,}[\"']"),
+        "severity": "high",
+        "confidence": "medium",
+        "category": "Secrets",
+        "title": "Hard-coded secret-like value",
+        "why": "Long-lived credentials in code are copied into builds, logs and repository history.",
+        "remediation": "Move the value to an environment variable or secret manager and rotate it if it was real.",
+        "applicability": "Review whether the value is a real credential or an explicitly fake development placeholder.",
+    },
+    {
+        "pattern": re.compile(r"\b(?:subprocess\.(?:run|Popen|call)|os\.system)\s*\([^\n]*(?:shell\s*=\s*True|request\.|input\(|argv|params|query)", re.IGNORECASE),
+        "severity": "critical",
+        "confidence": "medium",
+        "category": "Command execution",
+        "title": "User-influenced shell execution",
+        "why": "Combining external input with a shell can allow command injection.",
+        "remediation": "Avoid shell=True, pass a fixed argument array and validate every variable against a strict allowlist.",
+    },
+    {
+        "pattern": re.compile(r"\b(?:eval|exec)\s*\("),
+        "severity": "high",
+        "confidence": "medium",
+        "category": "Code execution",
+        "title": "Dynamic code execution",
+        "why": "eval/exec can turn untrusted or partially controlled strings into executable code.",
+        "remediation": "Replace dynamic execution with a parser, explicit dispatch table or structured data format.",
+        "applicability": "Priority is high only when the evaluated value can be influenced outside the trusted codebase.",
+    },
+    {
+        "pattern": re.compile(r"\bpickle\.loads?\s*\("),
+        "severity": "high",
+        "confidence": "high",
+        "category": "Deserialization",
+        "title": "Unsafe pickle deserialization",
+        "why": "Python pickle can execute code while loading crafted data.",
+        "remediation": "Use JSON or another non-executable format and never unpickle untrusted input.",
+        "applicability": "Applies when the serialized input is not fully controlled and authenticated.",
+    },
+    {
+        "pattern": re.compile(r"\byaml\.load\s*\([^,\n\)]*\)"),
+        "severity": "high",
+        "confidence": "medium",
+        "category": "Deserialization",
+        "title": "YAML load without an explicit safe loader",
+        "why": "Unsafe YAML loaders may instantiate attacker-controlled objects.",
+        "remediation": "Use yaml.safe_load or explicitly pass SafeLoader.",
+    },
+    {
+        "pattern": re.compile(r"(?:verify\s*=\s*False|CERT_NONE|check_hostname\s*=\s*False)"),
+        "severity": "high",
+        "confidence": "high",
+        "category": "Transport security",
+        "title": "TLS certificate verification disabled",
+        "why": "Disabling certificate or hostname validation allows machine-in-the-middle interception.",
+        "remediation": "Restore certificate verification and configure a trusted CA bundle for private services.",
+        "applicability": "Test-only code should be isolated and impossible to enable in production.",
+    },
+    {
+        "pattern": re.compile(r"(?:Access-Control-Allow-Origin[\"']?\s*[:,=]\s*[\"']\*|origins?\s*=\s*[\"']\*[\"'])", re.IGNORECASE),
+        "severity": "medium",
+        "confidence": "medium",
+        "category": "Browser security",
+        "title": "Broad cross-origin access",
+        "why": "A wildcard CORS policy can expose browser-readable data to unrelated origins.",
+        "remediation": "Allow only the exact trusted origins and avoid wildcard credentials combinations.",
+        "applicability": "Public, intentionally unauthenticated APIs may accept wildcard origins after data exposure review.",
+    },
+    {
+        "pattern": re.compile(r"\bDEBUG\s*=\s*True\b|app\.run\([^\n]*debug\s*=\s*True", re.IGNORECASE),
+        "severity": "medium",
+        "confidence": "high",
+        "category": "Configuration",
+        "title": "Debug mode enabled",
+        "why": "Production debug modes can expose stack traces, source code or interactive debuggers.",
+        "remediation": "Use environment-specific configuration and force debug off in production.",
+        "applicability": "Ignore only for isolated local configuration that cannot be deployed.",
+    },
+    {
+        "pattern": re.compile(r"\.execute\s*\(\s*f[\"']|\.execute\s*\([^\n]*\+\s*(?:request|input|params|query)", re.IGNORECASE),
+        "severity": "high",
+        "confidence": "medium",
+        "category": "Database",
+        "title": "SQL built with string interpolation",
+        "why": "Dynamic SQL construction can create SQL injection when values are externally influenced.",
+        "remediation": "Use parameterized queries and allowlist any dynamic table or column identifiers.",
+    },
+    {
+        "pattern": re.compile(r"\.innerHTML\s*=\s*(?![\"'`]\s*[\"'`])"),
+        "severity": "low",
+        "confidence": "low",
+        "category": "Frontend",
+        "title": "Dynamic innerHTML assignment",
+        "why": "Writing non-constant HTML can create DOM XSS if the value contains untrusted data.",
+        "remediation": "Prefer textContent or construct DOM nodes; otherwise sanitize with a proven HTML sanitizer.",
+        "applicability": "Review the full data flow. This is not a vulnerability when every interpolated value is safely escaped.",
+    },
+]
+
+
+def analyze_repository(raw_files: object, repository_name: object = "") -> dict[str, object]:
+    if not isinstance(raw_files, list) or not raw_files:
+        raise ValueError("Select a repository folder with readable text files.")
+    if len(raw_files) > MAX_REPO_AUDIT_FILES:
+        raise ValueError(f"Repository audit accepts at most {MAX_REPO_AUDIT_FILES} text files per run.")
+
+    files: list[tuple[str, str]] = []
+    total_bytes = 0
+    for item in raw_files:
+        if not isinstance(item, dict):
+            raise ValueError("Invalid repository file payload.")
+        path = clean_repo_path(item.get("path"))
+        content = item.get("content")
+        if not isinstance(content, str):
+            raise ValueError("Repository files must contain text.")
+        size = len(content.encode("utf-8"))
+        if size > MAX_REPO_FILE_BYTES:
+            continue
+        total_bytes += size
+        if total_bytes > MAX_REPO_AUDIT_BYTES:
+            raise ValueError("Repository text exceeds the 2 MB audit limit.")
+        files.append((path, content))
+
+    if not files:
+        raise ValueError("No readable source files were included.")
+
+    findings: list[dict[str, object]] = []
+    languages: set[str] = set()
+    manifests: set[str] = set()
+    signals = {
+        "email": False,
+        "authentication": False,
+        "payments": False,
+        "database": False,
+        "frontend": False,
+        "container": False,
+        "ci": False,
+    }
+    extension_languages = {
+        ".py": "Python",
+        ".js": "JavaScript",
+        ".mjs": "JavaScript",
+        ".cjs": "JavaScript",
+        ".ts": "TypeScript",
+        ".tsx": "TypeScript/React",
+        ".jsx": "JavaScript/React",
+        ".php": "PHP",
+        ".rb": "Ruby",
+        ".go": "Go",
+        ".rs": "Rust",
+        ".java": "Java",
+        ".cs": "C#",
+        ".html": "HTML",
+        ".css": "CSS",
+        ".sql": "SQL",
+        ".yml": "YAML",
+        ".yaml": "YAML",
+    }
+    manifest_names = {
+        "requirements.txt",
+        "pyproject.toml",
+        "package.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        "yarn.lock",
+        "go.mod",
+        "cargo.toml",
+        "composer.json",
+        "gemfile",
+        "dockerfile",
+    }
+
+    for path, content in files:
+        suffix = Path(path).suffix.lower()
+        if suffix in extension_languages:
+            languages.add(extension_languages[suffix])
+        name = Path(path).name.lower()
+        if name in manifest_names:
+            manifests.add(name)
+        lower_blob = content.lower()
+        signals["email"] = signals["email"] or any(token in lower_blob for token in ("smtp", "sendgrid", "mailgun", "postmark", "nodemailer", "send_mail"))
+        signals["authentication"] = signals["authentication"] or any(token in lower_blob for token in ("login", "password_hash", "bcrypt", "session", "jwt"))
+        signals["payments"] = signals["payments"] or any(token in lower_blob for token in ("stripe", "paypal", "checkout.session"))
+        signals["database"] = signals["database"] or any(token in lower_blob for token in ("sqlite", "postgres", "mysql", "mongodb", ".execute("))
+        signals["frontend"] = signals["frontend"] or suffix in {".js", ".ts", ".tsx", ".jsx", ".html"}
+        signals["container"] = signals["container"] or name in {"dockerfile", "docker-compose.yml", "compose.yml"}
+        signals["ci"] = signals["ci"] or path.startswith(".github/workflows/")
+
+        for rule in REPO_AUDIT_RULES:
+            for match in rule["pattern"].finditer(content):
+                line_start = content.rfind("\n", 0, match.start()) + 1
+                line_end = content.find("\n", match.end())
+                if line_end < 0:
+                    line_end = len(content)
+                line_text = content[line_start:line_end]
+                if any(placeholder in line_text.lower() for placeholder in ("example", "dummy", "changeme", "your_", "<secret", "redacted")):
+                    continue
+                findings.append(repo_finding(
+                    severity=str(rule["severity"]),
+                    confidence=str(rule["confidence"]),
+                    category=str(rule["category"]),
+                    title=str(rule["title"]),
+                    path=path,
+                    line=repo_line_number(content, match.start()),
+                    evidence=line_text,
+                    why=str(rule["why"]),
+                    remediation=str(rule["remediation"]),
+                    applicability=str(rule.get("applicability", "Applies when this code path is reachable in production.")),
+                ))
+                if len(findings) >= 120:
+                    break
+            if len(findings) >= 120:
+                break
+        if len(findings) >= 120:
+            break
+
+    paths = {path.lower() for path, _ in files}
+    if ".env" in paths or any(path.endswith("/.env") for path in paths):
+        findings.append(repo_finding(
+            severity="high",
+            confidence="high",
+            category="Secrets",
+            title="Environment file included in repository",
+            path=".env",
+            line=1,
+            evidence=".env",
+            why="Environment files commonly contain credentials and deployment configuration.",
+            remediation="Remove it from version control, rotate exposed values and commit only a sanitized .env.example.",
+            applicability="Applies unless the file is a guaranteed secret-free fixture.",
+        ))
+
+    if "package.json" in manifests and not manifests.intersection({"package-lock.json", "pnpm-lock.yaml", "yarn.lock"}):
+        findings.append(repo_finding(
+            severity="low",
+            confidence="high",
+            category="Dependencies",
+            title="JavaScript dependency lockfile not included",
+            path="package.json",
+            line=1,
+            evidence="package.json without a detected lockfile",
+            why="Unpinned dependency resolution makes builds less reproducible and can introduce unexpected versions.",
+            remediation="Commit the lockfile generated by the package manager used in CI and production.",
+            applicability="Applies to deployable applications; reusable libraries may intentionally support broader dependency ranges.",
+        ))
+
+    raw_findings = findings
+    title_occurrences: dict[str, int] = {}
+    displayed_by_title: dict[str, int] = {}
+    findings = []
+    for item in raw_findings:
+        title = str(item["title"])
+        title_occurrences[title] = title_occurrences.get(title, 0) + 1
+        if displayed_by_title.get(title, 0) >= 8:
+            continue
+        findings.append(item)
+        displayed_by_title[title] = displayed_by_title.get(title, 0) + 1
+
+    severity_weight = {"critical": 25, "high": 14, "medium": 7, "low": 2, "info": 0}
+    confidence_weight = {"high": 1.0, "medium": 0.65, "low": 0.2}
+    family_caps = {"critical": 35, "high": 25, "medium": 12, "low": 4, "info": 0}
+    penalty_by_title: dict[str, float] = {}
+    for item in raw_findings:
+        severity = str(item["severity"])
+        title = str(item["title"])
+        penalty = severity_weight.get(severity, 0) * confidence_weight.get(str(item["confidence"]), 0.5)
+        penalty_by_title[title] = min(family_caps.get(severity, 10), penalty_by_title.get(title, 0) + penalty)
+    score = max(0, 100 - round(sum(penalty_by_title.values())))
+    counts = {level: sum(1 for item in raw_findings if item["severity"] == level) for level in ("critical", "high", "medium", "low")}
+    suppressed_findings = len(raw_findings) - len(findings)
+    repo_name = re.sub(r"[^a-zA-Z0-9._ -]", "", str(repository_name or "").strip())[:80] or "Uploaded repository"
+    return redact_data({
+        "id": str(uuid.uuid4()),
+        "repository": repo_name,
+        "generated_at": utc_now(),
+        "score": score,
+        "files_scanned": len(files),
+        "bytes_scanned": total_bytes,
+        "languages": sorted(languages),
+        "manifests": sorted(manifests),
+        "context": signals,
+        "counts": counts,
+        "findings": findings,
+        "total_findings": len(raw_findings),
+        "suppressed_findings": suppressed_findings,
+        "finding_families": title_occurrences,
+        "limitations": [
+            "Static review only: OSINTPRO does not execute uploaded code, install dependencies or run build scripts.",
+            "A finding is a review lead, not proof of exploitability. Confirm reachability, trust boundaries and deployment configuration.",
+            "Files larger than 180 KB, binaries and ignored dependency/build folders are skipped.",
+        ],
+    })
+
+
 def normalize_nickname(raw: str) -> str:
     value = raw.strip().lstrip("@").lower()
     if not USERNAME_RE.match(value):
@@ -1546,7 +1933,7 @@ def analyze_username(raw_username: str) -> dict[str, object]:
     found = [item for item in profiles if item["present"] is True]
     uncertain = [item for item in profiles if item["present"] is None]
     score = min(100, len(found) * 12 + len(uncertain) * 4)
-    summary = f"Found {len(found)} likely profiles and {len(uncertain)} uncertain results for ."
+    summary = f"Found {len(found)} likely profiles and {len(uncertain)} uncertain results for @{username}."
     findings = social_findings(username, profiles)
     recommendations = [
         "Manually verify high-confidence profiles before contacting or attributing.",
@@ -1777,7 +2164,15 @@ def email_posture(domain: str, mx: list[str], txt: list[str]) -> dict[str, objec
         "mta_sts_present": bool(mta_sts),
         "tls_rpt_present": bool(tls_rpt),
     }
-    score = sum([
+    applicable = bool(flags["mx_present"] or flags["spf_present"] or flags["dmarc_present"])
+    mode = (
+        "mail_service_observed"
+        if flags["mx_present"]
+        else "outbound_or_brand_policy_observed"
+        if applicable
+        else "no_mail_use_observed"
+    )
+    raw_score = sum([
         20 if flags["mx_present"] else 0,
         20 if flags["spf_present"] else 0,
         20 if flags["dmarc_present"] else 0,
@@ -1786,7 +2181,14 @@ def email_posture(domain: str, mx: list[str], txt: list[str]) -> dict[str, objec
         10 if flags["tls_rpt_present"] else 0,
     ])
     return {
-        "score": min(100, score),
+        "score": min(100, raw_score) if applicable else None,
+        "applicable": applicable,
+        "mode": mode,
+        "scope_note": (
+            "Mail service or email authentication records were observed."
+            if applicable
+            else "No MX, SPF or DMARC signal was observed. Email controls are treated as optional brand-protection guidance, not an active mail-system failure."
+        ),
         "flags": flags,
         "dmarc": dmarc,
         "mta_sts": mta_sts,
@@ -1900,9 +2302,10 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
         if not item.get("present"):
             findings.append({"level": "medium", "title": f"Missing header: {item['name']}", "detail": "Reduces the publicly observable browser-side security posture."})
     flags = email.get("flags", {})
-    if not flags.get("spf_present"):
+    email_applicable = bool(email.get("applicable"))
+    if email_applicable and flags.get("mx_present") and not flags.get("spf_present"):
         findings.append({"level": "high", "title": "SPF missing", "detail": "The domain does not publish an SPF policy in the main TXT records."})
-    if not flags.get("dmarc_present"):
+    if email_applicable and not flags.get("dmarc_present"):
         findings.append({"level": "high", "title": "DMARC missing", "detail": "No public anti-impersonation policy was found on _dmarc."})
     if isinstance(days, int) and days < 30:
         findings.append({"level": "high", "title": "TLS expiring soon", "detail": f"The certificate expires in {days} days."})
@@ -1953,7 +2356,7 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
             "evidence": "X-Frame-Options and CSP frame-ancestors are missing.",
             "next_step": "Test iframe embedding in an authorized environment and block untrusted frames.",
         })
-    if not flags.get("dmarc_present"):
+    if email.get("applicable") and not flags.get("dmarc_present"):
         vulns.append({
             "severity": "high",
             "confidence": "high",
@@ -1961,7 +2364,7 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
             "evidence": "DMARC record not found on _dmarc.",
             "next_step": "Publish DMARC at least with p=none and reporting, then move toward quarantine/reject.",
         })
-    if flags.get("dmarc_present") and not (flags.get("dmarc_reject") or flags.get("dmarc_quarantine")):
+    if email.get("applicable") and flags.get("dmarc_present") and not (flags.get("dmarc_reject") or flags.get("dmarc_quarantine")):
         vulns.append({
             "severity": "medium",
             "confidence": "high",
@@ -2029,7 +2432,7 @@ def red_team_paths(report: dict[str, object]) -> list[dict[str, str]]:
             "objective": "Expand asset inventory from names in public certificates.",
             "signal": f"{len(ct.get('subdomains', []))} names observable in Certificate Transparency.",
         })
-    if not flags.get("dmarc_reject"):
+    if email.get("applicable") and not flags.get("dmarc_reject"):
         paths.append({
             "name": "Brand impersonation drill",
             "objective": "Measure exposure to authorized spoofing and phishing simulation.",
@@ -2063,7 +2466,8 @@ def red_team_paths(report: dict[str, object]) -> list[dict[str, str]]:
 
 
 def purple_team_controls(report: dict[str, object]) -> list[dict[str, str]]:
-    return [
+    email = report.get("email_security", {})
+    controls = [
         {
             "control": "DNS drift detection",
             "why": "New MX, NS, CAA or TXT records can indicate infrastructure changes or operational takeover risk.",
@@ -2073,11 +2477,6 @@ def purple_team_controls(report: dict[str, object]) -> list[dict[str, str]]:
             "control": "Certificate Transparency watch",
             "why": "New certificates can reveal subdomains, shadow IT or unexpected issuance.",
             "cadence": "daily",
-        },
-        {
-            "control": "Email authentication guardrail",
-            "why": "SPF/DMARC/MTA-STS reduce brand abuse and should be treated as detection controls.",
-            "cadence": "weekly",
         },
         {
             "control": "Web header baseline",
@@ -2090,6 +2489,13 @@ def purple_team_controls(report: dict[str, object]) -> list[dict[str, str]]:
             "cadence": "monthly",
         },
     ]
+    if email.get("applicable"):
+        controls.insert(2, {
+            "control": "Email authentication guardrail",
+            "why": "SPF/DMARC/MTA-STS reduce brand abuse for the observed mail or brand-protection scope.",
+            "cadence": "weekly",
+        })
+    return controls
 
 
 def score_report(
@@ -2105,7 +2511,10 @@ def score_report(
     if cert.get("expires"):
         score += 20
     score += sum(5 for item in headers if item["present"])
-    score += min(15, int(email.get("score", 0)) // 8)
+    if email.get("applicable"):
+        score += min(15, int(email.get("score") or 0) // 8)
+    else:
+        score += 10
     if web.get("security_txt", {}).get("present"):
         score += 3
     if web.get("sitemap_xml", {}).get("present"):
@@ -2121,12 +2530,13 @@ def recommendations(report: dict[str, object]) -> list[str]:
     headers = https.get("security_headers", []) if isinstance(https, dict) else []
     items: list[str] = []
 
-    if not dns.get("mx"):
-        items.append("Configure or verify MX records if the domain sends or receives email.")
+    email_applicable = bool(email.get("applicable"))
+    if not dns.get("mx") and email_applicable:
+        items.append("Configure or verify MX records if the domain is expected to receive email.")
     txt_values = " ".join(dns.get("txt", [])) if isinstance(dns, dict) else ""
-    if "v=spf1" not in txt_values.lower():
+    if email_applicable and email.get("flags", {}).get("mx_present") and "v=spf1" not in txt_values.lower():
         items.append("Add an SPF record to reduce spoofing and email deliverability issues.")
-    if not email.get("flags", {}).get("dmarc_present"):
+    if email_applicable and not email.get("flags", {}).get("dmarc_present"):
         items.append("Evaluate a DMARC record to protect the brand from email impersonation.")
     if not cert.get("expires"):
         items.append("Verify the TLS certificate: OSINTPRO did not read a valid HTTPS expiry date.")
@@ -2162,7 +2572,7 @@ def analyze(raw_target: str) -> dict[str, object]:
     missing_headers = [item["name"] for item in https["security_headers"] if not item["present"]]
     if not addresses:
         summary = "The domain does not resolve IP addresses from the local backend."
-    elif email["score"] < 45:
+    elif email.get("applicable") and int(email.get("score") or 0) < 45:
         summary = "Domain is reachable, but the public email posture needs attention."
     elif missing_headers:
         summary = f"Domain is reachable. Missing {len(missing_headers)} observable security headers."
@@ -2418,6 +2828,7 @@ def report_document(report: dict[str, object]) -> str:
         f"<tr><td>{html.escape(item.get('control', ''))}</td><td>{html.escape(item.get('why', ''))}</td><td>{html.escape(item.get('cadence', ''))}</td></tr>"
         for item in purple_controls
     )
+    email_score_label = f"{int(email.get('score') or 0)}/100" if email.get("applicable") else "Not applicable"
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -2461,7 +2872,7 @@ def report_document(report: dict[str, object]) -> str:
       <div class="box"><h2>TLS certificate</h2><p>{html.escape(str(cert.get("subject") or "not available"))}</p><p class="meta">Expires: {html.escape(str(cert.get("expires") or "not available"))}</p></div>
     </section>
     <section class="grid">
-      <div class="box"><h2>Email security</h2><p>Score: {int(email.get("score", 0))}/100</p><ul>{lines(email.get("dmarc", []) + email.get("mta_sts", []) + email.get("tls_rpt", []))}</ul></div>
+      <div class="box"><h2>Email security</h2><p>Score: {email_score_label}</p><p>{html.escape(str(email.get("scope_note") or ""))}</p><ul>{lines(email.get("dmarc", []) + email.get("mta_sts", []) + email.get("tls_rpt", []))}</ul></div>
       <div class="box"><h2>RDAP</h2><p>Registrar: {html.escape(str(rdap.get("registrar") or "not available"))}</p><p class="meta">Created: {html.escape(str(rdap.get("created") or "n/a"))}<br>Expires: {html.escape(str(rdap.get("expires") or "n/a"))}</p></div>
       <div class="box"><h2>Well-known</h2><p>security.txt: {web.get("security_txt", {}).get("status") or "n/a"}<br>robots.txt: {web.get("robots_txt", {}).get("status") or "n/a"}<br>sitemap.xml: {web.get("sitemap_xml", {}).get("status") or "n/a"}</p></div>
       <div class="box"><h2>Certificate Transparency</h2><ul>{subdomain_rows or "<li>no names found</li>"}</ul></div>
@@ -2770,15 +3181,15 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def read_json(self) -> dict[str, object]:
+    def read_json(self, limit: int = MAX_BODY_BYTES) -> dict[str, object]:
         length = int(self.headers.get("Content-Length", "0"))
         if not length:
             return {}
-        if length > MAX_BODY_BYTES:
+        if length > limit:
             raise ValueError("Request body is too large.")
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
-        except json.JSONDecodeError as exc:
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise ValueError("Invalid JSON.") from exc
         if not isinstance(payload, dict):
             raise ValueError("Invalid payload.")
@@ -3214,9 +3625,10 @@ class Handler(SimpleHTTPRequestHandler):
                     node_id = f"takeover:{subdomain}"
                     add_node(node_id, str(subdomain), "risk", None, str(provider or "takeover hint"))
                     add_edge(root, node_id, "takeover review", "risk")
-            email_node = f"email:{domain}"
-            add_node(email_node, "Email posture", "email", int(email.get("score") or 0), "SPF/DMARC/MTA-STS")
-            add_edge(root, email_node, "email controls", "email")
+            if email.get("applicable"):
+                email_node = f"email:{domain}"
+                add_node(email_node, "Email posture", "email", int(email.get("score") or 0), "SPF/DMARC/MTA-STS")
+                add_edge(root, email_node, "email controls", "email")
             for finding in (report.get("findings") or [])[:6]:
                 title = finding.get("title")
                 if title:
@@ -3613,7 +4025,7 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/meta":
             self.send_json({
                 "product": "OSINTPRO",
-                "positioning": "Client-ready passive investigation graph for domains, public identities and blockchain wallets.",
+                "positioning": "Client-ready passive investigation and defensive source-review workspace.",
                 "live_demo": "https://osintpro-48j4.onrender.com/",
                 "safety_boundary": [
                     "passive public-source intelligence",
@@ -3629,6 +4041,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "wallet_osint",
                     "entity_graph",
                     "web_audit_lab",
+                    "repository_audit_lab",
                     "network_traffic_lab",
                     "monitoring",
                     "exports",
@@ -3637,6 +4050,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "public_docs": {
                     "data_sources": "/docs/DATA_SOURCES.md",
                     "distribution": "/docs/DISTRIBUTION.md",
+                    "repository_audit": "/docs/REPOSITORY_AUDIT_LAB.md",
                     "roadmap": "/ROADMAP.md",
                 },
             })
@@ -4216,6 +4630,48 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"playbooks": self.playbooks_for_user(str(user["_id"]))}, status=201, headers=headers)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
+            return
+        if parsed.path == "/api/repository/audit":
+            user, headers = self.get_or_create_user()
+            try:
+                body = self.read_json(MAX_REPO_AUDIT_BYTES + 262144)
+                with db() as connection:
+                    row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
+                    if not has_report_access(row):
+                        record_conversion_event(
+                            connection,
+                            str(user["_id"]),
+                            "free_credits_exhausted",
+                            "Pro",
+                            "repository_audit",
+                            {"current_plan": row["plan"]},
+                        )
+                        self.send_json({"error": "Free credits exhausted. Upgrade to Pro to continue."}, 402, headers)
+                        return
+                    audit = analyze_repository(body.get("files"), body.get("repository"))
+                    if should_decrement_report_credit(row):
+                        connection.execute(
+                            "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
+                            (utc_now(), user["_id"]),
+                        )
+                    record_conversion_event(
+                        connection,
+                        str(user["_id"]),
+                        "repository_audit_run",
+                        row["plan"],
+                        "repository_audit",
+                        {
+                            "files_scanned": audit["files_scanned"],
+                            "findings": len(audit["findings"]),
+                            "score": audit["score"],
+                        },
+                    )
+                    updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
+                self.send_json({"audit": audit, "user": row_to_user(updated)}, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            except Exception:
+                self.send_json({"error": "Repository audit failed. No uploaded source or internal details were logged."}, 500, headers)
             return
 
         if parsed.path == "/api/analyze":

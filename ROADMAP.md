@@ -6,7 +6,7 @@ OSINTPRO is moving toward a focused passive intelligence workspace for domains, 
 
 The primary product is the client-ready investigation graph: passive evidence from domains, public profiles and wallets gets normalized into readable findings, relationships, notes, exports and monitoring.
 
-Web Audit Lab, Network Traffic Lab, Social OSINT and Wallet OSINT are input modules for that workspace. They should strengthen the investigation graph instead of becoming separate products.
+Web Audit Lab, Repository Audit Lab, Network Traffic Lab, Social OSINT and Wallet OSINT are input modules for that workspace. They should strengthen the investigation graph instead of becoming disconnected products.
 
 ## Current Focus
 
@@ -15,6 +15,7 @@ Web Audit Lab, Network Traffic Lab, Social OSINT and Wallet OSINT are input modu
 - Expand passive wallet OSINT for fraud reconstruction.
 - Strengthen exports and case-ready reporting.
 - Expand beginner-friendly Web Audit Lab workflows without adding invasive scanning.
+- Expand defensive repository review without executing uploaded code or generating exploits.
 - Add beginner-friendly network traffic analysis without unauthorized packet capture.
 - Keep hosting costs at zero until paid usage justifies infrastructure spend.
 - Keep infrastructure risk visible while the project stays on zero-cost hosting.
@@ -50,6 +51,16 @@ Status: wallet CSV export, manual wallet tags, case notes, transaction timeline 
 - Report comparison for monitored domains.
 
 Status: server-side PDF export, Web Audit Lab CSV/playbook export, sanitized example reports, report comparison and configurable report branding are implemented. Visual branded templates remain future polish.
+
+### Repository Audit
+
+- Static source-folder review with browser-side filtering.
+- File and line references with redacted evidence.
+- Applicability and confidence notes to reduce false positives.
+- JSON export for developer remediation work.
+- Future dependency advisory matching and framework-aware rules.
+
+Status: the first defensive static-analysis MVP is implemented. It does not execute source code, install dependencies or retain uploaded source bundles.
 
 ### Monetization
 

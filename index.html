@@ -29,6 +29,7 @@
         <button class="nav-btn" data-section="social">Social Intel</button>
         <button class="nav-btn" data-section="wallet">Wallet Trace</button>
         <button class="nav-btn" data-section="web-audit">Web Audit Lab</button>
+        <button class="nav-btn" data-section="repo-audit">Repo Audit Lab</button>
         <button class="nav-btn" data-section="network-lab">Network Lab</button>
         <span class="nav-label">Workspace</span>
         <button class="nav-btn" data-section="cases">Cases</button>
@@ -43,7 +44,7 @@
 
       <div class="account">
         <span class="tiny" id="workspacePlan">Free workspace</span>
-        <strong><span id="credits">10</span> credits</strong>
+        <strong><span id="credits">5</span> credits</strong>
         <div class="bar"><span id="creditBar"></span></div>
         <small><span id="monitorUsage">0/0</span> monitored domains.</small>
       </div>
@@ -93,6 +94,7 @@
               <button class="secondary" type="button" data-section-jump="social">Social</button>
               <button class="secondary" type="button" data-section-jump="wallet">Wallet</button>
               <button class="secondary" type="button" data-section-jump="web-audit">Web audit</button>
+              <button class="secondary" type="button" data-section-jump="repo-audit">Repository</button>
               <button class="secondary" type="button" data-section-jump="network-lab">Network</button>
             </div>
           </article>
@@ -237,6 +239,57 @@
         <div id="webAuditResult" class="result empty">
           <h2>No web audit lab yet</h2>
           <p>Enter a domain you own or are authorized to test. The lab explains each technical term before asking you to use it.</p>
+        </div>
+      </section>
+
+      <section class="section" id="repo-audit">
+        <div class="section-head">
+          <div>
+            <span class="pill">Static code security</span>
+            <h2>Repository Audit Lab</h2>
+          </div>
+          <button class="secondary" id="downloadRepoAudit" type="button" hidden>Export JSON</button>
+        </div>
+
+        <div class="notice">
+          <strong>Source review without code execution</strong>
+          <span>Select a local repository folder. OSINTPRO reads eligible text files in the browser, sends a limited bundle for static analysis and never installs dependencies, runs builds or executes uploaded code.</span>
+        </div>
+
+        <form id="repoAuditForm" class="repo-audit-form">
+          <div class="repo-picker">
+            <label for="repoAuditName">Repository name</label>
+            <input id="repoAuditName" name="repoAuditName" placeholder="client-portal" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="repo-picker">
+            <label for="repoAuditFiles">Repository folder</label>
+            <input id="repoAuditFiles" name="repoAuditFiles" type="file" webkitdirectory directory multiple>
+            <small id="repoAuditSelection">No folder selected.</small>
+          </div>
+          <button class="primary" type="submit" id="repoAuditButton">Audit repository</button>
+        </form>
+
+        <div class="onboarding-strip">
+          <article>
+            <span class="pill">Context</span>
+            <strong>Fewer generic warnings</strong>
+            <p>Findings include applicability and confidence so a missing feature is not automatically treated as an exploitable flaw.</p>
+          </article>
+          <article>
+            <span class="pill">Evidence</span>
+            <strong>File and line references</strong>
+            <p>Each lead includes a redacted code excerpt, why it matters and a concrete remediation.</p>
+          </article>
+          <article>
+            <span class="pill">Limits</span>
+            <strong>Static review, not proof</strong>
+            <p>Confirm reachability, trust boundaries and deployment settings before calling any result a vulnerability.</p>
+          </article>
+        </div>
+
+        <div id="repoAuditResult" class="result empty">
+          <h2>No repository audited yet</h2>
+          <p>Select a source folder. Dependency directories, build output, binaries and oversized files are ignored before upload.</p>
         </div>
       </section>
 
@@ -388,7 +441,7 @@
         </form>
         <div class="notice">
           <strong>Monetization</strong>
-          <span>Free includes starter investigations but no monitoring. Pro monitors 5 domains. Agency monitors 25 authorized client domains. Monitoring remains passive and public-signal based.</span>
+          <span>Free includes 1 monitored domain for a 30-day trial. Pro monitors 5 domains. Agency monitors 25 authorized client domains. Monitoring remains passive and public-signal based.</span>
         </div>
         <div class="monitor-list" id="monitorList"></div>
       </section>
@@ -403,7 +456,7 @@
           <article>
             <span class="pill">Free</span>
             <strong>Validate one workflow</strong>
-            <p>Use starter credits to test domain, social, wallet and Web Audit Lab reports.</p>
+            <p>Use starter credits to test domain, social, wallet, web and repository review workflows.</p>
           </article>
           <article>
             <span class="pill">Pro</span>
@@ -422,7 +475,8 @@
             <h2>€0</h2>
             <p>Evaluate the investigation workflow before upgrading to recurring monitoring.</p>
             <ul>
-              <li>10 starter reports</li>
+              <li>5 starter reports</li>
+              <li>1 monitored domain for 30 days</li>
               <li>Public DNS and IP data</li>
               <li>Private account history</li>
               <li>No monitored domains</li>

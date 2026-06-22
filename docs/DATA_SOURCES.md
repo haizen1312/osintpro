@@ -15,6 +15,7 @@ OSINTPRO currently uses passive public sources and direct observations. It avoid
 | Social username checks | Public profile URLs | No paid API | Presence checks only. No login, private scraping or attribution guarantee. |
 | Bitcoin wallet OSINT | Blockstream public API | No paid API | Public balance, recent transactions and explorer links. Subject to fair-use limits. |
 | Ethereum/EVM wallet OSINT | Blockscout public API | No paid API | Public balance, account type and recent activity where available. Subject to fair-use limits. |
+| Repository Audit Lab | User-selected local source text | No paid API | Static review only. No dependency installation, build execution or source retention. |
 | Billing | Stripe Payment Links and webhooks | Stripe fees on payments | No custom card storage. OSINTPRO only receives signed checkout events. |
 
 ## Unit Economics

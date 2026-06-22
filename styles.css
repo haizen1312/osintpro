@@ -18,6 +18,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 * {
   scrollbar-color: rgba(57, 255, 184, .42) rgba(255, 255, 255, .05);
   scrollbar-width: thin;
@@ -1221,6 +1225,132 @@ textarea:focus {
   margin-top: 12px;
 }
 
+.repo-audit-form {
+  display: grid;
+  grid-template-columns: minmax(180px, .55fr) minmax(300px, 1.2fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin: 16px 0;
+}
+
+.repo-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.repo-picker input[type="file"] {
+  min-height: 44px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .035);
+  color: var(--muted);
+}
+
+.repo-context {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.repo-context > div {
+  padding: 15px;
+  border-block: 1px solid var(--line);
+  background: rgba(255, 255, 255, .025);
+}
+
+.repo-context strong {
+  display: block;
+  margin: 8px 0;
+  font-size: 17px;
+}
+
+.repo-findings {
+  margin-top: 18px;
+}
+
+.repo-finding {
+  display: grid;
+  gap: 9px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.repo-finding:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.repo-finding.critical,
+.repo-finding.high {
+  border-top-color: rgba(255, 93, 108, .42);
+}
+
+.repo-finding.medium {
+  border-top-color: rgba(255, 189, 89, .38);
+}
+
+.repo-finding-head {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.severity {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.severity.critical,
+.severity.high {
+  border-color: rgba(255, 93, 108, .5);
+  color: var(--red);
+}
+
+.severity.medium {
+  border-color: rgba(255, 189, 89, .5);
+  color: var(--amber);
+}
+
+.severity.low {
+  color: var(--cyan);
+}
+
+.repo-finding code {
+  color: var(--cyan);
+  overflow-wrap: anywhere;
+}
+
+.repo-finding pre {
+  max-width: 100%;
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  border: 1px solid rgba(98, 216, 255, .15);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, .34);
+  color: #b9fff0;
+  white-space: pre-wrap;
+}
+
+.repo-finding p {
+  margin: 0;
+}
+
+.repo-finding p strong {
+  color: var(--ink);
+}
+
 .lab-panel {
   padding: 16px;
   margin-top: 12px;
@@ -1635,6 +1765,8 @@ textarea:focus {
   .onboarding-strip,
   .lab-grid,
   .lab-columns,
+  .repo-audit-form,
+  .repo-context,
   .term-grid,
   .feature-grid,
   .concept-grid,
@@ -1650,15 +1782,60 @@ textarea:focus {
   }
 
   .rail {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  .brand {
+    grid-template-columns: 38px auto;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mark {
+    width: 38px;
+    height: 38px;
+  }
+
+  .brand span {
+    display: none;
+  }
+
+  .nav {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 3px;
+    scrollbar-width: thin;
+  }
+
+  .nav-label,
+  .account {
+    display: none;
+  }
+
+  .nav-btn {
+    flex: 0 0 auto;
+    min-height: 36px;
+    white-space: nowrap;
   }
 }
 
 @media (max-width: 600px) {
-  .workspace,
-  .rail {
+  .workspace {
     padding: 18px;
+  }
+
+  .rail {
+    padding: 9px 10px;
   }
 
   .report-row,
@@ -1666,6 +1843,10 @@ textarea:focus {
   .asset-row,
   .admin-row,
   .check {
+    grid-template-columns: 1fr;
+  }
+
+  .repo-finding-head {
     grid-template-columns: 1fr;
   }
 
