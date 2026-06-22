@@ -11,6 +11,7 @@
 </head>
 <body>
   <canvas id="signalCanvas" aria-hidden="true"></canvas>
+  <div class="app-toast" id="appToast" role="status" aria-live="polite"></div>
   <div class="app">
     <aside class="rail">
       <div class="brand">
@@ -403,7 +404,7 @@
             <h2>Generated reports</h2>
           </div>
           <div class="actions">
-            <a class="secondary button-link" href="/api/reports.csv">CSV</a>
+            <a class="secondary button-link" href="/api/reports.csv" data-download>CSV</a>
             <button class="secondary" id="clearReports" type="button">Clear domains</button>
             <button class="secondary" id="clearAllHistory" type="button">Clear all</button>
           </div>

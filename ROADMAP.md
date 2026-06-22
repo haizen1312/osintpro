@@ -50,7 +50,10 @@ Status: wallet CSV export, manual wallet tags, case notes, transaction timeline 
 - Agency-friendly report branding.
 - Report comparison for monitored domains.
 
-Status: server-side PDF export, Web Audit Lab CSV/playbook export, sanitized example reports, report comparison and configurable report branding are implemented. Visual branded templates remain future polish.
+Status: server-side PDF export, report CSV, Web Audit Lab CSV/playbook export,
+anonymous session export support, sanitized example reports, report comparison
+and configurable report branding are implemented. Export endpoints have HTTP
+regression tests. Visual branded templates remain future polish.
 
 ### Repository Audit
 
@@ -87,6 +90,18 @@ Status: API preview documentation, public metadata endpoint and Agency/Admin API
 - Keep secrets in environment variables and out of GitHub.
 
 Status: SQLite remains the default zero-cost database. PostgreSQL is intentionally deferred because the project is currently constrained to no paid infrastructure. A production readiness and migration checklist is documented in `docs/PRODUCTION_READINESS.md`.
+
+## Known Limitations
+
+- PDF output is intentionally lightweight and currently limited to one page.
+- Repository Audit Lab does not export SARIF yet.
+- Entity Graph does not export JSON-LD or DOT yet.
+- PostgreSQL has a documented migration plan but no runtime adapter.
+- Conversion analytics are first-party event counts, not a full experiment
+  dashboard.
+- Standard-library trace currently covers about 25.8% of the monolithic
+  backend. New export paths have HTTP regression tests, but broader backend
+  coverage still needs modularization and additional fixtures.
 
 ## Safety Boundary
 

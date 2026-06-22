@@ -39,3 +39,13 @@ Use a long random admin code in production and rotate it if exposed.
 
 Only analyze assets you own, manage, or are authorized to assess.
 Findings are hypotheses based on public signals and should be manually verified before client remediation work.
+
+## Export Safety
+
+- PDF and CSV exports are scoped to the signed browser session.
+- Authenticated accounts can export only their own saved reports.
+- Anonymous sessions retain only their latest report per type.
+- Attachment filenames are normalized before being added to headers.
+- Secret-like values are redacted before report rendering.
+- Export errors remain JSON errors on the server and visible messages in the
+  browser; do not silently navigate users to an error payload.

@@ -19,6 +19,8 @@ import uuid
 import ipaddress
 import urllib.error
 import urllib.request
+from collections.abc import Iterator
+from contextlib import contextmanager
 from email.utils import parsedate_to_datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -137,8 +139,11 @@ PUBLIC_STATIC_PATHS = {
     "/sitemap.xml",
     "/.well-known/security.txt",
     "/README.md",
+    "/ARCHITECTURE.md",
+    "/PERFORMANCE.md",
     "/ROADMAP.md",
     "/docs/API_PREVIEW.md",
+    "/docs/AI_DEVELOPMENT_GUIDE.md",
     "/docs/DATA_SOURCES.md",
     "/docs/DISTRIBUTION.md",
     "/docs/EXAMPLE_REPORTS.md",
@@ -288,14 +293,28 @@ def csv_cell(value: object) -> str:
     return f'"{text.replace(chr(34), chr(34) + chr(34))}"'
 
 
-def db() -> sqlite3.Connection:
+def safe_download_filename(value: object, fallback: str) -> str:
+    name = re.sub(r"[^a-zA-Z0-9._-]+", "-", str(value or "").strip()).strip(".-")
+    return (name[:120] or fallback).lower()
+
+
+@contextmanager
+def db() -> Iterator[sqlite3.Connection]:
+    """Open one transaction-scoped SQLite connection and always close it."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     connection.execute("PRAGMA busy_timeout = 5000")
     connection.execute("PRAGMA journal_mode = WAL")
-    return connection
+    try:
+        yield connection
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
 
 
 def init_db() -> None:
@@ -2704,6 +2723,19 @@ def store_wallet_report(
     )
 
 
+def prepare_session_report_storage(
+    connection: sqlite3.Connection,
+    user: dict[str, object],
+    table: str,
+) -> None:
+    """Bound anonymous storage while keeping authenticated history intact."""
+    if user.get("authenticated"):
+        return
+    if table not in {"reports", "social_reports", "wallet_reports"}:
+        raise ValueError("Invalid report storage table.")
+    connection.execute(f"DELETE FROM {table} WHERE user_id = ?", (user["_id"],))
+
+
 def run_monitor_rows(connection: sqlite3.Connection, rows: list[sqlite3.Row]) -> dict[str, object]:
     checked = 0
     changed_count = 0
@@ -2900,7 +2932,7 @@ def report_document(report: dict[str, object]) -> str:
     </section>
     <section>
       <h2>Security header</h2>
-      <table><thead><tr><th>Header</th><th>Status</th><th>Valore</th></tr></thead><tbody>{checks}</tbody></table>
+      <table><thead><tr><th>Header</th><th>Status</th><th>Value</th></tr></thead><tbody>{checks}</tbody></table>
     </section>
   </main>
 </body>
@@ -3175,6 +3207,24 @@ class Handler(SimpleHTTPRequestHandler):
         body = redact_text(document).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        for key, value in (headers or {}).items():
+            self.send_header(key, value)
+        self.end_headers()
+        self.wfile.write(body)
+
+    def send_download(
+        self,
+        body: bytes,
+        content_type: str,
+        filename: str,
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        """Send one attachment response with consistent security headers."""
+        clean_name = safe_download_filename(filename, "osintpro-export")
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Disposition", f'attachment; filename="{clean_name}"')
         self.send_header("Content-Length", str(len(body)))
         for key, value in (headers or {}).items():
             self.send_header(key, value)
@@ -4244,14 +4294,12 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Report not found"}, 404, headers)
                 return
             body = report_pdf(report)
-            self.send_response(200)
-            self.send_header("Content-Type", "application/pdf")
-            self.send_header("Content-Disposition", f"attachment; filename=osintpro-{report_id}.pdf")
-            self.send_header("Content-Length", str(len(body)))
-            for key, value in headers.items():
-                self.send_header(key, value)
-            self.end_headers()
-            self.wfile.write(body)
+            self.send_download(
+                body,
+                "application/pdf",
+                f"osintpro-{report.get('domain') or report_id}.pdf",
+                headers,
+            )
             return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/web-audit.csv"):
             user, headers = self.get_or_create_user()
@@ -4265,48 +4313,37 @@ class Handler(SimpleHTTPRequestHandler):
             for item in payload["checklist"]:
                 lines.append(",".join(csv_cell(item.get(key, "")) for key in ("item", "status", "evidence")))
             body = ("\n".join(lines) + "\n").encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/csv; charset=utf-8")
-            self.send_header("Content-Disposition", f"attachment; filename=osintpro-web-audit-{report_id}.csv")
-            self.send_header("Content-Length", str(len(body)))
-            for key, value in headers.items():
-                self.send_header(key, value)
-            self.end_headers()
-            self.wfile.write(body)
+            self.send_download(
+                body,
+                "text/csv; charset=utf-8",
+                f"osintpro-web-audit-{report.get('domain') or report_id}.csv",
+                headers,
+            )
             return
         if parsed.path == "/api/reports.csv":
             user, headers = self.get_or_create_user()
-            reports = self.visible_reports_for_user(user)
+            reports = self.reports_for_user(str(user["_id"]))
             lines = ["domain,score,generated_at,summary"]
             for item in reports:
                 values = [item["domain"], item["score"], item["generated_at"], item["summary"]]
                 lines.append(",".join(csv_cell(value) for value in values))
             body = ("\n".join(lines) + "\n").encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/csv; charset=utf-8")
-            self.send_header("Content-Disposition", "attachment; filename=osintpro-reports.csv")
-            self.send_header("Content-Length", str(len(body)))
-            for key, value in headers.items():
-                self.send_header(key, value)
-            self.end_headers()
-            self.wfile.write(body)
+            self.send_download(body, "text/csv; charset=utf-8", "osintpro-reports.csv", headers)
             return
         if parsed.path == "/api/wallet/reports.csv":
             user, headers = self.get_or_create_user()
-            reports = self.visible_wallet_reports_for_user(user)
+            reports = self.wallet_reports_for_user(str(user["_id"]))
             lines = ["chain,address,risk_score,generated_at,summary"]
             for item in reports:
                 values = [item["chain"], item["address"], item["risk_score"], item["generated_at"], item["summary"]]
                 lines.append(",".join(csv_cell(value) for value in values))
             body = ("\n".join(lines) + "\n").encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/csv; charset=utf-8")
-            self.send_header("Content-Disposition", "attachment; filename=osintpro-wallet-reports.csv")
-            self.send_header("Content-Length", str(len(body)))
-            for key, value in headers.items():
-                self.send_header(key, value)
-            self.end_headers()
-            self.wfile.write(body)
+            self.send_download(
+                body,
+                "text/csv; charset=utf-8",
+                "osintpro-wallet-reports.csv",
+                headers,
+            )
             return
         super().do_GET()
 
@@ -4703,8 +4740,8 @@ class Handler(SimpleHTTPRequestHandler):
                             "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
                             (utc_now(), user["_id"]),
                         )
-                    if user.get("authenticated"):
-                        store_report(connection, str(user["_id"]), report, folder_id)
+                    prepare_session_report_storage(connection, user, "reports")
+                    store_report(connection, str(user["_id"]), report, folder_id)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                 self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
@@ -4742,8 +4779,8 @@ class Handler(SimpleHTTPRequestHandler):
                             "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
                             (utc_now(), user["_id"]),
                         )
-                    if user.get("authenticated"):
-                        store_social_report(connection, str(user["_id"]), report, folder_id)
+                    prepare_session_report_storage(connection, user, "social_reports")
+                    store_social_report(connection, str(user["_id"]), report, folder_id)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                 self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
@@ -4781,8 +4818,8 @@ class Handler(SimpleHTTPRequestHandler):
                             "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
                             (utc_now(), user["_id"]),
                         )
-                    if user.get("authenticated"):
-                        store_wallet_report(connection, str(user["_id"]), report, folder_id)
+                    prepare_session_report_storage(connection, user, "wallet_reports")
+                    store_wallet_report(connection, str(user["_id"]), report, folder_id)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                 self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:

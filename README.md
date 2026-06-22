@@ -138,6 +138,9 @@ Current public traction as of June 23, 2026:
 - [Outreach playbook](docs/OUTREACH_PLAYBOOK.md)
 - [API preview](docs/API_PREVIEW.md)
 - [Production readiness](docs/PRODUCTION_READINESS.md)
+- [Architecture](ARCHITECTURE.md)
+- [Performance notes](PERFORMANCE.md)
+- [AI development guide](docs/AI_DEVELOPMENT_GUIDE.md)
 - [Showcase and share copy](docs/SHOWCASE.md)
 - [Sanitized example reports](docs/EXAMPLE_REPORTS.md)
 - [Product roadmap](ROADMAP.md)
@@ -158,6 +161,7 @@ Current public traction as of June 23, 2026:
 - Agency case summaries with asset counts, priority signals and average posture score.
 - Entity graph filters for domains, people, wallets and findings.
 - Server-side PDF export plus CSV exports for reports, wallet history and Web Audit Lab checklists.
+- Guest exports retain only the latest session report and show browser download feedback.
 - Report comparison for repeated domain reports.
 - Saved Web Audit Lab playbooks for repeatable beginner-safe reviews.
 - Wallet case notes, manual tags, transaction timeline and counterparty hop expansion for passive fraud reconstruction.

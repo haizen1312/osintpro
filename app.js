@@ -105,6 +105,51 @@ function setLiveSignal(text) {
   if (node) node.textContent = text;
 }
 
+let toastTimer = 0;
+
+function showToast(message, isError = false) {
+  const toast = document.querySelector("#appToast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.toggle("error", isError);
+  toast.classList.add("visible");
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 4200);
+}
+
+function downloadFilename(response, fallback) {
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  return match?.[1] || fallback;
+}
+
+async function downloadExport(url, fallbackName = "osintpro-export") {
+  setLiveSignal("preparing secure export");
+  try {
+    const response = await fetch(url, { credentials: "same-origin" });
+    if (!response.ok) {
+      const contentType = response.headers.get("Content-Type") || "";
+      const payload = contentType.includes("application/json") ? await response.json() : {};
+      throw new Error(payload.error || `Export failed with HTTP ${response.status}.`);
+    }
+    const blob = await response.blob();
+    if (!blob.size) throw new Error("The export was empty.");
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = downloadFilename(response, fallbackName);
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    showToast(`Downloaded ${anchor.download}`);
+  } catch (error) {
+    showToast(error.message, true);
+  } finally {
+    setLiveSignal("passive sensors idle");
+  }
+}
+
 function freeReportsUnlimited() {
   return state.user.plan === "Free" && state.user.free_credits === null;
 }
@@ -891,7 +936,7 @@ function renderWebAuditLab(report) {
         <h2>${escapeHtml(domain)}</h2>
         <p>${escapeHtml(report.summary)}</p>
         <div class="actions">
-          <a class="secondary button-link" href="/api/reports/${escapeHtml(report.id)}/web-audit.csv">Export checklist CSV</a>
+          <a class="secondary button-link" href="/api/reports/${escapeHtml(report.id)}/web-audit.csv" data-download>Export checklist CSV</a>
           <button class="secondary" type="button" data-save-playbook="${escapeHtml(report.id)}">Save playbook</button>
         </div>
       </div>
@@ -1063,7 +1108,7 @@ function updateDashboard() {
 function reportActions(report) {
   return `
     <div class="row-actions">
-      <a class="secondary small button-link" href="/api/reports/${report.id}/pdf">PDF</a>
+      <a class="secondary small button-link" href="/api/reports/${report.id}/pdf" data-download>PDF</a>
       <button class="secondary small" type="button" data-compare-domain="${escapeHtml(report.domain)}">Compare</button>
     </div>
   `;
@@ -1155,7 +1200,7 @@ function renderFolders() {
           <strong>${escapeHtml(item.title)}</strong>
           <span class="tag">${escapeHtml(item.domain)}</span>
           <span class="mono">${escapeHtml(formatDate(item.updated_at))}</span>
-          <a class="secondary small button-link" href="/api/reports/${escapeHtml(item.report_id)}/web-audit.csv">CSV</a>
+          <a class="secondary small button-link" href="/api/reports/${escapeHtml(item.report_id)}/web-audit.csv" data-download>CSV</a>
         </div>
       `).join("");
     }
@@ -1191,7 +1236,7 @@ function renderReport(report) {
         <h2>${escapeHtml(report.domain)}</h2>
         <p>${escapeHtml(report.summary)}</p>
         <div class="actions">
-          <a class="secondary button-link" href="/api/reports/${report.id}/pdf">Download PDF</a>
+          <a class="secondary button-link" href="/api/reports/${report.id}/pdf" data-download>Download PDF</a>
           <a class="secondary button-link" href="/api/reports/${report.id}/html" target="_blank" rel="noreferrer">HTML report</a>
           <button class="secondary" type="button" data-monitor-domain="${escapeHtml(report.domain)}">Monitor domain</button>
         </div>
@@ -2383,6 +2428,13 @@ document.querySelectorAll("[data-example]").forEach(button => {
 });
 
 document.addEventListener("click", async event => {
+  const download = event.target.closest("[data-download]");
+  if (download) {
+    event.preventDefault();
+    await downloadExport(download.href, download.getAttribute("download") || "osintpro-export");
+    return;
+  }
+
   const monitorDomain = event.target.closest("[data-monitor-domain]");
   if (monitorDomain) {
     await addMonitor(monitorDomain.dataset.monitorDomain);

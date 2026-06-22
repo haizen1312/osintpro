@@ -46,6 +46,34 @@ body {
   pointer-events: none;
 }
 
+.app-toast {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 100;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 11px 14px;
+  border: 1px solid rgba(57, 255, 184, .42);
+  border-radius: 6px;
+  background: rgba(5, 15, 12, .98);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -12px);
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+.app-toast.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.app-toast.error {
+  border-color: rgba(255, 93, 108, .58);
+  color: #ffd7dc;
+}
+
 button,
 input,
 select,
