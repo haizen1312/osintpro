@@ -4,7 +4,6 @@ import datetime as dt
 import hashlib
 import hmac
 import html
-import http.client
 import json
 import os
 import re
@@ -154,6 +153,7 @@ PUBLIC_STATIC_PATHS = {
     "/docs/PRODUCTION_READINESS.md",
     "/docs/REPOSITORY_AUDIT_LAB.md",
     "/docs/SHOWCASE.md",
+    "/docs/SECURITY_FIXES.md",
     "/docs/WEB_AUDIT_LAB.md",
 }
 CHECKOUT_REFERENCE_RE = re.compile(r"^osintpro_([a-f0-9-]{36})_(pro|agency)$")
@@ -691,6 +691,15 @@ def cron_secret() -> str:
 
 def report_brand() -> str:
     return redact_text(os.getenv("OSINTPRO_REPORT_BRAND", "OSINTPRO")).strip()[:64] or "OSINTPRO"
+
+
+def report_analyst() -> str:
+    value = os.getenv("OSINTPRO_REPORT_ANALYST", "OSINTPRO Analyst")
+    return redact_text(value).strip()[:96] or "OSINTPRO Analyst"
+
+
+def report_contact() -> str:
+    return redact_text(os.getenv("OSINTPRO_REPORT_CONTACT", "")).strip()[:160]
 
 
 def monitor_batch_limit() -> int:
@@ -1995,10 +2004,22 @@ def analyze_username(raw_username: str) -> dict[str, object]:
     }
 
 
+def parse_dig_answers(output: str, record_type: str) -> list[str]:
+    """Return only RDATA values matching the requested DNS record type."""
+    expected = record_type.upper()
+    records: set[str] = set()
+    for raw_line in output.splitlines():
+        parts = raw_line.split(None, 4)
+        if len(parts) != 5 or parts[3].upper() != expected:
+            continue
+        records.add(parts[4].strip().rstrip(".").strip())
+    return sorted(records)
+
+
 def dig(domain: str, record_type: str) -> list[str]:
     try:
         result = subprocess.run(
-            ["dig", "+short", domain, record_type],
+            ["dig", "+noall", "+answer", domain, record_type],
             capture_output=True,
             check=False,
             text=True,
@@ -2006,7 +2027,7 @@ def dig(domain: str, record_type: str) -> list[str]:
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return []
-    return sorted({line.strip().rstrip(".").strip() for line in result.stdout.splitlines() if line.strip()})
+    return parse_dig_answers(result.stdout, record_type)
 
 
 def json_get(url: str) -> object | None:
@@ -2022,22 +2043,31 @@ def text_probe(domain: str, path: str) -> dict[str, object]:
     status: int | None = None
     body = ""
     headers: dict[str, str] = {}
+    error_message = ""
+    request = urllib.request.Request(
+        f"https://{domain}{path}",
+        headers={"User-Agent": "OSINTPRO-passive-intel/1.0"},
+        method="GET",
+    )
     try:
-        connection = http.client.HTTPSConnection(domain, 443, timeout=HTTP_TIMEOUT)
-        connection.request("GET", path, headers={"User-Agent": "OSINTPRO-passive-intel/1.0"})
-        response = connection.getresponse()
-        status = response.status
-        headers = {key.lower(): value for key, value in response.getheaders()}
-        body = response.read(HTTP_LIMIT).decode("utf-8", errors="replace")
-        connection.close()
-    except OSError:
-        pass
+        with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT) as response:
+            status = response.status
+            headers = {key.lower(): value for key, value in response.headers.items()}
+            body = response.read(HTTP_LIMIT).decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as error:
+        status = error.code
+        headers = {key.lower(): value for key, value in error.headers.items()}
+        body = error.read(HTTP_LIMIT).decode("utf-8", errors="replace")
+    except (OSError, urllib.error.URLError, TimeoutError) as error:
+        error_message = type(error).__name__
     return {
         "path": path,
+        "available": status is not None,
         "present": status is not None and 200 <= status < 400,
         "status": status,
         "content_type": headers.get("content-type"),
         "sample": redact_text(body[:700]),
+        "error": error_message,
     }
 
 
@@ -2086,29 +2116,50 @@ def https_headers(domain: str) -> dict[str, object]:
     headers: dict[str, str] = {}
     status: int | None = None
     server: str | None = None
+    error_message = ""
+    request = urllib.request.Request(
+        f"https://{domain}/",
+        headers={"User-Agent": "OSINTPRO-passive-intel/1.0"},
+        method="HEAD",
+    )
 
     try:
-        connection = http.client.HTTPSConnection(domain, 443, timeout=6)
-        connection.request("HEAD", "/", headers={"User-Agent": "OSINTPRO-local-demo/1.0"})
-        response = connection.getresponse()
-        status = response.status
-        headers = {key.lower(): value for key, value in response.getheaders()}
+        with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT) as response:
+            status = response.status
+            headers = {key.lower(): value for key, value in response.headers.items()}
+    except urllib.error.HTTPError as error:
+        status = error.code
+        headers = {key.lower(): value for key, value in error.headers.items()}
+    except (OSError, urllib.error.URLError, TimeoutError) as error:
+        error_message = type(error).__name__
+    if headers:
         server = headers.get("server")
-        connection.close()
-    except OSError:
-        pass
 
+    assessed = status is not None
     checks = []
     for name in SECURITY_HEADERS:
         value = headers.get(name)
         checks.append({
             "name": name,
+            "assessed": assessed,
             "present": bool(value),
             "value": redact_text(value) if value else value,
-            "reason": "Header not found in the HTTPS response" if not value else "",
+            "reason": (
+                "Header not found in the HTTPS response"
+                if assessed and not value
+                else "HTTPS response unavailable; header not assessed"
+                if not assessed
+                else ""
+            ),
         })
 
-    return {"status": status, "server": redact_text(server) if server else server, "security_headers": checks}
+    return {
+        "available": assessed,
+        "status": status,
+        "server": redact_text(server) if server else server,
+        "error": error_message,
+        "security_headers": checks,
+    }
 
 
 def rdap_info(domain: str) -> dict[str, object]:
@@ -2221,6 +2272,10 @@ def web_presence(domain: str) -> dict[str, object]:
         "robots_txt": text_probe(domain, "/robots.txt"),
         "sitemap_xml": text_probe(domain, "/sitemap.xml"),
         "mta_sts_policy": text_probe(f"mta-sts.{domain}", "/.well-known/mta-sts.txt"),
+        "indexing_note": (
+            "robots.txt and sitemap.xml are expected public indexing metadata. "
+            "Their presence is not a vulnerability unless sensitive paths are disclosed."
+        ),
     }
 
 
@@ -2315,9 +2370,12 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
     cert = https.get("certificate", {}) if isinstance(https, dict) else {}
     days = cert.get("days_remaining")
     headers = https.get("security_headers", []) if isinstance(https, dict) else []
+    https_available = bool(
+        https.get("available", https.get("status") is not None or bool(headers))
+    )
     findings: list[dict[str, str]] = []
 
-    for item in headers:
+    for item in headers if https_available else []:
         if not item.get("present"):
             findings.append({"level": "medium", "title": f"Missing header: {item['name']}", "detail": "Reduces the publicly observable browser-side security posture."})
     flags = email.get("flags", {})
@@ -2328,7 +2386,8 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
         findings.append({"level": "high", "title": "DMARC missing", "detail": "No public anti-impersonation policy was found on _dmarc."})
     if isinstance(days, int) and days < 30:
         findings.append({"level": "high", "title": "TLS expiring soon", "detail": f"The certificate expires in {days} days."})
-    if not web.get("security_txt", {}).get("present"):
+    security_txt = web.get("security_txt", {})
+    if security_txt.get("available") and not security_txt.get("present"):
         findings.append({"level": "low", "title": "security.txt missing", "detail": "No standard public security disclosure channel was found."})
     if not dns.get("caa"):
         findings.append({"level": "low", "title": "CAA missing", "detail": "The domain does not publicly restrict which CAs can issue certificates."})
@@ -2349,9 +2408,12 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
     cert = https.get("certificate", {}) if isinstance(https, dict) else {}
     headers = {item.get("name"): item for item in https.get("security_headers", [])} if isinstance(https, dict) else {}
     flags = email.get("flags", {})
+    https_available = bool(
+        https.get("available", https.get("status") is not None or bool(headers))
+    )
     vulns: list[dict[str, str]] = []
 
-    if not headers.get("content-security-policy", {}).get("present"):
+    if https_available and not headers.get("content-security-policy", {}).get("present"):
         vulns.append({
             "severity": "medium",
             "confidence": "high",
@@ -2359,7 +2421,7 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
             "evidence": "Content-Security-Policy was not observed on the main HTTPS response.",
             "next_step": "Validate with authorized application testing and define a CSP for scripts, frames and connect-src.",
         })
-    if not headers.get("strict-transport-security", {}).get("present"):
+    if https_available and not headers.get("strict-transport-security", {}).get("present"):
         vulns.append({
             "severity": "medium",
             "confidence": "high",
@@ -2367,7 +2429,11 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
             "evidence": "Strict-Transport-Security was not observed.",
             "next_step": "Enable HSTS with an appropriate max-age after full HTTPS validation.",
         })
-    if not headers.get("x-frame-options", {}).get("present") and not headers.get("content-security-policy", {}).get("present"):
+    if (
+        https_available
+        and not headers.get("x-frame-options", {}).get("present")
+        and not headers.get("content-security-policy", {}).get("present")
+    ):
         vulns.append({
             "severity": "medium",
             "confidence": "medium",
@@ -2398,14 +2464,6 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
             "title": "Weak certificate governance",
             "evidence": "CAA record missing.",
             "next_step": "Restrict the CAs authorized to issue certificates for the domain.",
-        })
-    if web.get("robots_txt", {}).get("present") or web.get("sitemap_xml", {}).get("present"):
-        vulns.append({
-            "severity": "info",
-            "confidence": "medium",
-            "title": "Public map useful for reconnaissance",
-            "evidence": "robots.txt or sitemap.xml are publicly available.",
-            "next_step": "Verify they do not expose sensitive paths, staging environments or internal endpoints.",
         })
     if advanced.get("takeover_hints"):
         vulns.append({
@@ -2529,7 +2587,11 @@ def score_report(
         score += 15
     if cert.get("expires"):
         score += 20
-    score += sum(5 for item in headers if item["present"])
+    assessed_headers = [item for item in headers if item.get("assessed", True)]
+    if assessed_headers:
+        score += sum(5 for item in assessed_headers if item["present"])
+    else:
+        score += 15
     if email.get("applicable"):
         score += min(15, int(email.get("score") or 0) // 8)
     else:
@@ -2559,7 +2621,11 @@ def recommendations(report: dict[str, object]) -> list[str]:
         items.append("Evaluate a DMARC record to protect the brand from email impersonation.")
     if not cert.get("expires"):
         items.append("Verify the TLS certificate: OSINTPRO did not read a valid HTTPS expiry date.")
-    missing = [item["name"] for item in headers if not item.get("present")]
+    missing = [
+        item["name"]
+        for item in headers
+        if item.get("assessed", True) and not item.get("present")
+    ]
     if missing:
         items.append(f"Add or review missing security headers: {', '.join(missing[:4])}.")
     if not items:
@@ -2588,9 +2654,15 @@ def analyze(raw_target: str) -> dict[str, object]:
     tech = technology_fingerprint(https, web)
     score = score_report(addresses, cert, https["security_headers"], email, web)
 
-    missing_headers = [item["name"] for item in https["security_headers"] if not item["present"]]
+    missing_headers = [
+        item["name"]
+        for item in https["security_headers"]
+        if item.get("assessed", True) and not item["present"]
+    ]
     if not addresses:
         summary = "The domain does not resolve IP addresses from the local backend."
+    elif not https.get("available"):
+        summary = "Domain is reachable, but the HTTPS header assessment was unavailable."
     elif email.get("applicable") and int(email.get("score") or 0) < 45:
         summary = "Domain is reachable, but the public email posture needs attention."
     elif missing_headers:
@@ -2807,6 +2879,8 @@ def run_monitor_rows(connection: sqlite3.Connection, rows: list[sqlite3.Row]) ->
 
 def report_document(report: dict[str, object]) -> str:
     brand = report_brand()
+    analyst = report_analyst()
+    contact = report_contact()
     dns = report.get("dns", {})
     https = report.get("https", {})
     cert = https.get("certificate", {}) if isinstance(https, dict) else {}
@@ -2820,6 +2894,7 @@ def report_document(report: dict[str, object]) -> str:
     vulns = report.get("vulnerability_hypotheses", [])
     red_paths = report.get("red_team_paths", [])
     purple_controls = report.get("purple_team_controls", [])
+    contact_label = f" | {html.escape(contact)}" if contact else ""
 
     def lines(values: list[str]) -> str:
         if not values:
@@ -2827,7 +2902,7 @@ def report_document(report: dict[str, object]) -> str:
         return "".join(f"<li>{html.escape(str(value))}</li>" for value in values)
 
     checks = "".join(
-        f"<tr><td>{html.escape(item['name'])}</td><td>{'OK' if item.get('present') else 'Missing'}</td><td>{html.escape(str(item.get('value') or item.get('reason') or ''))}</td></tr>"
+        f"<tr><td>{html.escape(item['name'])}</td><td>{'Not assessed' if item.get('assessed') is False else 'OK' if item.get('present') else 'Missing'}</td><td>{html.escape(str(item.get('value') or item.get('reason') or ''))}</td></tr>"
         for item in headers
     )
     recs = "".join(f"<li>{html.escape(item)}</li>" for item in recommendations(report))
@@ -2841,7 +2916,7 @@ def report_document(report: dict[str, object]) -> str:
     well_known = advanced.get("well_known", {}) if isinstance(advanced, dict) else {}
     takeover_hints = advanced.get("takeover_hints", []) if isinstance(advanced, dict) else []
     well_known_rows = "".join(
-        f"<tr><td>{html.escape(name)}</td><td>{'OK' if value.get('present') else 'Missing'}</td><td>{html.escape(str(value.get('status') or 'n/a'))}</td></tr>"
+        f"<tr><td>{html.escape(name)}</td><td>{'Observed' if value.get('present') else 'Not declared'}</td><td>{html.escape(str(value.get('status') or 'n/a'))}</td></tr>"
         for name, value in well_known.items()
     )
     takeover_rows = "".join(
@@ -2867,30 +2942,47 @@ def report_document(report: dict[str, object]) -> str:
   <meta charset="utf-8">
   <title>{html.escape(brand)} report - {html.escape(str(report.get("domain", "")))}</title>
   <style>
-    body {{ margin: 0; padding: 38px; color: #17201b; font-family: Inter, Arial, sans-serif; }}
-    header {{ border-bottom: 2px solid #17201b; margin-bottom: 28px; padding-bottom: 18px; }}
-    h1 {{ margin: 0 0 8px; font-size: 38px; }}
-    h2 {{ margin-top: 28px; }}
+    @page {{ size: A4; margin: 20mm; }}
+    * {{ box-sizing: border-box; }}
+    body {{ margin: 0; padding: 20mm; color: #17201b; background: #fff; font: 11pt/1.5 "Segoe UI", Arial, sans-serif; }}
+    header {{ display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #17201b; margin-bottom: 28px; padding-bottom: 18px; }}
+    h1 {{ margin: 0 0 8px; font-size: 30pt; line-height: 1.1; overflow-wrap: anywhere; }}
+    h2 {{ margin: 28px 0 12px; font-size: 17pt; }}
+    h3 {{ margin: 18px 0 8px; font-size: 12pt; }}
     .meta, .muted {{ color: #667069; }}
-    .score {{ float: right; border: 1px solid #d7ded8; border-radius: 8px; padding: 14px 18px; text-align: center; }}
-    .score strong {{ display: block; font-size: 42px; color: #0f6b57; }}
+    .score {{ min-width: 112px; align-self: flex-start; border: 1px solid #d7ded8; border-radius: 8px; padding: 14px 18px; background: #f4f8f6; text-align: center; }}
+    .score strong {{ display: block; font-size: 30pt; color: #0f6b57; }}
     .grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }}
-    section {{ break-inside: avoid; }}
-    .box {{ border: 1px solid #d7ded8; border-radius: 8px; padding: 16px; }}
+    section, .box, tr {{ break-inside: avoid; page-break-inside: avoid; }}
+    .box {{ border: 1px solid #d7ded8; border-radius: 8px; padding: 16px; background: #fbfcfb; }}
     table {{ width: 100%; border-collapse: collapse; }}
-    td, th {{ border-bottom: 1px solid #e1e6e2; padding: 8px; text-align: left; vertical-align: top; }}
+    th {{ background: #17201b; color: #fff; }}
+    td, th {{ border: 1px solid #dfe5e1; padding: 8px; text-align: left; vertical-align: top; }}
+    tbody tr:nth-child(even) {{ background: #f4f8f6; }}
     code, li {{ overflow-wrap: anywhere; }}
-    @media print {{ body {{ padding: 22px; }} .no-print {{ display: none; }} }}
+    .report-footer {{ margin-top: 36px; padding-top: 12px; border-top: 1px solid #d7ded8; color: #667069; font-size: 9pt; }}
+    @media print {{
+      body {{ padding: 0; }}
+      .report-footer {{ position: running(report-footer); }}
+    }}
+    @media (max-width: 720px) {{
+      body {{ padding: 20px; }}
+      header, .grid {{ display: block; }}
+      .score {{ margin: 16px 0; }}
+      .box {{ margin-bottom: 12px; }}
+      table {{ font-size: 9pt; }}
+    }}
   </style>
 </head>
 <body>
-  <button class="no-print" onclick="window.print()">Save as PDF</button>
   <header>
+    <div>
+      <p class="meta">{html.escape(brand)} passive domain intelligence</p>
+      <h1>{html.escape(str(report.get("domain", "")))}</h1>
+      <p>{html.escape(str(report.get("summary", "")))}</p>
+      <p class="meta">Generated: {html.escape(str(report.get("generated_at", "")))}<br>Analyst: {html.escape(analyst)}</p>
+    </div>
     <div class="score"><span>Score</span><strong>{int(report.get("score", 0))}</strong></div>
-    <p class="meta">{html.escape(brand)} passive domain intelligence</p>
-    <h1>{html.escape(str(report.get("domain", "")))}</h1>
-    <p>{html.escape(str(report.get("summary", "")))}</p>
-    <p class="meta">Generated: {html.escape(str(report.get("generated_at", "")))}</p>
   </header>
   <main>
     <section>
@@ -2912,7 +3004,7 @@ def report_document(report: dict[str, object]) -> str:
     <section>
       <h2>Advanced passive OSINT</h2>
       <div class="box">
-        <p>DNSSEC: {'OK' if dnssec.get('enabled') else 'not observed'} | BIMI: {'OK' if bimi.get('present') else 'not observed'}</p>
+        <p>DNSSEC: {'OK' if dnssec.get('enabled') else 'not observed'} | BIMI: {('OK' if bimi.get('present') else 'not observed') if email.get('applicable') else 'not applicable'}</p>
         <table><thead><tr><th>Well-known</th><th>Status</th><th>HTTP</th></tr></thead><tbody>{well_known_rows or "<tr><td colspan='3'>no data</td></tr>"}</tbody></table>
         <h3>CNAME takeover review</h3>
         <table><thead><tr><th>Subdomain</th><th>Provider</th><th>CNAME</th></tr></thead><tbody>{takeover_rows or "<tr><td colspan='3'>no priority hints</td></tr>"}</tbody></table>
@@ -2934,54 +3026,288 @@ def report_document(report: dict[str, object]) -> str:
       <h2>Security header</h2>
       <table><thead><tr><th>Header</th><th>Status</th><th>Value</th></tr></thead><tbody>{checks}</tbody></table>
     </section>
+    <section>
+      <h2>Appendix: methodology</h2>
+      <div class="box">
+        <p>OSINTPRO uses passive public DNS, HTTPS, certificate and well-known resources. It does not execute exploit payloads, brute force credentials or modify the target.</p>
+        <p>Missing email controls are findings only when mail service or an email policy is observed. Public robots.txt and sitemap.xml files are expected indexing metadata, not vulnerabilities by themselves.</p>
+      </div>
+    </section>
   </main>
+  <footer class="report-footer">Confidential client report{contact_label} | Passive evidence requires authorized validation.</footer>
 </body>
 </html>"""
 
 
 def pdf_escape(value: str) -> str:
-    return value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+    clean = redact_text(value).replace("\r", " ").replace("\n", " ")
+    clean = clean.encode("latin-1", "replace").decode("latin-1")
+    return clean.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
 
-def report_pdf(report: dict[str, object]) -> bytes:
-    title = f"{report_brand()} Report - {report.get('domain', 'target')}"
-    text_lines = [
-        title,
-        f"Generated: {report.get('generated_at', '')}",
-        f"Score: {report.get('score', 0)}/100",
-        "",
-        str(report.get("summary", "")),
-        "",
-        "Recommendations",
-        *[f"- {item}" for item in recommendations(report)[:8]],
-        "",
-        "Findings",
-        *[
-            f"- {item.get('level', 'info')}: {item.get('title', '')} - {item.get('detail', '')}"
-            for item in (report.get("findings") or [])[:10]
-        ],
-        "",
-        "Passive boundary",
-        "This report uses passive public signals only. It does not prove identity and does not include exploit payloads, brute force or invasive scanning.",
-    ]
-    y = 760
-    stream_lines = ["BT", "/F1 11 Tf", "50 790 Td"]
-    for raw_line in text_lines:
-        line = re.sub(r"\s+", " ", redact_text(str(raw_line)))[:110]
-        if y < 70:
-            break
-        stream_lines.append(f"({pdf_escape(line)}) Tj")
-        stream_lines.append("0 -17 Td")
-        y -= 17
-    stream_lines.append("ET")
-    stream = "\n".join(stream_lines).encode("latin-1", "replace")
-    objects = [
+PDF_PAGE_WIDTH = 595
+PDF_PAGE_HEIGHT = 842
+PDF_MARGIN = 57
+PDF_INK = (0.10, 0.13, 0.11)
+PDF_MUTED = (0.35, 0.40, 0.37)
+PDF_GREEN = (0.06, 0.42, 0.34)
+PDF_CYAN = (0.10, 0.53, 0.66)
+PDF_LINE = (0.84, 0.87, 0.85)
+PDF_PANEL = (0.96, 0.98, 0.97)
+PDF_HIGH = (0.78, 0.16, 0.20)
+PDF_MEDIUM = (0.88, 0.43, 0.10)
+PDF_LOW = (0.12, 0.42, 0.70)
+
+
+def pdf_rgb(color: tuple[float, float, float]) -> str:
+    """Return a compact PDF RGB color command fragment."""
+    return " ".join(f"{channel:.3f}" for channel in color)
+
+
+def pdf_wrap(value: object, max_chars: int) -> list[str]:
+    """Wrap redacted text without requiring an external PDF dependency."""
+    text = re.sub(r"\s+", " ", redact_text(str(value or ""))).strip()
+    if not text:
+        return [""]
+    words = text.split(" ")
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        if len(word) > max_chars:
+            if current:
+                lines.append(current)
+                current = ""
+            lines.extend(word[index:index + max_chars] for index in range(0, len(word), max_chars))
+            continue
+        candidate = f"{current} {word}".strip()
+        if len(candidate) <= max_chars:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
+
+class PdfReportBuilder:
+    """Small deterministic PDF canvas for dependency-free client reports."""
+
+    def __init__(self, report: dict[str, object]):
+        self.report = report
+        self.brand = report_brand()
+        self.domain = str(report.get("domain") or "target")
+        self.pages: list[list[str]] = []
+        self.y = PDF_PAGE_HEIGHT - PDF_MARGIN
+
+    @property
+    def page(self) -> list[str]:
+        return self.pages[-1]
+
+    def text(
+        self,
+        value: object,
+        x: float,
+        y: float,
+        size: float = 10,
+        bold: bool = False,
+        color: tuple[float, float, float] = PDF_INK,
+    ) -> None:
+        font = "F2" if bold else "F1"
+        self.page.append(
+            f"BT /{font} {size:.1f} Tf {pdf_rgb(color)} rg "
+            f"1 0 0 1 {x:.1f} {y:.1f} Tm ({pdf_escape(str(value))}) Tj ET"
+        )
+
+    def rectangle(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        fill: tuple[float, float, float],
+        stroke: tuple[float, float, float] | None = None,
+    ) -> None:
+        command = f"{pdf_rgb(fill)} rg {x:.1f} {y:.1f} {width:.1f} {height:.1f} re f"
+        if stroke:
+            command += (
+                f" {pdf_rgb(stroke)} RG 0.7 w "
+                f"{x:.1f} {y:.1f} {width:.1f} {height:.1f} re S"
+            )
+        self.page.append(command)
+
+    def line(
+        self,
+        x1: float,
+        y1: float,
+        x2: float,
+        y2: float,
+        color: tuple[float, float, float] = PDF_LINE,
+    ) -> None:
+        self.page.append(
+            f"{pdf_rgb(color)} RG 0.8 w {x1:.1f} {y1:.1f} m "
+            f"{x2:.1f} {y2:.1f} l S"
+        )
+
+    def new_page(self, section: str = "") -> None:
+        self.pages.append([])
+        self.y = PDF_PAGE_HEIGHT - PDF_MARGIN
+        self.rectangle(PDF_MARGIN, self.y - 28, 28, 28, PDF_GREEN)
+        self.text("OP", PDF_MARGIN + 6, self.y - 18, 10, True, (1, 1, 1))
+        self.text(self.brand, PDF_MARGIN + 38, self.y - 12, 11, True)
+        self.text(
+            self.domain[:42],
+            PDF_PAGE_WIDTH - PDF_MARGIN - 205,
+            self.y - 12,
+            8,
+            False,
+            PDF_MUTED,
+        )
+        if section:
+            self.text(section.upper(), PDF_MARGIN + 38, self.y - 25, 7, True, PDF_GREEN)
+        self.line(PDF_MARGIN, self.y - 38, PDF_PAGE_WIDTH - PDF_MARGIN, self.y - 38)
+        self.y -= 58
+
+    def ensure_space(self, height: float, section: str) -> None:
+        if self.y - height < 66:
+            self.new_page(section)
+
+    def heading(self, value: str, section: str, size: float = 18) -> None:
+        self.ensure_space(40, section)
+        self.text(value, PDF_MARGIN, self.y, size, True)
+        self.y -= size + 12
+
+    def paragraph(
+        self,
+        value: object,
+        section: str,
+        size: float = 10,
+        color: tuple[float, float, float] = PDF_INK,
+        indent: float = 0,
+    ) -> None:
+        width = PDF_PAGE_WIDTH - (2 * PDF_MARGIN) - indent
+        max_chars = max(28, int(width / (size * 0.52)))
+        lines = pdf_wrap(value, max_chars)
+        leading = size * 1.48
+        self.ensure_space((len(lines) * leading) + 6, section)
+        for line in lines:
+            self.text(line, PDF_MARGIN + indent, self.y, size, False, color)
+            self.y -= leading
+        self.y -= 4
+
+    def bullet(self, value: object, section: str) -> None:
+        lines = pdf_wrap(value, 88)
+        height = len(lines) * 14 + 5
+        self.ensure_space(height, section)
+        self.rectangle(PDF_MARGIN, self.y - 2, 5, 5, PDF_GREEN)
+        for index, line in enumerate(lines):
+            self.text(line, PDF_MARGIN + 14, self.y, 9.5, index == 0)
+            self.y -= 14
+        self.y -= 5
+
+    def metric(
+        self,
+        label: str,
+        value: object,
+        x: float,
+        y: float,
+        width: float,
+        color: tuple[float, float, float] = PDF_GREEN,
+    ) -> None:
+        self.rectangle(x, y, width, 62, PDF_PANEL, PDF_LINE)
+        self.text(value, x + 12, y + 33, 20, True, color)
+        self.text(label.upper(), x + 12, y + 14, 7, True, PDF_MUTED)
+
+    def finding(
+        self,
+        level: str,
+        title: str,
+        detail: str,
+        recommendation: str,
+        section: str,
+    ) -> None:
+        title_lines = pdf_wrap(title, 62)
+        detail_lines = pdf_wrap(detail, 91)
+        rec_lines = pdf_wrap(recommendation, 86)
+        height = 38 + (len(title_lines) * 13) + (len(detail_lines) * 12)
+        height += (len(rec_lines) * 12)
+        self.ensure_space(height + 12, section)
+        bottom = self.y - height
+        color = {
+            "high": PDF_HIGH,
+            "medium": PDF_MEDIUM,
+            "low": PDF_LOW,
+        }.get(level.lower(), PDF_CYAN)
+        self.rectangle(PDF_MARGIN, bottom, PDF_PAGE_WIDTH - (2 * PDF_MARGIN), height, PDF_PANEL, PDF_LINE)
+        self.rectangle(PDF_MARGIN, bottom, 6, height, color)
+        self.rectangle(PDF_MARGIN + 16, self.y - 19, 52, 17, color)
+        self.text(level.upper(), PDF_MARGIN + 23, self.y - 14, 7, True, (1, 1, 1))
+        title_y = self.y - 14
+        for line in title_lines:
+            self.text(line, PDF_MARGIN + 80, title_y, 10.5, True)
+            title_y -= 13
+        cursor = min(title_y - 4, self.y - 37)
+        for line in detail_lines:
+            self.text(line, PDF_MARGIN + 16, cursor, 9, False, PDF_MUTED)
+            cursor -= 12
+        self.text("RECOMMENDATION", PDF_MARGIN + 16, cursor - 3, 7, True, color)
+        cursor -= 17
+        for line in rec_lines:
+            self.text(line, PDF_MARGIN + 16, cursor, 9)
+            cursor -= 12
+        self.y = bottom - 12
+
+    def finish(self) -> bytes:
+        total_pages = len(self.pages)
+        contact = report_contact()
+        for index, commands in enumerate(self.pages, start=1):
+            footer = (
+                f"Confidential client report | Page {index} of {total_pages}"
+                f"{' | ' + contact if contact else ''}"
+            )
+            commands.append(
+                f"{pdf_rgb(PDF_LINE)} RG 0.7 w {PDF_MARGIN} 49 m "
+                f"{PDF_PAGE_WIDTH - PDF_MARGIN} 49 l S"
+            )
+            commands.append(
+                f"BT /F1 7.5 Tf {pdf_rgb(PDF_MUTED)} rg 1 0 0 1 "
+                f"{PDF_MARGIN} 34 Tm ({pdf_escape(footer)}) Tj ET"
+            )
+        return pdf_bytes(self.pages)
+
+
+def pdf_bytes(pages: list[list[str]]) -> bytes:
+    """Serialize page drawing commands into a valid PDF 1.4 document."""
+    page_ids = [6 + (index * 2) for index in range(len(pages))]
+    objects: list[bytes] = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
-        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        (
+            f"<< /Type /Pages /Kids [{' '.join(f'{item} 0 R' for item in page_ids)}] "
+            f"/Count {len(pages)} >>"
+        ).encode("ascii"),
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>",
     ]
+    for index, commands in enumerate(pages):
+        page_id = page_ids[index]
+        stream_id = page_id + 1
+        stream = "\n".join(commands).encode("latin-1", "replace")
+        objects.append(
+            (
+                f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "
+                f"{PDF_PAGE_WIDTH} {PDF_PAGE_HEIGHT}] /Resources << /Font "
+                f"<< /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> "
+                f"/Contents {stream_id} 0 R >>"
+            ).encode("ascii")
+        )
+        objects.append(
+            b"<< /Length "
+            + str(len(stream)).encode("ascii")
+            + b" >>\nstream\n"
+            + stream
+            + b"\nendstream"
+        )
     pdf = bytearray(b"%PDF-1.4\n")
     offsets = [0]
     for index, obj in enumerate(objects, start=1):
@@ -2999,18 +3325,213 @@ def report_pdf(report: dict[str, object]) -> bytes:
     return bytes(pdf)
 
 
+def report_pdf(report: dict[str, object]) -> bytes:
+    """Render a branded, multipage passive intelligence report."""
+    builder = PdfReportBuilder(report)
+    dns = report.get("dns", {}) if isinstance(report.get("dns"), dict) else {}
+    https = report.get("https", {}) if isinstance(report.get("https"), dict) else {}
+    email = (
+        report.get("email_security", {})
+        if isinstance(report.get("email_security"), dict)
+        else {}
+    )
+    web = (
+        report.get("web_presence", {})
+        if isinstance(report.get("web_presence"), dict)
+        else {}
+    )
+    cert = https.get("certificate", {}) if isinstance(https.get("certificate"), dict) else {}
+    headers = https.get("security_headers", [])
+    findings = report.get("findings", []) or []
+    hypotheses = report.get("vulnerability_hypotheses", []) or []
+    all_findings = [
+        {
+            "level": item.get("level", "info"),
+            "title": item.get("title", "Finding"),
+            "detail": item.get("detail", ""),
+            "recommendation": (
+                "Review the evidence, confirm applicability and validate the "
+                "control with the asset owner."
+            ),
+        }
+        for item in findings
+    ]
+    all_findings.extend(
+        {
+            "level": item.get("severity", "info"),
+            "title": item.get("title", "Review hypothesis"),
+            "detail": item.get("evidence", ""),
+            "recommendation": item.get("next_step", ""),
+        }
+        for item in hypotheses
+    )
+
+    builder.new_page("Executive summary")
+    builder.text("PASSIVE DOMAIN INTELLIGENCE", PDF_MARGIN, builder.y, 8, True, PDF_GREEN)
+    builder.y -= 30
+    builder.text(builder.domain, PDF_MARGIN, builder.y, 28, True)
+    builder.y -= 28
+    builder.paragraph(report.get("summary", ""), "Executive summary", 11, PDF_MUTED)
+    builder.y -= 6
+    generated = str(report.get("generated_at") or "")
+    builder.text(f"Generated: {generated}", PDF_MARGIN, builder.y, 8.5, False, PDF_MUTED)
+    builder.y -= 15
+    builder.text(f"Analyst: {report_analyst()}", PDF_MARGIN, builder.y, 8.5, False, PDF_MUTED)
+    builder.y -= 36
+    card_width = (PDF_PAGE_WIDTH - (2 * PDF_MARGIN) - 24) / 3
+    addresses = dns.get("addresses", []) if isinstance(dns.get("addresses"), list) else []
+    email_label = f"{email.get('score', 0)}/100" if email.get("applicable") else "N/A"
+    builder.metric("Security score", f"{report.get('score', 0)}/100", PDF_MARGIN, builder.y - 62, card_width)
+    builder.metric("Resolved IPs", len(addresses), PDF_MARGIN + card_width + 12, builder.y - 62, card_width, PDF_CYAN)
+    builder.metric("Findings", len(all_findings), PDF_MARGIN + (2 * card_width) + 24, builder.y - 62, card_width, PDF_HIGH if all_findings else PDF_GREEN)
+    builder.y -= 92
+    builder.heading("Scope summary", "Executive summary", 15)
+    builder.bullet(f"Email posture: {email_label}. {email.get('scope_note', '')}", "Executive summary")
+    builder.bullet(
+        f"HTTPS status: {https.get('status') or 'not available'}; "
+        f"certificate expires {cert.get('expires') or 'not available'}.",
+        "Executive summary",
+    )
+    builder.bullet(
+        f"Public indexing metadata: robots.txt "
+        f"{'published' if web.get('robots_txt', {}).get('present') else 'not published'}, "
+        f"sitemap.xml {'published' if web.get('sitemap_xml', {}).get('present') else 'not published'}. "
+        "Publication is not a vulnerability by itself.",
+        "Executive summary",
+    )
+    builder.heading("Priority actions", "Executive summary", 15)
+    for item in recommendations(report):
+        builder.bullet(item, "Executive summary")
+
+    builder.new_page("Findings")
+    builder.heading("Prioritized findings", "Findings")
+    builder.paragraph(
+        "Findings are passive observations and review hypotheses. Validate impact in an "
+        "authorized environment before presenting them as confirmed vulnerabilities.",
+        "Findings",
+        9.5,
+        PDF_MUTED,
+    )
+    if all_findings:
+        for item in all_findings:
+            builder.finding(
+                str(item["level"]),
+                str(item["title"]),
+                str(item["detail"]),
+                str(item["recommendation"]),
+                "Findings",
+            )
+    else:
+        builder.finding(
+            "info",
+            "No priority passive finding",
+            "The observed public surface did not produce a high-priority hypothesis.",
+            "Keep monitoring DNS, TLS and browser security headers for drift.",
+            "Findings",
+        )
+
+    builder.new_page("Evidence")
+    builder.heading("DNS and infrastructure", "Evidence")
+    for label, values in (
+        ("Resolved IP", addresses),
+        ("Nameserver", dns.get("ns", [])),
+        ("Mail exchange", dns.get("mx", [])),
+        ("CAA", dns.get("caa", [])),
+    ):
+        safe_values = values if isinstance(values, list) else []
+        builder.bullet(
+            f"{label}: {', '.join(str(value) for value in safe_values[:8]) or 'not observed'}",
+            "Evidence",
+        )
+    builder.heading("TLS and browser controls", "Evidence", 15)
+    builder.paragraph(
+        f"Certificate subject: {cert.get('subject') or 'not available'}. "
+        f"Expiry: {cert.get('expires') or 'not available'}.",
+        "Evidence",
+        9.5,
+    )
+    for item in headers if isinstance(headers, list) else []:
+        status = (
+            "NOT ASSESSED"
+            if item.get("assessed") is False
+            else "OK"
+            if item.get("present")
+            else "MISSING"
+        )
+        evidence = item.get("value") or item.get("reason") or ""
+        builder.bullet(f"{status} - {item.get('name')}: {evidence}", "Evidence")
+    builder.heading("Email and public metadata", "Evidence", 15)
+    builder.paragraph(
+        email.get("scope_note") or "Email scope could not be determined.",
+        "Evidence",
+        9.5,
+    )
+    builder.paragraph(
+        web.get("indexing_note")
+        or "Public indexing files are contextual metadata, not vulnerabilities by default.",
+        "Evidence",
+        9.5,
+        PDF_MUTED,
+    )
+
+    builder.new_page("Methodology")
+    builder.heading("Methodology and limitations", "Methodology")
+    builder.paragraph(
+        "OSINTPRO collected passive public signals from DNS, HTTPS responses, certificate "
+        "metadata, Certificate Transparency and public well-known resources. It did not "
+        "execute exploit payloads, brute force credentials, scan private address ranges or "
+        "attempt to modify the target.",
+        "Methodology",
+    )
+    builder.heading("Interpretation rules", "Methodology", 15)
+    for item in (
+        "Missing email controls are findings only when mail service or an email policy is observed.",
+        "robots.txt and sitemap.xml are expected public metadata and are not vulnerabilities by themselves.",
+        "OpenID, mobile association files and BIMI are optional unless the product claims those capabilities.",
+        "CNAME takeover signals require ownership validation; a managed-provider CNAME alone is not proof of exploitability.",
+        "Certificate Transparency is an asset-discovery and monitoring source, not a vulnerability.",
+    ):
+        builder.bullet(item, "Methodology")
+    builder.heading("Passive boundary", "Methodology", 15)
+    builder.paragraph(
+        "This report is evidence for defensive review, not proof of identity, compromise or "
+        "exploitability. Findings should be confirmed by the asset owner or an authorized "
+        "security professional.",
+        "Methodology",
+    )
+    return builder.finish()
+
+
 def web_audit_playbook_payload(report: dict[str, object]) -> dict[str, object]:
     headers = report.get("https", {}).get("security_headers", []) if isinstance(report.get("https"), dict) else []
     web = report.get("web_presence", {}) if isinstance(report.get("web_presence"), dict) else {}
     checklist = [
-        {"item": item.get("name", ""), "status": "ok" if item.get("present") else "missing", "evidence": item.get("value") or item.get("reason") or ""}
+        {
+            "item": item.get("name", ""),
+            "status": (
+                "not_assessed"
+                if item.get("assessed") is False
+                else "ok"
+                if item.get("present")
+                else "missing"
+            ),
+            "evidence": item.get("value") or item.get("reason") or "",
+        }
         for item in headers
     ]
     for label in ("security_txt", "robots_txt", "sitemap_xml", "mta_sts_policy"):
         value = web.get(label, {}) if isinstance(web.get(label), dict) else {}
         checklist.append({
             "item": label.replace("_", "."),
-            "status": "ok" if value.get("present") else "missing",
+            "status": (
+                "not_assessed"
+                if value.get("available") is False
+                else "ok"
+                if value.get("present")
+                else "not_published"
+                if label in {"robots_txt", "sitemap_xml"}
+                else "missing"
+            ),
             "evidence": f"HTTP {value.get('status')}" if value.get("status") else "not observed",
         })
     return redact_data({
@@ -3054,7 +3575,9 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+            "img-src 'self' data:; connect-src 'self'; object-src 'none'; "
+            "worker-src 'none'; manifest-src 'self'; base-uri 'none'; "
+            "form-action 'self'; frame-ancestors 'none'",
         )
         if self.path.startswith("/api/") or self.path.startswith("/admin"):
             self.send_header("Cache-Control", "no-store")

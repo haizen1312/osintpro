@@ -7,7 +7,7 @@
   <meta name="description" content="OSINTPRO is a passive OSINT workspace for domain intelligence, web audit workflows, brand monitoring, social username checks and blockchain wallet tracing.">
   <meta name="keywords" content="passive OSINT, domain intelligence, web audit, brand monitoring, wallet OSINT, blockchain tracing, threat intelligence">
   <title>OSINTPRO Intelligence Workspace</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260623">
 </head>
 <body>
   <canvas id="signalCanvas" aria-hidden="true"></canvas>
@@ -22,7 +22,21 @@
         </div>
       </div>
 
-      <nav class="nav" aria-label="Primary navigation">
+      <button
+        class="mobile-menu-button"
+        id="mobileMenuButton"
+        type="button"
+        aria-label="Open navigation"
+        aria-controls="primaryNavigation"
+        aria-expanded="false"
+        title="Navigation"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <nav class="nav" id="primaryNavigation" aria-label="Primary navigation">
         <span class="nav-label">Overview</span>
         <button class="nav-btn active" data-section="dashboard">Dashboard</button>
         <span class="nav-label">Analyze</span>
@@ -624,6 +638,6 @@
     </main>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=20260623"></script>
 </body>
 </html>

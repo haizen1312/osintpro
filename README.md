@@ -138,6 +138,7 @@ Current public traction as of June 23, 2026:
 - [Outreach playbook](docs/OUTREACH_PLAYBOOK.md)
 - [API preview](docs/API_PREVIEW.md)
 - [Production readiness](docs/PRODUCTION_READINESS.md)
+- [Self-audit security corrections](docs/SECURITY_FIXES.md)
 - [Architecture](ARCHITECTURE.md)
 - [Performance notes](PERFORMANCE.md)
 - [AI development guide](docs/AI_DEVELOPMENT_GUIDE.md)

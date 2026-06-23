@@ -147,6 +147,38 @@ li {
   gap: 6px;
 }
 
+.mobile-menu-button {
+  display: none;
+  width: 48px;
+  height: 48px;
+  padding: 13px 11px;
+  place-content: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-strong);
+}
+
+.mobile-menu-button span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--green);
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+body.nav-open .mobile-menu-button span:first-child {
+  transform: translateY(7px) rotate(45deg);
+}
+
+body.nav-open .mobile-menu-button span:nth-child(2) {
+  opacity: 0;
+}
+
+body.nav-open .mobile-menu-button span:last-child {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
 .nav-label {
   margin-top: 8px;
   color: rgba(138, 169, 156, .72);
@@ -940,6 +972,12 @@ textarea:focus {
 .tag.missing {
   background: rgba(255, 93, 108, .13);
   color: var(--red);
+}
+
+.tag.neutral {
+  border: 1px solid rgba(98, 216, 255, .28);
+  background: rgba(98, 216, 255, .09);
+  color: var(--cyan);
 }
 
 .section-head {
@@ -1777,36 +1815,46 @@ textarea:focus {
   font-weight: 900;
 }
 
-@media (max-width: 960px) {
-  .app,
+@media (max-width: 1024px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
   .hero,
+  .inline-admin-form,
+  .restore-form,
+  .folder-picker,
+  .lab-columns,
+  .repo-audit-form,
+  .repo-context,
+  .dossier-meta,
+  .scan-form,
+  .report-top {
+    grid-template-columns: 1fr;
+  }
+
   .grid,
   .deep-grid,
   .ops-grid,
   .social-grid,
   .auth-grid,
   .admin-status-grid,
-  .inline-admin-form,
-  .restore-form,
   .dashboard-grid,
-  .folder-picker,
   .onboarding-strip,
   .lab-grid,
-  .lab-columns,
-  .repo-audit-form,
-  .repo-context,
   .term-grid,
   .feature-grid,
   .concept-grid,
   .schema-grid,
   .dossier-grid,
-  .dossier-meta,
   .wallet-grid,
   .pricing,
-  .summary-strip,
-  .scan-form,
-  .report-top {
-    grid-template-columns: 1fr;
+  .summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .primary-dash {
+    grid-column: 1 / -1;
   }
 
   .rail {
@@ -1852,18 +1900,94 @@ textarea:focus {
 
   .nav-btn {
     flex: 0 0 auto;
-    min-height: 36px;
+    min-height: 40px;
     white-space: nowrap;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
+  .grid,
+  .deep-grid,
+  .ops-grid,
+  .social-grid,
+  .auth-grid,
+  .admin-status-grid,
+  .dashboard-grid,
+  .onboarding-strip,
+  .lab-grid,
+  .term-grid,
+  .feature-grid,
+  .concept-grid,
+  .schema-grid,
+  .dossier-grid,
+  .wallet-grid,
+  .pricing,
+  .summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .primary-dash {
+    grid-column: auto;
+  }
+
   .workspace {
-    padding: 18px;
+    padding: 14px;
   }
 
   .rail {
-    padding: 9px 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 8px 10px;
+  }
+
+  .brand span {
+    display: block;
+  }
+
+  .mobile-menu-button {
+    display: grid;
+  }
+
+  .nav {
+    position: absolute;
+    top: calc(100% + 1px);
+    right: 10px;
+    left: 10px;
+    display: none;
+    max-height: calc(100vh - 82px);
+    padding: 12px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(2, 8, 7, .985);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, .48);
+  }
+
+  body.nav-open {
+    overflow: hidden;
+  }
+
+  body.nav-open .nav {
+    display: grid;
+  }
+
+  .nav-label {
+    display: block;
+  }
+
+  .nav-btn {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 14px;
+    white-space: normal;
+  }
+
+  button,
+  .button-link,
+  input,
+  select,
+  textarea {
+    min-height: 48px;
+    font-size: 16px;
   }
 
   .report-row,

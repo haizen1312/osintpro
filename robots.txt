@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /admin.html
+Disallow: /api/
+Disallow: /data/
+Disallow: /backups/
+Disallow: /.git/
+Disallow: /PRIVATE_NOTES.md
 
 Sitemap: https://osintpro-48j4.onrender.com/sitemap.xml

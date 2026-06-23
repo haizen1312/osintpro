@@ -158,9 +158,28 @@ function freeCreditsExhausted() {
   return state.user.plan === "Free" && !freeReportsUnlimited() && Number(state.user.credits || 0) <= 0;
 }
 
+function closeMobileNavigation() {
+  document.body.classList.remove("nav-open");
+  const button = document.querySelector("#mobileMenuButton");
+  if (button) {
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-label", "Open navigation");
+  }
+}
+
+function toggleMobileNavigation() {
+  const button = document.querySelector("#mobileMenuButton");
+  if (!button) return;
+  const open = !document.body.classList.contains("nav-open");
+  document.body.classList.toggle("nav-open", open);
+  button.setAttribute("aria-expanded", String(open));
+  button.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+}
+
 function setSection(id) {
   document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === id));
   document.querySelectorAll(".nav-btn").forEach(button => button.classList.toggle("active", button.dataset.section === id));
+  closeMobileNavigation();
   if (id === "billing" && !state.trackedSections.has("billing")) {
     state.trackedSections.add("billing");
     trackEvent("billing_view", { source: "navigation", plan: state.user?.plan || "Free" });
@@ -341,6 +360,14 @@ function flag(value) {
   return `<span class="tag ${value ? "" : "missing"}">${value ? "OK" : "Missing"}</span>`;
 }
 
+function optionalFlag(value, presentLabel = "Observed", absentLabel = "Not declared") {
+  return `<span class="tag neutral">${value ? presentLabel : absentLabel}</span>`;
+}
+
+function scopedFlag(value, applicable) {
+  return applicable ? flag(value) : `<span class="tag neutral">N/A</span>`;
+}
+
 function folderOptions(selected = "") {
   return `<option value="">No client folder</option>${state.folders.map(folder => `
     <option value="${escapeHtml(folder.id)}" ${folder.id === selected ? "selected" : ""}>${escapeHtml(folder.name)}</option>
@@ -354,6 +381,7 @@ function activeFolderId() {
 
 function probeLabel(probe) {
   if (!probe) return "not available";
+  if (probe.available === false) return "assessment unavailable";
   return probe.present ? `HTTP ${probe.status}` : (probe.status ? `HTTP ${probe.status}` : "not found");
 }
 
@@ -449,6 +477,8 @@ function webAuditStatus(report) {
   const required = headers.map(item => ({
     label: item.name,
     ok: Boolean(item.present),
+    applicable: item.assessed !== false,
+    optional: false,
     detail: item.present ? item.value : item.reason
   }));
   [
@@ -459,7 +489,9 @@ function webAuditStatus(report) {
     required.push({
       label,
       ok: Boolean(value?.present),
-      detail: value?.status ? `HTTP ${value.status}` : "not observed"
+      applicable: value?.available !== false,
+      optional: label !== "security.txt",
+      detail: value?.status ? `HTTP ${value.status}` : value?.error || "not observed"
     });
   });
   return required;
@@ -505,7 +537,9 @@ function networkPackets(report) {
   const cert = report.https?.certificate || {};
   const headers = report.https?.security_headers || [];
   const presentHeaders = headers.filter(item => item.present).map(item => item.name);
-  const missingHeaders = headers.filter(item => !item.present).map(item => item.name);
+  const missingHeaders = headers
+    .filter(item => item.assessed !== false && !item.present)
+    .map(item => item.name);
   const rows = [
     {
       no: 1,
@@ -561,7 +595,11 @@ function networkPackets(report) {
       source: domain,
       destination: "analyst workstation",
       summary: `Response ${report.https?.status || "n/a"}${report.https?.server ? ` from ${report.https.server}` : ""}`,
-      detail: presentHeaders.length ? `Observed security headers: ${presentHeaders.join(", ")}.` : "No major browser security headers were observed."
+      detail: report.https?.available === false
+        ? "The public HTTPS response could not be assessed in this run."
+        : presentHeaders.length
+          ? `Observed security headers: ${presentHeaders.join(", ")}.`
+          : "No major browser security headers were observed."
     },
     {
       no: 8,
@@ -849,7 +887,8 @@ function renderLocalNetworkLab(data) {
 function renderWebAuditLab(report) {
   const domain = report.domain;
   state.currentWebAuditReportId = report.id;
-  const missingHeaders = (report.https?.security_headers || []).filter(item => !item.present);
+  const missingHeaders = (report.https?.security_headers || [])
+    .filter(item => item.assessed !== false && !item.present);
   const findings = report.findings || [];
   const commands = webAuditCommands(domain);
   const statuses = webAuditStatus(report);
@@ -1018,7 +1057,7 @@ function renderWebAuditLab(report) {
         <div class="check-list">
           ${statuses.map(item => `
             <div class="check">
-              <span>${flag(item.ok)}</span>
+              <span>${item.optional ? optionalFlag(item.ok, "Public", "Not published") : scopedFlag(item.ok, item.applicable)}</span>
               <strong>${escapeHtml(item.label)}</strong>
               <em>${escapeHtml(item.detail || "")}</em>
             </div>
@@ -1211,7 +1250,9 @@ function renderReport(report) {
   const scoreClass = report.score >= 80 ? "" : report.score >= 55 ? "warn" : "bad";
   const cert = report.https?.certificate || {};
   const headers = report.https?.security_headers || [];
-  const missingHeaders = headers.filter(item => !item.present).map(item => item.name);
+  const missingHeaders = headers
+    .filter(item => item.assessed !== false && !item.present)
+    .map(item => item.name);
   const email = report.email_security || {};
   const flags = email.flags || {};
   const web = report.web_presence || {};
@@ -1295,11 +1336,11 @@ function renderReport(report) {
         <div><span class="pill">Email Security</span><strong>${email.applicable ? `${email.score ?? 0}/100` : "N/A"}</strong></div>
         <p>${escapeHtml(email.scope_note || "Email scope could not be determined.")}</p>
         <div class="flag-grid">
-          <span>${flag(flags.spf_present)} SPF</span>
-          <span>${flag(flags.dmarc_present)} DMARC</span>
-          <span>${flag(flags.dmarc_reject || flags.dmarc_quarantine)} Policy strict</span>
-          <span>${flag(flags.mta_sts_present)} MTA-STS</span>
-          <span>${flag(flags.tls_rpt_present)} TLS-RPT</span>
+          <span>${scopedFlag(flags.spf_present, email.applicable)} SPF</span>
+          <span>${scopedFlag(flags.dmarc_present, email.applicable)} DMARC</span>
+          <span>${scopedFlag(flags.dmarc_reject || flags.dmarc_quarantine, email.applicable)} Policy strict</span>
+          <span>${scopedFlag(flags.mta_sts_present, email.applicable && flags.mx_present)} MTA-STS</span>
+          <span>${scopedFlag(flags.tls_rpt_present, email.applicable && flags.mx_present)} TLS-RPT</span>
         </div>
         ${list([...(email.dmarc || []), ...(email.mta_sts || []), ...(email.tls_rpt || [])])}
       </article>
@@ -1312,10 +1353,10 @@ function renderReport(report) {
       <article class="intel-card">
         <div><span class="pill">Web Exposure</span><strong>${[web.security_txt, web.robots_txt, web.sitemap_xml].filter(item => item?.present).length}/3</strong></div>
         <div class="flag-grid">
-          <span>${flag(web.security_txt?.present)} security.txt <em>${escapeHtml(probeLabel(web.security_txt))}</em></span>
-          <span>${flag(web.robots_txt?.present)} robots.txt <em>${escapeHtml(probeLabel(web.robots_txt))}</em></span>
-          <span>${flag(web.sitemap_xml?.present)} sitemap.xml <em>${escapeHtml(probeLabel(web.sitemap_xml))}</em></span>
-          <span>${flag(web.mta_sts_policy?.present)} mta-sts policy <em>${escapeHtml(probeLabel(web.mta_sts_policy))}</em></span>
+          <span>${scopedFlag(web.security_txt?.present, web.security_txt?.available !== false)} security.txt <em>${escapeHtml(probeLabel(web.security_txt))}</em></span>
+          <span>${optionalFlag(web.robots_txt?.present, "Public", "Not published")} robots.txt <em>${escapeHtml(probeLabel(web.robots_txt))}</em></span>
+          <span>${optionalFlag(web.sitemap_xml?.present, "Public", "Not published")} sitemap.xml <em>${escapeHtml(probeLabel(web.sitemap_xml))}</em></span>
+          <span>${scopedFlag(web.mta_sts_policy?.present, email.applicable && flags.mx_present)} mta-sts policy <em>${escapeHtml(probeLabel(web.mta_sts_policy))}</em></span>
         </div>
       </article>
 
@@ -1333,11 +1374,11 @@ function renderReport(report) {
         <div><span class="pill">Advanced OSINT</span><strong>${takeoverHints.length}</strong></div>
         <div class="flag-grid">
           <span>${flag(dnssec.enabled)} DNSSEC <em>${dnssec.score ?? 0}/100</em></span>
-          <span>${flag(bimi.present)} BIMI</span>
-          <span>${flag(wellKnown.change_password?.present)} change-password <em>${escapeHtml(probeLabel(wellKnown.change_password))}</em></span>
-          <span>${flag(wellKnown.openid_configuration?.present)} OpenID config <em>${escapeHtml(probeLabel(wellKnown.openid_configuration))}</em></span>
-          <span>${flag(wellKnown.assetlinks?.present)} Android assetlinks <em>${escapeHtml(probeLabel(wellKnown.assetlinks))}</em></span>
-          <span>${flag(wellKnown.apple_app_site_association?.present)} Apple app association <em>${escapeHtml(probeLabel(wellKnown.apple_app_site_association))}</em></span>
+          <span>${scopedFlag(bimi.present, email.applicable)} BIMI</span>
+          <span>${optionalFlag(wellKnown.change_password?.present)} change-password <em>${escapeHtml(probeLabel(wellKnown.change_password))}</em></span>
+          <span>${optionalFlag(wellKnown.openid_configuration?.present)} OpenID config <em>${escapeHtml(probeLabel(wellKnown.openid_configuration))}</em></span>
+          <span>${optionalFlag(wellKnown.assetlinks?.present)} Android assetlinks <em>${escapeHtml(probeLabel(wellKnown.assetlinks))}</em></span>
+          <span>${optionalFlag(wellKnown.apple_app_site_association?.present)} Apple app association <em>${escapeHtml(probeLabel(wellKnown.apple_app_site_association))}</em></span>
         </div>
         ${takeoverHints.length ? renderOpsRows(takeoverHints, "provider", "subdomain", "cname") : `<span class="mono">no priority SaaS/cloud CNAME observed</span>`}
       </article>
@@ -1366,7 +1407,7 @@ function renderReport(report) {
     <div class="checks">
       ${headers.map(item => `
         <div class="check">
-          <span class="tag ${item.present ? "" : "missing"}">${item.present ? "OK" : "Missing"}</span>
+          ${item.assessed === false ? `<span class="tag neutral">N/A</span>` : `<span class="tag ${item.present ? "" : "missing"}">${item.present ? "OK" : "Missing"}</span>`}
           <span><strong>${escapeHtml(item.name)}</strong><br><span class="mono">${escapeHtml(item.value || item.reason)}</span></span>
         </div>
       `).join("")}
@@ -2212,6 +2253,16 @@ async function checkout(plan) {
 
 document.querySelectorAll(".nav-btn").forEach(button => {
   button.addEventListener("click", () => setSection(button.dataset.section));
+});
+
+document.querySelector("#mobileMenuButton")?.addEventListener("click", toggleMobileNavigation);
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") closeMobileNavigation();
+});
+
+window.addEventListener("resize", () => {
+  if (window.innerWidth > 640) closeMobileNavigation();
 });
 
 document.querySelector("#scanForm").addEventListener("submit", event => {

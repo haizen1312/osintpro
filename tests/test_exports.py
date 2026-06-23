@@ -151,6 +151,13 @@ class ExportEndpointTests(unittest.TestCase):
         pdf, pdf_type, pdf_disposition = self.download(f"/api/reports/{report_id}/pdf")
         self.assertTrue(pdf.startswith(b"%PDF-1.4"))
         self.assertTrue(pdf.rstrip().endswith(b"%%EOF"))
+        self.assertGreaterEqual(
+            pdf.count(b"/Type /Page "),
+            4,
+            "Client PDF should contain summary, findings, evidence and methodology pages.",
+        )
+        self.assertIn(b"Confidential client report", pdf)
+        self.assertIn(b"Methodology and limitations", pdf)
         self.assertEqual(pdf_type, "application/pdf")
         self.assertIn("attachment", pdf_disposition)
         self.assertIn("second.example.pdf", pdf_disposition)

@@ -1,9 +1,31 @@
 import unittest
+from unittest import mock
 
 import server
 
 
 class RepositoryAuditTests(unittest.TestCase):
+    def test_dns_parser_ignores_cname_chain_for_requested_record(self):
+        output = (
+            "osintpro.example. 300 IN CNAME origin.example.net.\n"
+            "origin.example.net. 300 IN CNAME edge.example.net.\n"
+            "example.net. 300 IN MX 10 mail.example.net.\n"
+        )
+
+        self.assertEqual(
+            server.parse_dig_answers(output, "MX"),
+            ["10 mail.example.net"],
+        )
+        self.assertEqual(server.parse_dig_answers(output, "TXT"), [])
+
+    @mock.patch("server.subprocess.run")
+    def test_dig_filters_provider_cname_from_empty_mx(self, run):
+        run.return_value.stdout = (
+            "app.onrender.com. 300 IN CNAME origin.onrender.com.\n"
+        )
+
+        self.assertEqual(server.dig("app.onrender.com", "MX"), [])
+
     def test_detects_security_review_leads(self):
         audit = server.analyze_repository(
             [
@@ -65,9 +87,64 @@ class RepositoryAuditTests(unittest.TestCase):
         }
 
         titles = {finding["title"] for finding in server.risk_findings(report)}
+        hypotheses = {
+            finding["title"]
+            for finding in server.vulnerability_hypotheses(
+                {
+                    **report,
+                    "web_presence": {
+                        "security_txt": {"present": True},
+                        "robots_txt": {"present": True},
+                        "sitemap_xml": {"present": True},
+                    },
+                }
+            )
+        }
         self.assertFalse(email["applicable"])
         self.assertNotIn("SPF missing", titles)
         self.assertNotIn("DMARC missing", titles)
+        self.assertNotIn("Email brand spoofing more likely", hypotheses)
+        self.assertNotIn("Public map useful for reconnaissance", hypotheses)
+
+    def test_unavailable_https_response_does_not_create_missing_headers(self):
+        report = {
+            "dns": {"caa": ["0 issue \"letsencrypt.org\""]},
+            "https": {
+                "available": False,
+                "status": None,
+                "certificate": {"days_remaining": 90},
+                "security_headers": [
+                    {
+                        "name": name,
+                        "assessed": False,
+                        "present": False,
+                        "reason": "HTTPS response unavailable; header not assessed",
+                    }
+                    for name in server.SECURITY_HEADERS
+                ],
+            },
+            "email_security": {
+                "applicable": False,
+                "flags": {},
+            },
+            "web_presence": {
+                "security_txt": {
+                    "available": False,
+                    "present": False,
+                }
+            },
+            "advanced_intel": {
+                "signals": {"dnssec_enabled": True},
+                "takeover_hints": [],
+            },
+        }
+
+        findings = server.risk_findings(report)
+        hypotheses = server.vulnerability_hypotheses(report)
+
+        self.assertFalse(any("Missing header" in item["title"] for item in findings))
+        self.assertFalse(any("XSS" in item["title"] for item in hypotheses))
+        self.assertFalse(any("SSL stripping" in item["title"] for item in hypotheses))
 
 
 if __name__ == "__main__":

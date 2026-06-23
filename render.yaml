@@ -36,3 +36,9 @@ services:
         value: "30"
       - key: OSINTPRO_ALERT_WEBHOOK_URL
         sync: false
+      - key: OSINTPRO_REPORT_BRAND
+        value: "OSINTPRO"
+      - key: OSINTPRO_REPORT_ANALYST
+        sync: false
+      - key: OSINTPRO_REPORT_CONTACT
+        sync: false

@@ -52,8 +52,10 @@ Status: wallet CSV export, manual wallet tags, case notes, transaction timeline 
 
 Status: server-side PDF export, report CSV, Web Audit Lab CSV/playbook export,
 anonymous session export support, sanitized example reports, report comparison
-and configurable report branding are implemented. Export endpoints have HTTP
-regression tests. Visual branded templates remain future polish.
+and configurable report branding are implemented. PDF reports now use a
+branded multipage A4 layout with executive summary, findings, evidence,
+methodology and numbered confidentiality footers. Export endpoints have HTTP
+regression tests.
 
 ### Repository Audit
 
@@ -93,7 +95,6 @@ Status: SQLite remains the default zero-cost database. PostgreSQL is intentional
 
 ## Known Limitations
 
-- PDF output is intentionally lightweight and currently limited to one page.
 - Repository Audit Lab does not export SARIF yet.
 - Entity Graph does not export JSON-LD or DOT yet.
 - PostgreSQL has a documented migration plan but no runtime adapter.

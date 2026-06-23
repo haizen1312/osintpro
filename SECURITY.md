@@ -40,6 +40,11 @@ Use a long random admin code in production and rotate it if exposed.
 Only analyze assets you own, manage, or are authorized to assess.
 Findings are hypotheses based on public signals and should be manually verified before client remediation work.
 
+Email authentication findings are contextual. SPF, DMARC, MTA-STS, TLS-RPT and
+BIMI are not active failures when no mail service or brand email policy is
+observed. Public `robots.txt` and `sitemap.xml` files are indexing metadata, not
+vulnerabilities by themselves.
+
 ## Export Safety
 
 - PDF and CSV exports are scoped to the signed browser session.
