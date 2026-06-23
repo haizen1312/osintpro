@@ -77,4 +77,6 @@ The June 23, 2026 backend retest returned 100/100, observed all six browser
 security headers and produced no high-severity finding. CAA and DNSSEC remain
 low-priority provider-DNS observations.
 
+![OSINTPRO live self-audit after the fixes](assets/osintpro-self-audit-after.png)
+
 The goal remains accurate risk communication, not an artificial score.
