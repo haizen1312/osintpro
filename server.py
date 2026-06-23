@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import datetime as dt
+import csv
+import fnmatch
 import hashlib
 import hmac
+import io
 import html
 import json
 import os
@@ -33,6 +36,7 @@ DB_PATH = Path(os.getenv("OSINTPRO_DB_PATH", str(DATA_DIR / "osintpro.sqlite3"))
 BACKUP_DIR = Path(os.getenv("OSINTPRO_BACKUP_DIR", str(DATA_DIR / "backups"))).expanduser()
 SECRET_PATH = DATA_DIR / ".osintpro_secret"
 SESSION_COOKIE = "osintpro_session"
+DB_TYPE = os.getenv("OSINTPRO_DB_TYPE", "sqlite").strip().lower() or "sqlite"
 FREE_TIER_VARIANTS = {
     "A": {
         "credits": 5,
@@ -122,6 +126,25 @@ MAX_RESTORE_BYTES = 25 * 1024 * 1024
 MAX_REPO_AUDIT_BYTES = 2 * 1024 * 1024
 MAX_REPO_AUDIT_FILES = 180
 MAX_REPO_FILE_BYTES = 180000
+REPO_CONFIDENCE_SCORES = {"high": 0.95, "medium": 0.7, "low": 0.45}
+DEFAULT_REPO_IGNORE_PATTERNS = [
+    ".git/**",
+    "node_modules/**",
+    "vendor/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    ".next/**",
+    ".nuxt/**",
+    ".venv/**",
+    "venv/**",
+    "__pycache__/**",
+    "target/**",
+    "bin/**",
+    "obj/**",
+    "*.pyc",
+    ".DS_Store",
+]
 DEFAULT_MONITOR_BATCH_LIMIT = 20
 DEFAULT_API_KEY_RATE_LIMIT = 30
 DEFAULT_REGISTRATION_IP_LIMIT = 3
@@ -140,6 +163,7 @@ PUBLIC_STATIC_PATHS = {
     "/README.md",
     "/ARCHITECTURE.md",
     "/PERFORMANCE.md",
+    "/POSTGRES_MIGRATION.md",
     "/ROADMAP.md",
     "/docs/API_PREVIEW.md",
     "/docs/AI_DEVELOPMENT_GUIDE.md",
@@ -300,7 +324,17 @@ def safe_download_filename(value: object, fallback: str) -> str:
 
 @contextmanager
 def db() -> Iterator[sqlite3.Connection]:
-    """Open one transaction-scoped SQLite connection and always close it."""
+    """Open one transaction-scoped database connection and always close it.
+
+    SQLite remains the active zero-cost backend. PostgreSQL settings are read
+    for production planning, but the runtime intentionally fails closed if a
+    deployment flips the provider before the SQL migration has been executed.
+    """
+    if DB_TYPE != "sqlite":
+        raise RuntimeError(
+            "OSINTPRO_DB_TYPE=postgresql is documented for migration planning, "
+            "but this deployment has not been migrated from SQLite yet."
+        )
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
@@ -452,6 +486,18 @@ def init_db() -> None:
                 revoked_at TEXT,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
+
+            CREATE TABLE IF NOT EXISTS repository_reports (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                repository TEXT NOT NULL,
+                score INTEGER NOT NULL,
+                findings_json TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                generated_at TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
             """
         )
         ensure_column(connection, "users", "email", "TEXT")
@@ -473,6 +519,7 @@ def init_db() -> None:
         connection.execute("CREATE INDEX IF NOT EXISTS idx_conversion_events_user ON conversion_events(user_id, created_at)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id, revoked_at, created_at)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_repository_reports_user ON repository_reports(user_id, created_at)")
 
 
 def ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
@@ -764,6 +811,24 @@ def alert_webhook_url() -> str:
     return os.getenv("OSINTPRO_ALERT_WEBHOOK_URL", "")
 
 
+def postgres_settings() -> dict[str, object]:
+    """Expose only non-secret PostgreSQL migration settings for ops checks."""
+    host = os.getenv("OSINTPRO_POSTGRES_HOST", "")
+    database = os.getenv("OSINTPRO_POSTGRES_DB", "osintpro")
+    user = os.getenv("OSINTPRO_POSTGRES_USER", "")
+    try:
+        pool_size = max(1, min(50, int(os.getenv("OSINTPRO_POSTGRES_POOL_SIZE", "5"))))
+    except ValueError:
+        pool_size = 5
+    return {
+        "host_configured": bool(host),
+        "database": database,
+        "user_configured": bool(user),
+        "password_configured": bool(os.getenv("OSINTPRO_POSTGRES_PASSWORD", "")),
+        "pool_size": pool_size,
+    }
+
+
 def database_status() -> dict[str, object]:
     configured_path = bool(os.getenv("OSINTPRO_DB_PATH"))
     default_path = DATA_DIR / "osintpro.sqlite3"
@@ -771,11 +836,14 @@ def database_status() -> dict[str, object]:
     backup_count = len(list_backups())
     latest = latest_backup()
     return {
+        "type": DB_TYPE,
+        "active_adapter": "sqlite" if DB_TYPE == "sqlite" else "migration_blueprint_only",
         "configured_path": configured_path,
         "persistent_hint": configured_path and not on_default_local_path,
         "location": "custom" if configured_path else "default",
         "backup_count": backup_count,
         "latest_backup": latest["created_at"] if latest else None,
+        "postgres": postgres_settings(),
     }
 
 
@@ -1020,6 +1088,11 @@ def repo_evidence(line: str) -> str:
     return redact_text(line.strip())[:220]
 
 
+def repo_rule_id(category: str, title: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", f"{category}-{title}".lower()).strip("-")
+    return f"OSINTPRO-{slug[:80] or 'repository-finding'}"
+
+
 def repo_finding(
     *,
     severity: str,
@@ -1034,8 +1107,10 @@ def repo_finding(
     applicability: str = "Applies when this code path is reachable in production.",
 ) -> dict[str, object]:
     return {
+        "rule_id": repo_rule_id(category, title),
         "severity": severity,
         "confidence": confidence,
+        "confidence_score": REPO_CONFIDENCE_SCORES.get(confidence, 0.5),
         "category": category,
         "title": title,
         "path": path,
@@ -1045,6 +1120,57 @@ def repo_finding(
         "remediation": remediation,
         "applicability": applicability,
     }
+
+
+def parse_gitignore_text(content: str, base_dir: str = "") -> list[str]:
+    """Parse the subset of .gitignore syntax useful for bounded static review.
+
+    Negated patterns are intentionally ignored. OSINTPRO uses this only to
+    reduce false positives and avoid reviewing dependency/generated files; it
+    does not need to perfectly emulate Git's matcher.
+    """
+    patterns: list[str] = []
+    clean_base = base_dir.strip("/")
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or line.startswith("!"):
+            continue
+        line = line.lstrip("/")
+        if line.endswith("/"):
+            line = f"{line}**"
+        if clean_base and "/" not in line:
+            patterns.append(f"{clean_base}/**/{line}")
+        if clean_base and not line.startswith(clean_base + "/"):
+            patterns.append(f"{clean_base}/{line}")
+        patterns.append(line)
+    return patterns
+
+
+def repo_ignore_patterns(files: list[tuple[str, str]]) -> list[str]:
+    patterns = list(DEFAULT_REPO_IGNORE_PATTERNS)
+    for path, content in files:
+        if Path(path).name == ".gitignore":
+            parent = str(Path(path).parent).replace(".", "").strip("/")
+            patterns.extend(parse_gitignore_text(content, parent))
+    return patterns
+
+
+def should_ignore_repo_path(path: str, patterns: list[str]) -> bool:
+    normalized = path.replace("\\", "/").strip("/")
+    parts = normalized.split("/")
+    for pattern in patterns:
+        clean = pattern.replace("\\", "/").strip("/")
+        if not clean:
+            continue
+        if clean.endswith("/**") and normalized.startswith(clean[:-3].rstrip("/") + "/"):
+            return True
+        if "/" not in clean and any(fnmatch.fnmatch(part, clean) for part in parts):
+            return True
+        if fnmatch.fnmatch(normalized, clean):
+            return True
+        if fnmatch.fnmatch(normalized, f"**/{clean}"):
+            return True
+    return False
 
 
 REPO_AUDIT_RULES = [
@@ -1184,17 +1310,26 @@ def analyze_repository(raw_files: object, repository_name: object = "") -> dict[
     if len(raw_files) > MAX_REPO_AUDIT_FILES:
         raise ValueError(f"Repository audit accepts at most {MAX_REPO_AUDIT_FILES} text files per run.")
 
-    files: list[tuple[str, str]] = []
-    total_bytes = 0
+    received_files: list[tuple[str, str]] = []
     for item in raw_files:
         if not isinstance(item, dict):
             raise ValueError("Invalid repository file payload.")
-        path = clean_repo_path(item.get("path"))
         content = item.get("content")
         if not isinstance(content, str):
             raise ValueError("Repository files must contain text.")
+        received_files.append((clean_repo_path(item.get("path")), content))
+
+    ignore_patterns = repo_ignore_patterns(received_files)
+    files: list[tuple[str, str]] = []
+    total_bytes = 0
+    ignored_files = 0
+    for path, content in received_files:
+        if Path(path).name != ".gitignore" and should_ignore_repo_path(path, ignore_patterns):
+            ignored_files += 1
+            continue
         size = len(content.encode("utf-8"))
         if size > MAX_REPO_FILE_BYTES:
+            ignored_files += 1
             continue
         total_bytes += size
         if total_bytes > MAX_REPO_AUDIT_BYTES:
@@ -1355,6 +1490,8 @@ def analyze_repository(raw_files: object, repository_name: object = "") -> dict[
         "score": score,
         "files_scanned": len(files),
         "bytes_scanned": total_bytes,
+        "ignored_files": ignored_files,
+        "ignore_patterns": ignore_patterns[:60],
         "languages": sorted(languages),
         "manifests": sorted(manifests),
         "context": signals,
@@ -2795,6 +2932,32 @@ def store_wallet_report(
     )
 
 
+def store_repository_report(
+    connection: sqlite3.Connection,
+    user_id: str,
+    audit: dict[str, object],
+) -> None:
+    """Persist only the redacted repository audit, never the uploaded source."""
+    audit = redact_data(audit)
+    connection.execute(
+        """
+        INSERT INTO repository_reports
+            (id, user_id, repository, score, findings_json, payload_json, generated_at, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            audit["id"],
+            user_id,
+            audit["repository"],
+            audit["score"],
+            json.dumps(audit.get("findings", [])),
+            json.dumps(audit),
+            audit["generated_at"],
+            utc_now(),
+        ),
+    )
+
+
 def prepare_session_report_storage(
     connection: sqlite3.Connection,
     user: dict[str, object],
@@ -2803,7 +2966,7 @@ def prepare_session_report_storage(
     """Bound anonymous storage while keeping authenticated history intact."""
     if user.get("authenticated"):
         return
-    if table not in {"reports", "social_reports", "wallet_reports"}:
+    if table not in {"reports", "social_reports", "wallet_reports", "repository_reports"}:
         raise ValueError("Invalid report storage table.")
     connection.execute(f"DELETE FROM {table} WHERE user_id = ?", (user["_id"],))
 
@@ -3552,6 +3715,243 @@ def web_audit_playbook_payload(report: dict[str, object]) -> dict[str, object]:
             "Prioritize fixes and retest passively.",
         ],
     })
+
+
+def clean_workspace_id(value: str) -> str:
+    workspace_id = value.strip().lower()
+    if workspace_id in {"current", "default", "all"}:
+        return workspace_id
+    if UUID_RE.match(workspace_id):
+        return workspace_id
+    raise ValueError("Invalid workspace id.")
+
+
+def graph_export_subset(workspace: dict[str, object], workspace_id: str) -> dict[str, object]:
+    """Return all graph data or a one-client-folder subgraph.
+
+    The frontend calls the global workspace `current`. A UUID is treated as a
+    client folder id, which keeps agency case exports useful without adding a
+    separate workspace table before the PostgreSQL migration.
+    """
+    nodes = list(workspace.get("nodes") or [])
+    edges = list(workspace.get("edges") or [])
+    if workspace_id in {"current", "default", "all"}:
+        return {"workspace_id": workspace_id, "nodes": nodes, "edges": edges}
+
+    root_ids: set[str] = {f"folder:{workspace_id}"}
+    dossiers = workspace.get("dossiers") if isinstance(workspace.get("dossiers"), dict) else {}
+    for item in dossiers.get("sites", []):
+        if item.get("folder_id") == workspace_id and item.get("domain"):
+            root_ids.add(f"site:{item['domain']}")
+    for item in dossiers.get("people", []):
+        if item.get("folder_id") == workspace_id and item.get("username"):
+            root_ids.add(f"person:{item['username']}")
+    for item in dossiers.get("wallets", []):
+        if item.get("folder_id") == workspace_id and item.get("chain") and item.get("address"):
+            root_ids.add(f"wallet:{item['chain']}:{item['address']}")
+
+    selected_ids = set(root_ids)
+    changed = True
+    while changed:
+        changed = False
+        for edge in edges:
+            source = str(edge.get("from"))
+            target = str(edge.get("to"))
+            if source in selected_ids and target not in selected_ids:
+                selected_ids.add(target)
+                changed = True
+            if target in selected_ids and source not in selected_ids:
+                selected_ids.add(source)
+                changed = True
+
+    return {
+        "workspace_id": workspace_id,
+        "nodes": [node for node in nodes if str(node.get("id")) in selected_ids],
+        "edges": [
+            edge for edge in edges
+            if str(edge.get("from")) in selected_ids and str(edge.get("to")) in selected_ids
+        ],
+    }
+
+
+def graph_format_jsonld(graph: dict[str, object]) -> bytes:
+    nodes = graph.get("nodes") or []
+    edges = graph.get("edges") or []
+    payload = {
+        "@context": {
+            "name": "https://schema.org/name",
+            "description": "https://schema.org/description",
+            "osint": "https://osintpro.local/schema#",
+            "type": "@type",
+            "relationship": "osint:relationship",
+        },
+        "@graph": [
+            {
+                "@id": str(node.get("id")),
+                "type": f"osint:{node.get('type', 'node')}",
+                "name": node.get("label", ""),
+                "description": node.get("meta", ""),
+                "osint:score": node.get("score"),
+            }
+            for node in nodes
+        ] + [
+            {
+                "@id": f"edge:{index}",
+                "type": "osint:Relationship",
+                "relationship": edge.get("label", ""),
+                "osint:kind": edge.get("kind", "signal"),
+                "osint:source": edge.get("from", ""),
+                "osint:target": edge.get("to", ""),
+            }
+            for index, edge in enumerate(edges, 1)
+        ],
+        "generated_at": utc_now(),
+        "workspace_id": graph.get("workspace_id", "current"),
+    }
+    return json.dumps(redact_data(payload), indent=2).encode("utf-8")
+
+
+def dot_escape(value: object) -> str:
+    return str(value or "").replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+
+def graph_format_dot(graph: dict[str, object]) -> bytes:
+    lines = [
+        "digraph OSINTPRO {",
+        "  rankdir=LR;",
+        '  graph [label="OSINTPRO passive investigation graph", labelloc=t, fontsize=18];',
+        "  node [shape=box, style=\"rounded,filled\", fontname=Helvetica];",
+        "  edge [fontname=Helvetica, color=\"#6b7280\"];",
+    ]
+    for node in graph.get("nodes") or []:
+        node_type = str(node.get("type", "node"))
+        fill = {
+            "site": "#d1fae5",
+            "person": "#dbeafe",
+            "wallet": "#fef3c7",
+            "finding": "#fee2e2",
+            "risk": "#fee2e2",
+            "folder": "#ede9fe",
+        }.get(node_type, "#f8fafc")
+        label = dot_escape(f"{node.get('label', '')}\\n{node_type}")
+        lines.append(f'  "{dot_escape(node.get("id"))}" [label="{label}", fillcolor="{fill}"];')
+    for edge in graph.get("edges") or []:
+        lines.append(
+            f'  "{dot_escape(edge.get("from"))}" -> "{dot_escape(edge.get("to"))}" '
+            f'[label="{dot_escape(edge.get("label"))}"];'
+        )
+    lines.append("}")
+    return ("\n".join(lines) + "\n").encode("utf-8")
+
+
+def graph_format_csv(graph: dict[str, object]) -> bytes:
+    nodes = {str(node.get("id")): node for node in graph.get("nodes") or []}
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "source_id",
+        "source_label",
+        "source_type",
+        "relationship",
+        "target_id",
+        "target_label",
+        "target_type",
+        "confidence",
+        "last_seen",
+    ])
+    for edge in graph.get("edges") or []:
+        source = nodes.get(str(edge.get("from")), {})
+        target = nodes.get(str(edge.get("to")), {})
+        writer.writerow([
+            edge.get("from", ""),
+            source.get("label", ""),
+            source.get("type", ""),
+            edge.get("label", ""),
+            edge.get("to", ""),
+            target.get("label", ""),
+            target.get("type", ""),
+            "lead",
+            utc_now(),
+        ])
+    return output.getvalue().encode("utf-8")
+
+
+def sarif_level(severity: object) -> str:
+    value = str(severity or "").lower()
+    if value in {"critical", "high"}:
+        return "error"
+    if value == "medium":
+        return "warning"
+    return "note"
+
+
+def format_sarif(audit: dict[str, object]) -> bytes:
+    findings = audit.get("findings") if isinstance(audit.get("findings"), list) else []
+    rules: dict[str, dict[str, object]] = {}
+    results = []
+    for finding in findings:
+        rule_id = str(
+            finding.get("rule_id")
+            or repo_rule_id(str(finding.get("category", "Review")), str(finding.get("title", "Finding")))
+        )
+        rules.setdefault(rule_id, {
+            "id": rule_id,
+            "name": finding.get("title", rule_id),
+            "shortDescription": {"text": finding.get("title", rule_id)},
+            "fullDescription": {"text": finding.get("why", "")},
+            "help": {"text": finding.get("remediation", "Review the finding and confirm applicability.")},
+            "properties": {
+                "category": finding.get("category", "Review"),
+                "severity": finding.get("severity", "info"),
+            },
+        })
+        results.append({
+            "ruleId": rule_id,
+            "level": sarif_level(finding.get("severity")),
+            "message": {"text": finding.get("title", "Repository audit finding")},
+            "locations": [{
+                "physicalLocation": {
+                    "artifactLocation": {"uri": finding.get("path", "")},
+                    "region": {"startLine": int(finding.get("line") or 1)},
+                }
+            }],
+            "fixes": [{
+                "description": {"text": finding.get("remediation", "Review code and apply the documented remediation.")}
+            }],
+            "properties": {
+                "confidence": finding.get("confidence", "medium"),
+                "confidenceScore": finding.get("confidence_score", 0.5),
+                "applicability": finding.get("applicability", ""),
+                "evidence": finding.get("evidence", ""),
+            },
+        })
+    payload = {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": "OSINTPRO Repository Audit Lab",
+                    "version": "1.0.0",
+                    "informationUri": "https://osintpro-48j4.onrender.com/docs/REPOSITORY_AUDIT_LAB.md",
+                    "rules": list(rules.values()),
+                }
+            },
+            "automationDetails": {"id": f"osintpro/{audit.get('repository', 'repository')}"},
+            "results": results,
+            "invocations": [{
+                "executionSuccessful": True,
+                "endTimeUtc": audit.get("generated_at", utc_now()),
+                "toolExecutionNotifications": [{
+                    "level": "note",
+                    "message": {
+                        "text": "Static review only. OSINTPRO did not execute repository code or install dependencies."
+                    },
+                }],
+            }],
+        }],
+    }
+    return json.dumps(redact_data(payload), indent=2).encode("utf-8")
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -4414,6 +4814,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "reports": connection.execute("SELECT COUNT(*) AS count FROM reports").fetchone()["count"],
                 "social_reports": connection.execute("SELECT COUNT(*) AS count FROM social_reports").fetchone()["count"],
                 "wallet_reports": connection.execute("SELECT COUNT(*) AS count FROM wallet_reports").fetchone()["count"],
+                "repository_reports": connection.execute("SELECT COUNT(*) AS count FROM repository_reports").fetchone()["count"],
                 "monitors": connection.execute("SELECT COUNT(*) AS count FROM monitors").fetchone()["count"],
                 "stripe_events": connection.execute("SELECT COUNT(*) AS count FROM stripe_events").fetchone()["count"],
                 "conversion_events": connection.execute("SELECT COUNT(*) AS count FROM conversion_events").fetchone()["count"],
@@ -4519,6 +4920,13 @@ class Handler(SimpleHTTPRequestHandler):
                 ORDER BY created_at ASC
                 """
             ).fetchall()
+            repository_reports = connection.execute(
+                """
+                SELECT id, user_id, repository, score, generated_at, created_at
+                FROM repository_reports
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
             monitors = connection.execute(
                 """
                 SELECT id, user_id, domain, status, last_score, last_summary,
@@ -4569,6 +4977,7 @@ class Handler(SimpleHTTPRequestHandler):
             "reports": [dict(row) for row in reports],
             "social_reports": [dict(row) for row in social_reports],
             "wallet_reports": [dict(row) for row in wallet_reports],
+            "repository_reports": [dict(row) for row in repository_reports],
             "monitors": [dict(row) for row in monitors],
             "stripe_events": [dict(row) for row in stripe_events],
             "conversion_events": [dict(row) for row in conversion_events],
@@ -4581,6 +4990,16 @@ class Handler(SimpleHTTPRequestHandler):
         with db() as connection:
             row = connection.execute(
                 "SELECT payload_json FROM reports WHERE user_id = ? AND id = ?",
+                (user_id, report_id),
+            ).fetchone()
+        if not row:
+            return None
+        return redact_data(json.loads(row["payload_json"]))
+
+    def fetch_repository_audit(self, user_id: str, report_id: str) -> dict[str, object] | None:
+        with db() as connection:
+            row = connection.execute(
+                "SELECT payload_json FROM repository_reports WHERE user_id = ? AND id = ?",
                 (user_id, report_id),
             ).fetchone()
         if not row:
@@ -4718,6 +5137,44 @@ class Handler(SimpleHTTPRequestHandler):
             user, headers = self.get_or_create_user()
             self.send_json(self.intelligence_workspace(user), headers=headers)
             return
+        if parsed.path.startswith("/api/graphs/") and parsed.path.endswith("/export"):
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to export the investigation graph."}, 401, headers)
+                return
+            try:
+                workspace_id = clean_workspace_id(parsed.path.split("/")[3])
+                query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                fmt = str(query.get("format", "jsonld")).lower()
+                workspace = self.intelligence_workspace(user)
+                graph = graph_export_subset(workspace, workspace_id)
+                if not graph["nodes"]:
+                    self.send_json({"error": "No graph data available for this workspace."}, 404, headers)
+                    return
+                if fmt == "jsonld":
+                    body = graph_format_jsonld(graph)
+                    content_type = "application/ld+json; charset=utf-8"
+                    extension = "jsonld"
+                elif fmt == "dot":
+                    body = graph_format_dot(graph)
+                    content_type = "text/vnd.graphviz; charset=utf-8"
+                    extension = "dot"
+                elif fmt == "csv":
+                    body = graph_format_csv(graph)
+                    content_type = "text/csv; charset=utf-8"
+                    extension = "csv"
+                else:
+                    self.send_json({"error": "Unsupported graph export format."}, 400, headers)
+                    return
+                self.send_download(
+                    body,
+                    content_type,
+                    f"osintpro-graph-{workspace_id}-{dt.datetime.now(dt.UTC).strftime('%Y%m%d_%H%M%S')}.{extension}",
+                    headers,
+                )
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            return
         if parsed.path == "/api/network/local":
             user, headers = self.get_or_create_user()
             host = self.headers.get("Host", "")
@@ -4808,6 +5265,34 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Report not found"}, 404, headers)
                 return
             self.send_html(report_document(report), headers=headers)
+            return
+        if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/repository.json"):
+            user, headers = self.get_or_create_user()
+            report_id = parsed.path.split("/")[3]
+            audit = self.fetch_repository_audit(str(user["_id"]), report_id)
+            if not audit:
+                self.send_json({"error": "Repository audit not found."}, 404, headers)
+                return
+            self.send_download(
+                json.dumps(audit, indent=2).encode("utf-8"),
+                "application/json; charset=utf-8",
+                f"osintpro-repository-audit-{audit.get('repository') or report_id}.json",
+                headers,
+            )
+            return
+        if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/sarif"):
+            user, headers = self.get_or_create_user()
+            report_id = parsed.path.split("/")[3]
+            audit = self.fetch_repository_audit(str(user["_id"]), report_id)
+            if not audit:
+                self.send_json({"error": "Repository audit not found."}, 404, headers)
+                return
+            self.send_download(
+                format_sarif(audit),
+                "application/sarif+json; charset=utf-8",
+                f"osintpro-repository-audit-{audit.get('repository') or report_id}.sarif",
+                headers,
+            )
             return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/pdf"):
             user, headers = self.get_or_create_user()
@@ -5214,6 +5699,8 @@ class Handler(SimpleHTTPRequestHandler):
                             "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?",
                             (utc_now(), user["_id"]),
                         )
+                    prepare_session_report_storage(connection, user, "repository_reports")
+                    store_repository_report(connection, str(user["_id"]), audit)
                     record_conversion_event(
                         connection,
                         str(user["_id"]),

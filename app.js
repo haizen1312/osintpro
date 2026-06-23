@@ -8,6 +8,7 @@ const state = {
   playbooks: [],
   apiKeys: [],
   currentRepoAudit: null,
+  repoConfidenceThreshold: 0.35,
   workspace: null,
   checkoutConfigured: false,
   currentWallet: null,
@@ -234,6 +235,7 @@ function repositoryFileAllowed(file) {
   if (parts.some(part => REPO_IGNORED_SEGMENTS.has(part))) return false;
   if (file.size > 180000) return false;
   const name = parts.at(-1)?.toLowerCase() || "";
+  if (name === ".gitignore") return true;
   const extensionIndex = name.lastIndexOf(".");
   const extension = extensionIndex >= 0 ? name.slice(extensionIndex) : "";
   return REPO_TEXT_EXTENSIONS.has(extension)
@@ -242,6 +244,25 @@ function repositoryFileAllowed(file) {
 
 function repoSeverityTone(severity) {
   return ["critical", "high", "medium", "low"].includes(severity) ? severity : "info";
+}
+
+function repoConfidenceValue(item) {
+  if (Number.isFinite(Number(item.confidence_score))) return Number(item.confidence_score);
+  return { high: 0.95, medium: 0.7, low: 0.45 }[String(item.confidence || "").toLowerCase()] || 0.5;
+}
+
+function updateRepoConfidenceFilter() {
+  const threshold = Number(state.repoConfidenceThreshold || 0.35);
+  const findings = [...document.querySelectorAll("[data-repo-finding]")];
+  let visible = 0;
+  findings.forEach(item => {
+    const confidence = Number(item.dataset.confidence || "0");
+    const show = confidence >= threshold;
+    item.hidden = !show;
+    if (show) visible += 1;
+  });
+  const count = document.querySelector("#repoConfidenceCount");
+  if (count) count.textContent = `${visible} of ${findings.length} findings visible`;
 }
 
 function renderRepoAudit(audit) {
@@ -255,7 +276,7 @@ function renderRepoAudit(audit) {
       <div>
         <span class="pill">Static repository review</span>
         <h2>${escapeHtml(audit.repository)}</h2>
-        <p>${escapeHtml(audit.files_scanned)} text files reviewed without executing code. Treat findings as prioritized review leads.</p>
+        <p>${escapeHtml(audit.files_scanned)} text files reviewed without executing code. ${escapeHtml(audit.ignored_files || 0)} files ignored by dependency/build/.gitignore rules.</p>
       </div>
       <div class="score">
         <div><span>Code posture</span><strong>${escapeHtml(audit.score)}</strong></div>
@@ -285,13 +306,21 @@ function renderRepoAudit(audit) {
         <span class="pill">Prioritized review</span>
         <h3>${escapeHtml(audit.total_findings ?? findings.length)} findings</h3>
       </div>
+      <div class="repo-toolbar">
+        <label for="repoConfidenceSlider">
+          Confidence threshold
+          <strong id="repoConfidenceValue">${escapeHtml(Number(state.repoConfidenceThreshold).toFixed(2))}</strong>
+        </label>
+        <input id="repoConfidenceSlider" type="range" min="0.35" max="1" step="0.05" value="${escapeHtml(state.repoConfidenceThreshold)}">
+        <span class="tag neutral" id="repoConfidenceCount">${escapeHtml(findings.length)} findings visible</span>
+      </div>
       ${audit.suppressed_findings ? `<p class="muted">${escapeHtml(audit.suppressed_findings)} repeated occurrences were compacted to keep the review readable.</p>` : ""}
       ${findings.length ? findings.map(item => `
-        <article class="repo-finding ${repoSeverityTone(item.severity)}">
+        <article class="repo-finding ${repoSeverityTone(item.severity)}" data-repo-finding data-confidence="${escapeHtml(repoConfidenceValue(item))}">
           <div class="repo-finding-head">
             <span class="severity ${repoSeverityTone(item.severity)}">${escapeHtml(item.severity)}</span>
             <strong>${escapeHtml(item.title)}</strong>
-            <span class="tag">${escapeHtml(item.confidence)} confidence</span>
+            <span class="tag">${escapeHtml(item.confidence)} · ${escapeHtml(repoConfidenceValue(item).toFixed(2))}</span>
           </div>
           <code>${escapeHtml(item.path)}:${escapeHtml(item.line)}</code>
           <pre>${escapeHtml(item.evidence || "Evidence redacted")}</pre>
@@ -309,7 +338,25 @@ function renderRepoAudit(audit) {
       <ul class="step-list">${(audit.limitations || []).map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
     </section>
   `;
-  document.querySelector("#downloadRepoAudit").hidden = false;
+  const jsonExport = document.querySelector("#downloadRepoAudit");
+  const sarifExport = document.querySelector("#downloadRepoSarif");
+  if (jsonExport) {
+    jsonExport.href = `/api/reports/${encodeURIComponent(audit.id)}/repository.json`;
+    jsonExport.hidden = false;
+  }
+  if (sarifExport) {
+    sarifExport.href = `/api/reports/${encodeURIComponent(audit.id)}/sarif`;
+    sarifExport.hidden = false;
+  }
+  const slider = document.querySelector("#repoConfidenceSlider");
+  if (slider) {
+    slider.addEventListener("input", event => {
+      state.repoConfidenceThreshold = Number(event.target.value);
+      document.querySelector("#repoConfidenceValue").textContent = state.repoConfidenceThreshold.toFixed(2);
+      updateRepoConfidenceFilter();
+    });
+  }
+  updateRepoConfidenceFilter();
 }
 
 async function buildRepoAudit(files, repository) {
@@ -2333,6 +2380,8 @@ document.querySelector("#repoAuditForm").addEventListener("submit", async event 
 });
 
 document.querySelector("#downloadRepoAudit").addEventListener("click", () => {
+  const link = document.querySelector("#downloadRepoAudit");
+  if (link?.getAttribute("href") && link.getAttribute("href") !== "#") return;
   if (!state.currentRepoAudit) return;
   const blob = new Blob([JSON.stringify(state.currentRepoAudit, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);

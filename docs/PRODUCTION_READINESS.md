@@ -40,6 +40,8 @@ Checklist:
 
 Best later step when usage grows.
 
+Detailed blueprint: [`POSTGRES_MIGRATION.md`](../POSTGRES_MIGRATION.md).
+
 Checklist:
 
 1. Add a PostgreSQL database.

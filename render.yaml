@@ -28,12 +28,24 @@ services:
         sync: false
       - key: OSINTPRO_FREE_TIER_VARIANT
         value: "A"
+      - key: OSINTPRO_DB_TYPE
+        value: "sqlite"
       - key: OSINTPRO_DB_PATH
         sync: false
       - key: OSINTPRO_BACKUP_DIR
         sync: false
       - key: OSINTPRO_BACKUP_RETENTION
         value: "30"
+      - key: OSINTPRO_POSTGRES_HOST
+        sync: false
+      - key: OSINTPRO_POSTGRES_DB
+        value: "osintpro"
+      - key: OSINTPRO_POSTGRES_USER
+        sync: false
+      - key: OSINTPRO_POSTGRES_PASSWORD
+        sync: false
+      - key: OSINTPRO_POSTGRES_POOL_SIZE
+        value: "5"
       - key: OSINTPRO_ALERT_WEBHOOK_URL
         sync: false
       - key: OSINTPRO_REPORT_BRAND

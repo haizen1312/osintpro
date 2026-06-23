@@ -28,10 +28,14 @@ Web Audit Lab, Repository Audit Lab, Network Traffic Lab, Social OSINT and Walle
 - Web Audit Lab for guided passive web review, beginner commands and technical explanations.
 - Network Traffic Lab for Wireshark-style website traffic and own-network interpretation.
 - Entity graph with stronger filtering by domain, person, wallet and finding type.
+- Entity graph export for external case tooling.
 - Manual notes and tags for wallets, counterparties and suspicious infrastructure.
 - Better case summaries for agencies and investigators.
 
-Status: client folders, active folder routing, saved playbook organization, case summaries, entity graph filters and dual-mode Network Traffic Lab are implemented. Password reset remains gated until a trusted recovery channel exists.
+Status: client folders, active folder routing, saved playbook organization,
+case summaries, entity graph filters, JSON-LD/DOT/CSV graph export and
+dual-mode Network Traffic Lab are implemented. Password reset remains gated
+until a trusted recovery channel exists.
 
 ### Wallet OSINT
 
@@ -63,9 +67,15 @@ regression tests.
 - File and line references with redacted evidence.
 - Applicability and confidence notes to reduce false positives.
 - JSON export for developer remediation work.
+- SARIF export for code scanning and security-review pipelines.
+- Adjustable confidence threshold in the UI.
+- `.gitignore` parsing to reduce generated-file and fixture noise.
 - Future dependency advisory matching and framework-aware rules.
 
-Status: the first defensive static-analysis MVP is implemented. It does not execute source code, install dependencies or retain uploaded source bundles.
+Status: the defensive static-analysis MVP is implemented with JSON/SARIF
+exports, confidence filtering, `.gitignore` support and persisted redacted
+audit reports. It does not execute source code, install dependencies or retain
+uploaded source bundles.
 
 ### Monetization
 
@@ -91,18 +101,22 @@ Status: API preview documentation, public metadata endpoint and Agency/Admin API
 - Add persistent disk or PostgreSQL when paid usage, real customer data or recurring monitor volume makes data durability more important than zero-cost hosting.
 - Keep secrets in environment variables and out of GitHub.
 
-Status: SQLite remains the default zero-cost database. PostgreSQL is intentionally deferred because the project is currently constrained to no paid infrastructure. A production readiness and migration checklist is documented in `docs/PRODUCTION_READINESS.md`.
+Status: SQLite remains the default zero-cost database. PostgreSQL is
+intentionally deferred because the project is currently constrained to no paid
+infrastructure. A production readiness checklist is documented in
+`docs/PRODUCTION_READINESS.md`, and the migration blueprint/config preview is
+documented in `POSTGRES_MIGRATION.md`.
 
 ## Known Limitations
 
-- Repository Audit Lab does not export SARIF yet.
-- Entity Graph does not export JSON-LD or DOT yet.
-- PostgreSQL has a documented migration plan but no runtime adapter.
+- PostgreSQL has a documented migration/configuration blueprint, but SQLite is
+  still the only active runtime adapter until paid usage justifies migration.
 - Conversion analytics are first-party event counts, not a full experiment
   dashboard.
-- Standard-library trace currently covers about 25.8% of the monolithic
-  backend. New export paths have HTTP regression tests, but broader backend
-  coverage still needs modularization and additional fixtures.
+- Standard-library trace currently covers about 52.43% of the monolithic
+  backend with 21 tests. The new graph/SARIF/export/security paths are covered,
+  but reaching 70% honestly requires more fixtures around admin, cron,
+  monitoring, PDF internals and network edge cases or a backend modularization.
 
 ## Safety Boundary
 

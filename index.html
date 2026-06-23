@@ -263,7 +263,10 @@
             <span class="pill">Static code security</span>
             <h2>Repository Audit Lab</h2>
           </div>
-          <button class="secondary" id="downloadRepoAudit" type="button" hidden>Export JSON</button>
+          <div class="export-actions">
+            <a class="secondary button-link" id="downloadRepoAudit" href="#" data-download hidden>Export JSON</a>
+            <a class="secondary button-link" id="downloadRepoSarif" href="#" data-download hidden>Export SARIF</a>
+          </div>
         </div>
 
         <div class="notice">
@@ -369,6 +372,9 @@
           <button class="secondary small" type="button" data-graph-filter="person">People</button>
           <button class="secondary small" type="button" data-graph-filter="wallet">Wallets</button>
           <button class="secondary small" type="button" data-graph-filter="risk">Findings</button>
+          <a class="secondary small button-link" href="/api/graphs/current/export?format=jsonld" data-graph-export="jsonld" data-download>JSON-LD</a>
+          <a class="secondary small button-link" href="/api/graphs/current/export?format=dot" data-graph-export="dot" data-download>DOT</a>
+          <a class="secondary small button-link" href="/api/graphs/current/export?format=csv" data-graph-export="csv" data-download>CSV</a>
         </div>
         <div id="schemaResult" class="schema-layout">
           <div class="result empty">

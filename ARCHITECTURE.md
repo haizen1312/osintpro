@@ -16,7 +16,7 @@ SQLite is the current persistence layer.
 4. Domain, social, wallet or repository analyzers build structured reports.
 5. Authenticated reports are retained in account history.
 6. Anonymous sessions retain only the latest report of each type.
-7. Export endpoints return session-scoped PDF, CSV or JSON attachments.
+7. Export endpoints return session-scoped PDF, CSV, SARIF, JSON-LD, DOT or JSON attachments.
 
 DNS collection parses typed `dig` answer rows and discards CNAME rows when MX,
 TXT or another record type was requested. HTTPS probes use `urllib` and expose
@@ -39,6 +39,15 @@ does not depend on a headless browser or native rendering package. If branded
 fonts, charts or complex pagination become necessary, move this renderer behind
 the existing export boundary before introducing a heavier dependency.
 
+Entity Graph export serializes the existing account workspace instead of
+introducing a parallel graph store. `/api/graphs/current/export` emits JSON-LD,
+Graphviz DOT or CSV edge lists. A UUID in the path is treated as a client
+folder subgraph.
+
+Repository Audit Lab persists only the redacted audit result, never uploaded
+source. `/api/reports/<id>/sarif` converts those findings to SARIF 2.1.0, and
+`/api/reports/<id>/repository.json` returns the redacted JSON audit.
+
 ## Database Lifecycle
 
 `db()` is a transaction-scoped context manager. It commits successful work,
@@ -46,6 +55,9 @@ rolls back failures and always closes the SQLite connection.
 
 Future PostgreSQL support should preserve this boundary behind a small storage
 adapter rather than spreading provider-specific SQL through request handlers.
+`OSINTPRO_DB_TYPE=postgresql` is currently a migration blueprint flag, not a
+live adapter switch. Setting it before migration fails closed so partial writes
+cannot silently land in an unmigrated backend.
 
 ## Safety Boundaries
 

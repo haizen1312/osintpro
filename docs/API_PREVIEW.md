@@ -74,7 +74,12 @@ These endpoints power the web app and remain session-cookie based.
 | `/api/social/analyze` | `POST` | session cookie | Public username presence check. |
 | `/api/wallet/analyze` | `POST` | session cookie | Public wallet OSINT report. |
 | `/api/intel/workspace` | `GET` | session cookie | Entity graph, dossiers, case summaries and workspace stats. |
+| `/api/graphs/current/export?format=jsonld` | `GET` | session cookie | Export the account graph as JSON-LD. |
+| `/api/graphs/current/export?format=dot` | `GET` | session cookie | Export the account graph as Graphviz DOT. |
+| `/api/graphs/current/export?format=csv` | `GET` | session cookie | Export the account graph as a CSV edge list. |
 | `/api/reports/{id}/pdf` | `GET` | session cookie | Server-side PDF export for a report owned by the account. |
+| `/api/reports/{id}/sarif` | `GET` | session cookie | SARIF export for a saved Repository Audit Lab report. |
+| `/api/reports/{id}/repository.json` | `GET` | session cookie | Redacted JSON export for a saved Repository Audit Lab report. |
 | `/api/api-keys` | `GET/POST` | Agency/Admin session | List or create API keys. |
 
 ## Current Auth Model

@@ -9,10 +9,11 @@ It is designed for developers, small agencies and learners who want a readable s
 1. The user selects a repository folder in the browser.
 2. The browser excludes dependency folders, build output, binaries and oversized files.
 3. Eligible text files are sent to the OSINTPRO backend within strict file and size limits.
-4. The backend applies static security rules without executing code.
+4. The backend applies `.gitignore` rules and static security checks without executing code.
 5. Results show severity, confidence, file, line, redacted evidence, applicability and remediation.
+6. The redacted audit can be exported as JSON or SARIF.
 
-OSINTPRO does not clone private repositories, install packages, run builds, execute uploaded code or retain the source bundle as a report.
+OSINTPRO does not clone private repositories, install packages, run builds, execute uploaded code or retain the source bundle as a report. It stores only the redacted audit result so downloads remain available to the same account/session.
 
 ## Current Checks
 
@@ -28,6 +29,24 @@ OSINTPRO does not clone private repositories, install packages, run builds, exec
 - dynamic `innerHTML` review leads
 - committed `.env` files
 - missing JavaScript dependency lockfiles
+
+## Exports
+
+- JSON: readable remediation payload for developers and client follow-up.
+- SARIF 2.1.0: standard static-analysis format for code scanning workflows.
+- Confidence threshold: the UI can hide lower-confidence leads without deleting them from the audit.
+
+SARIF export path:
+
+```text
+/api/reports/{repository_audit_id}/sarif
+```
+
+Redacted JSON export path:
+
+```text
+/api/reports/{repository_audit_id}/repository.json
+```
 
 ## Context And False Positives
 
@@ -45,8 +64,9 @@ The report explains when a rule is relevant. For example:
 - maximum 180 eligible text files per run
 - maximum 180 KB per file
 - browser bundle capped below 2 MB
+- uploaded `.gitignore` rules are used as a noise filter, not a perfect Git matcher
 - static pattern and context analysis only
 - no dependency installation or runtime behavior analysis
 - no exploit generation or automated attack validation
 
-Future versions can add dependency advisory matching, framework-aware rules, saved audit history and pull-request review integrations.
+Future versions can add dependency advisory matching, deeper framework-aware rules and pull-request review integrations.

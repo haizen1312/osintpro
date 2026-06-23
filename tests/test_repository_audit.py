@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest import mock
 
@@ -55,6 +56,41 @@ class RepositoryAuditTests(unittest.TestCase):
         self.assertIn("Dynamic innerHTML assignment", titles)
         self.assertIn("JavaScript dependency lockfile not included", titles)
         self.assertEqual(audit["files_scanned"], 3)
+
+    def test_gitignore_rules_reduce_false_positive_noise(self):
+        audit = server.analyze_repository(
+            [
+                {"path": ".gitignore", "content": "fixtures/\n*.generated.js\n"},
+                {
+                    "path": "fixtures/secret.py",
+                    "content": 'TOKEN = "' + "ghp_" + 'abcdefghijklmnopqrstuvwxyz123456"\n',
+                },
+                {"path": "src/app.py", "content": "DEBUG = True\n"},
+                {"path": "src/cache.generated.js", "content": "panel.innerHTML = apiResult;\n"},
+            ],
+            "gitignore-demo",
+        )
+
+        rendered = str(audit)
+        self.assertIn("Debug mode enabled", rendered)
+        self.assertNotIn("Live service credential pattern", rendered)
+        self.assertNotIn("Dynamic innerHTML assignment", rendered)
+        self.assertGreaterEqual(audit["ignored_files"], 2)
+
+    def test_sarif_export_contains_rules_results_and_fixes(self):
+        audit = server.analyze_repository(
+            [{"path": "app.py", "content": "DEBUG = True\n"}],
+            "sarif-demo",
+        )
+
+        payload = json.loads(server.format_sarif(audit).decode("utf-8"))
+
+        self.assertEqual(payload["version"], "2.1.0")
+        run = payload["runs"][0]
+        self.assertEqual(run["tool"]["driver"]["name"], "OSINTPRO Repository Audit Lab")
+        self.assertEqual(len(run["results"]), 1)
+        self.assertIn("fixes", run["results"][0])
+        self.assertEqual(run["results"][0]["level"], "warning")
 
     def test_redacts_detected_live_credential(self):
         audit = server.analyze_repository(

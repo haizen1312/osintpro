@@ -138,6 +138,7 @@ Current public traction as of June 23, 2026:
 - [Outreach playbook](docs/OUTREACH_PLAYBOOK.md)
 - [API preview](docs/API_PREVIEW.md)
 - [Production readiness](docs/PRODUCTION_READINESS.md)
+- [PostgreSQL migration blueprint](POSTGRES_MIGRATION.md)
 - [Self-audit security corrections](docs/SECURITY_FIXES.md)
 - [Architecture](ARCHITECTURE.md)
 - [Performance notes](PERFORMANCE.md)
@@ -161,6 +162,7 @@ Current public traction as of June 23, 2026:
 - Agency client folders for grouping domain, social, wallet and monitoring work by client or case.
 - Agency case summaries with asset counts, priority signals and average posture score.
 - Entity graph filters for domains, people, wallets and findings.
+- Entity graph export as JSON-LD, Graphviz DOT and CSV edge list.
 - Server-side PDF export plus CSV exports for reports, wallet history and Web Audit Lab checklists.
 - Guest exports retain only the latest session report and show browser download feedback.
 - Report comparison for repeated domain reports.
@@ -171,7 +173,7 @@ Current public traction as of June 23, 2026:
 - Cron-protected monitoring and backup endpoints.
 - GitHub Actions workflow for free scheduled monitor runs and SQLite backup artifacts.
 - Beginner-friendly Web Audit Lab and Network Traffic Lab for authorized passive review.
-- Static Repository Audit Lab with client-side filtering, bounded uploads, redacted evidence and no code execution.
+- Static Repository Audit Lab with client-side and `.gitignore` filtering, bounded uploads, redacted evidence, confidence thresholding, JSON export, SARIF export and no code execution.
 - Security-conscious repository hygiene: `.gitignore`, `.env.example`, `SECURITY.md`, no committed secrets.
 
 ## Local Development
@@ -292,6 +294,7 @@ OSINTPRO_BACKUP_DIR="/path/to/backups"
 OSINTPRO_BACKUP_RETENTION=30
 OSINTPRO_ALERT_WEBHOOK_URL="https://example.com/webhook"
 OSINTPRO_REPORT_BRAND="OSINTPRO"
+OSINTPRO_DB_TYPE="sqlite"
 ```
 
 `OSINTPRO_REGISTRATION_IP_ALLOWLIST` can exclude trusted connections from the free-account anti-abuse limit.
@@ -352,10 +355,11 @@ It does not provide exploit payloads, automated fuzzing, brute force, credential
 Repository Audit Lab reviews an authorized local source folder without executing it:
 
 - filters dependency directories, build output, binaries and oversized files in the browser
+- also applies uploaded `.gitignore` rules server-side to reduce false positives
 - checks eligible source text for secret exposure, unsafe execution, deserialization, TLS, CORS, SQL and frontend review patterns
 - reports file, line, severity, confidence, applicability and remediation
 - redacts secret-like evidence before returning or rendering it
-- exports the result as JSON for developer follow-up
+- exports the result as JSON or SARIF for developer follow-up and code-scanning workflows
 
 It does not install dependencies, run builds, execute uploaded code, generate exploits or claim that a pattern match proves exploitability. See the [Repository Audit Lab guide](docs/REPOSITORY_AUDIT_LAB.md).
 
@@ -399,8 +403,8 @@ Near-term technical work:
 4. Server-side PDF generation is implemented at `/api/reports/<id>/pdf`.
 5. Web Audit Lab CSV export and saved playbooks are implemented.
 6. Wallet graph improvements now include manual tags, case notes, transaction timeline and counterparty hop expansion.
-7. Entity graph filters, agency case summaries, report comparison and sanitized example reports are implemented.
-8. PostgreSQL migration remains intentionally gated until paid usage justifies the cost.
+7. Entity graph filters, agency case summaries, graph JSON-LD/DOT/CSV export, report comparison and sanitized example reports are implemented.
+8. PostgreSQL migration remains intentionally gated until paid usage justifies the cost, with a configuration preview and migration blueprint documented in `POSTGRES_MIGRATION.md`.
 
 ## Safety Boundary
 

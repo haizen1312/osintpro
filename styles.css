@@ -538,6 +538,13 @@ textarea:focus {
   text-decoration: none;
 }
 
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .notice {
   display: flex;
   gap: 12px;
@@ -1336,6 +1343,36 @@ textarea:focus {
   margin-top: 18px;
 }
 
+.repo-toolbar {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(180px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin: 10px 0 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .025);
+}
+
+.repo-toolbar label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.repo-toolbar label strong {
+  color: var(--green);
+  font-size: 18px;
+}
+
+.repo-toolbar input {
+  min-height: 32px;
+  padding: 0;
+}
+
 .repo-finding {
   display: grid;
   gap: 9px;
@@ -1827,6 +1864,7 @@ textarea:focus {
   .lab-columns,
   .repo-audit-form,
   .repo-context,
+  .repo-toolbar,
   .dossier-meta,
   .scan-form,
   .report-top {
@@ -2004,6 +2042,7 @@ textarea:focus {
 
   .row-actions,
   .price-actions,
+  .export-actions,
   .actions {
     align-items: stretch;
     flex-direction: column;
