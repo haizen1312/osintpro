@@ -14,6 +14,9 @@ const state = {
   currentWallet: null,
   currentWebAuditReportId: null,
   graphFilter: "all",
+  featureFlags: {},
+  metrics: null,
+  shownUpsells: new Set(),
   trackedSections: new Set()
 };
 
@@ -269,6 +272,7 @@ function renderRepoAudit(audit) {
   state.currentRepoAudit = audit;
   const holder = document.querySelector("#repoAuditResult");
   const findings = audit.findings || [];
+  const dependencyAdvisories = audit.dependency_advisories || [];
   const counts = audit.counts || {};
   holder.className = "result";
   holder.innerHTML = `
@@ -330,6 +334,28 @@ function renderRepoAudit(audit) {
         </article>
       `).join("") : `<div class="finding"><span class="tag">Review complete</span><strong>No rule match found</strong><p>This does not prove the repository is vulnerability-free. Continue with dependency, architecture and runtime testing.</p></div>`}
     </section>
+    ${dependencyAdvisories.length ? `
+      <section class="lab-panel">
+        <div class="mini-head">
+          <span class="pill">Dependency advisory</span>
+          <h3>${escapeHtml(dependencyAdvisories.length)} package review leads</h3>
+        </div>
+        <div class="repo-dependencies">
+          ${dependencyAdvisories.map(item => `
+            <article class="repo-finding ${repoSeverityTone(item.severity)}">
+              <div class="repo-finding-head">
+                <span class="severity ${repoSeverityTone(item.severity)}">${escapeHtml(item.severity)}</span>
+                <strong>${escapeHtml(item.ecosystem)} · ${escapeHtml(item.package)}</strong>
+                <span class="tag">fix &gt;= ${escapeHtml(item.fixed_version)}</span>
+              </div>
+              <code>${escapeHtml(item.path)}</code>
+              <p>${escapeHtml(item.advisory)}</p>
+              <p><strong>Fix:</strong> ${escapeHtml(item.remediation)}</p>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    ` : ""}
     <section class="lab-panel disclaimer-panel">
       <div class="mini-head">
         <span class="pill">Limitations</span>
@@ -347,6 +373,8 @@ function renderRepoAudit(audit) {
   if (sarifExport) {
     sarifExport.href = `/api/reports/${encodeURIComponent(audit.id)}/sarif`;
     sarifExport.hidden = false;
+    const sarifFlag = state.featureFlags?.repo_audit_sarif;
+    sarifExport.textContent = sarifFlag && !sarifFlag.allowed ? "Export SARIF · Pro" : "Export SARIF";
   }
   const slider = document.querySelector("#repoConfidenceSlider");
   if (slider) {
@@ -1915,6 +1943,41 @@ function showBillingMessage(message) {
   box.classList.add("visible");
 }
 
+function featureEnabled(name) {
+  const feature = state.featureFlags?.[name];
+  return !feature || feature.allowed;
+}
+
+function maybeShowUpsell() {
+  if (!state.metrics || state.user.plan !== "Free") return;
+  const suggestion = (state.metrics.upsell || []).find(item => !state.shownUpsells.has(item.feature));
+  if (!suggestion) return;
+  state.shownUpsells.add(suggestion.feature);
+  showBillingMessage(`${suggestion.message} Upgrade to ${suggestion.plan} when you are ready.`);
+}
+
+async function loadFeatureFlags() {
+  try {
+    const data = await api("/api/feature-flags");
+    state.featureFlags = data.features || {};
+  } catch {
+    state.featureFlags = {};
+  }
+}
+
+async function loadMetrics() {
+  if (!state.user.authenticated) {
+    state.metrics = null;
+    return;
+  }
+  try {
+    state.metrics = await api("/api/metrics");
+    maybeShowUpsell();
+  } catch {
+    state.metrics = null;
+  }
+}
+
 function showAccountMessage(message, isError = false) {
   const box = document.querySelector("#accountMessage");
   box.textContent = message;
@@ -2000,6 +2063,8 @@ async function loadSession() {
   state.folders = data.folders || [];
   state.playbooks = data.playbooks || [];
   state.checkoutConfigured = data.checkout_configured;
+  await loadFeatureFlags();
+  await loadMetrics();
   updateAccount();
   renderFolders();
   renderReports();

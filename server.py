@@ -74,6 +74,22 @@ PLAN_LIMITS = {
     "Admin": {"credits": None, "monitors": 9999},
 }
 PAID_PLANS = {"Pro", "Agency", "Admin"}
+FEATURE_FLAGS = {
+    "domain_intel": "Free",
+    "social_osint": "Free",
+    "repository_audit": "Free",
+    "repo_audit_json": "Free",
+    "confidence_slider": "Free",
+    "entity_graph_export": "Free",
+    "web_audit_lab": "Free",
+    "network_traffic_lab": "Free",
+    "repo_audit_sarif": "Pro",
+    "dependency_advisory": "Pro",
+    "wallet_graph": "Pro",
+    "monitoring": "Pro",
+    "api_access": "Agency",
+    "team_collaboration": "Agency",
+}
 DOMAIN_RE = re.compile(r"^(?=.{1,253}$)([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}$")
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9._-]{2,32}$")
 BTC_ADDRESS_RE = re.compile(r"^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,90}$", re.IGNORECASE)
@@ -127,6 +143,34 @@ MAX_REPO_AUDIT_BYTES = 2 * 1024 * 1024
 MAX_REPO_AUDIT_FILES = 180
 MAX_REPO_FILE_BYTES = 180000
 REPO_CONFIDENCE_SCORES = {"high": 0.95, "medium": 0.7, "low": 0.45}
+DEPENDENCY_ADVISORIES = {
+    "npm": {
+        "lodash": {"fixed": "4.17.21", "severity": "high", "advisory": "Prototype pollution and command injection advisories affect older lodash releases."},
+        "js-yaml": {"fixed": "3.13.1", "severity": "high", "advisory": "Older js-yaml releases include unsafe object parsing advisories."},
+        "serialize-javascript": {"fixed": "3.1.0", "severity": "high", "advisory": "Older serialize-javascript versions can enable unsafe code injection patterns."},
+        "handlebars": {"fixed": "4.7.7", "severity": "high", "advisory": "Older handlebars releases include template injection and prototype pollution advisories."},
+        "moment": {"fixed": "2.29.4", "severity": "medium", "advisory": "Older moment releases include parsing and ReDoS advisories."},
+        "minimist": {"fixed": "1.2.6", "severity": "medium", "advisory": "Older minimist releases include prototype pollution advisories."},
+    },
+    "pip": {
+        "django": {"fixed": "3.2.20", "severity": "high", "advisory": "Older Django branches include multiple web security advisories."},
+        "flask": {"fixed": "2.2.5", "severity": "medium", "advisory": "Older Flask releases lack later security fixes and hardening."},
+        "jinja2": {"fixed": "3.1.3", "severity": "medium", "advisory": "Older Jinja2 releases include sandbox and template security advisories."},
+        "pillow": {"fixed": "8.3.2", "severity": "high", "advisory": "Older Pillow releases include image parsing memory-safety advisories."},
+        "pyyaml": {"fixed": "5.4.0", "severity": "high", "advisory": "Older PyYAML releases are commonly associated with unsafe load patterns."},
+        "requests": {"fixed": "2.31.0", "severity": "medium", "advisory": "Older Requests releases miss transport and parsing security fixes."},
+    },
+    "cargo": {
+        "tokio": {"fixed": "1.0.0", "severity": "medium", "advisory": "Pre-1.0 async runtime versions should be reviewed before production use."},
+        "hyper": {"fixed": "0.14.0", "severity": "medium", "advisory": "Older hyper branches have HTTP parsing and ecosystem advisories."},
+        "time": {"fixed": "0.2.23", "severity": "high", "advisory": "Older time releases include known unsoundness advisories."},
+    },
+    "composer": {
+        "guzzlehttp/guzzle": {"fixed": "6.5.8", "severity": "high", "advisory": "Older Guzzle releases include SSRF and header handling advisories."},
+        "symfony/http-foundation": {"fixed": "5.4.46", "severity": "medium", "advisory": "Older Symfony HTTP Foundation releases include request parsing advisories."},
+        "laravel/framework": {"fixed": "8.83.27", "severity": "high", "advisory": "Older Laravel framework branches include multiple security advisories."},
+    },
+}
 DEFAULT_REPO_IGNORE_PATTERNS = [
     ".git/**",
     "node_modules/**",
@@ -155,6 +199,7 @@ PUBLIC_STATIC_PATHS = {
     "/app.js",
     "/styles.css",
     "/admin.html",
+    "/admin/metrics",
     "/admin.js",
     "/favicon.ico",
     "/robots.txt",
@@ -175,6 +220,7 @@ PUBLIC_STATIC_PATHS = {
     "/docs/LOCAL_SETUP.md",
     "/docs/OUTREACH_PLAYBOOK.md",
     "/docs/PRODUCTION_READINESS.md",
+    "/docs/PRODUCT_HUNT_LAUNCH.md",
     "/docs/REPOSITORY_AUDIT_LAB.md",
     "/docs/SHOWCASE.md",
     "/docs/SECURITY_FIXES.md",
@@ -543,6 +589,30 @@ def row_to_user(row: sqlite3.Row) -> dict[str, object]:
     }
 
 
+def plan_allows(plan: object, required_plan: object) -> bool:
+    """Return whether a plan satisfies a product gate.
+
+    Feature flags are intentionally plan-rank based so future AI/developers can
+    add gated capabilities without scattering billing logic across handlers.
+    """
+    return PLAN_RANK.get(str(plan or "Free"), 0) >= PLAN_RANK.get(str(required_plan or "Free"), 0)
+
+
+def feature_allowed(plan: object, feature: str) -> bool:
+    return plan_allows(plan, FEATURE_FLAGS.get(feature, "Free"))
+
+
+def public_feature_flags(plan: object) -> dict[str, dict[str, object]]:
+    current_plan = str(plan or "Free")
+    return {
+        key: {
+            "required_plan": required,
+            "allowed": feature_allowed(current_plan, key),
+        }
+        for key, required in FEATURE_FLAGS.items()
+    }
+
+
 def internal_user(row: sqlite3.Row) -> dict[str, object]:
     user = row_to_user(row)
     user["_id"] = row["id"]
@@ -780,6 +850,151 @@ def api_key_rate_limit() -> int:
 def registration_allowlist() -> list[str]:
     raw = os.getenv("OSINTPRO_REGISTRATION_IP_ALLOWLIST", "")
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def parse_iso_datetime(value: object) -> dt.datetime:
+    try:
+        parsed = dt.datetime.fromisoformat(str(value or ""))
+    except ValueError:
+        return dt.datetime.now(dt.UTC)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=dt.UTC)
+    return parsed.astimezone(dt.UTC)
+
+
+def user_growth_metrics(user_id: str) -> dict[str, object]:
+    with db() as connection:
+        user = connection.execute(
+            "SELECT plan, credits, created_at FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        if not user:
+            raise ValueError("User not found.")
+        resource_counts = {
+            "domains": connection.execute("SELECT COUNT(*) AS count FROM reports WHERE user_id = ?", (user_id,)).fetchone()["count"],
+            "repos": connection.execute("SELECT COUNT(*) AS count FROM repository_reports WHERE user_id = ?", (user_id,)).fetchone()["count"],
+            "social": connection.execute("SELECT COUNT(*) AS count FROM social_reports WHERE user_id = ?", (user_id,)).fetchone()["count"],
+            "wallets": connection.execute("SELECT COUNT(*) AS count FROM wallet_reports WHERE user_id = ?", (user_id,)).fetchone()["count"],
+            "monitors": connection.execute("SELECT COUNT(*) AS count FROM monitors WHERE user_id = ?", (user_id,)).fetchone()["count"],
+        }
+        since = (dt.datetime.now(dt.UTC) - dt.timedelta(days=30)).replace(microsecond=0).isoformat()
+        recent_events = [
+            dict(row)
+            for row in connection.execute(
+                """
+                SELECT event, plan, source, created_at
+                FROM conversion_events
+                WHERE user_id = ? AND created_at >= ?
+                ORDER BY created_at DESC
+                LIMIT 20
+                """,
+                (user_id, since),
+            ).fetchall()
+        ]
+    plan = str(user["plan"])
+    created = parse_iso_datetime(user["created_at"])
+    upsell: list[dict[str, object]] = []
+    if plan == "Free":
+        total_reports = (
+            resource_counts["domains"]
+            + resource_counts["repos"]
+            + resource_counts["social"]
+            + resource_counts["wallets"]
+        )
+        if total_reports >= 3:
+            upsell.append({
+                "feature": "unlimited_reports",
+                "plan": "Pro",
+                "message": "Pro removes report limits and keeps investigations flowing.",
+            })
+        if resource_counts["monitors"] >= 1:
+            upsell.append({
+                "feature": "monitoring",
+                "plan": "Pro",
+                "message": "Monitoring is the sticky Pro workflow for drift alerts.",
+            })
+    return {
+        "user_plan": plan,
+        "account_age_days": max(0, (dt.datetime.now(dt.UTC) - created).days),
+        "resource_counts": resource_counts,
+        "feature_usage": {
+            "domain_analysis": resource_counts["domains"],
+            "repo_audit": resource_counts["repos"],
+            "social_osint": resource_counts["social"],
+            "wallet_trace": resource_counts["wallets"],
+            "monitoring_active": resource_counts["monitors"],
+        },
+        "recent_conversion_events": recent_events,
+        "upsell": upsell[:2],
+    }
+
+
+def admin_growth_metrics() -> dict[str, object]:
+    since = (dt.datetime.now(dt.UTC) - dt.timedelta(days=30)).replace(microsecond=0).isoformat()
+    with db() as connection:
+        plan_counts = {
+            row["plan"]: row["count"]
+            for row in connection.execute(
+                """
+                SELECT plan, COUNT(*) AS count
+                FROM users
+                WHERE nickname IS NOT NULL
+                GROUP BY plan
+                """
+            ).fetchall()
+        }
+        total_users = sum(plan_counts.values())
+        reports = {
+            "domain_reports": connection.execute("SELECT COUNT(*) AS count FROM reports").fetchone()["count"],
+            "repository_audits": connection.execute("SELECT COUNT(*) AS count FROM repository_reports").fetchone()["count"],
+            "social_reports": connection.execute("SELECT COUNT(*) AS count FROM social_reports").fetchone()["count"],
+            "wallet_reports": connection.execute("SELECT COUNT(*) AS count FROM wallet_reports").fetchone()["count"],
+            "monitors": connection.execute("SELECT COUNT(*) AS count FROM monitors").fetchone()["count"],
+        }
+        stripe_conversions = connection.execute(
+            "SELECT COUNT(*) AS count FROM stripe_events WHERE status = 'activated'"
+        ).fetchone()["count"]
+        new_users_30d = connection.execute(
+            "SELECT COUNT(*) AS count FROM users WHERE nickname IS NOT NULL AND created_at >= ?",
+            (since,),
+        ).fetchone()["count"]
+        funnel = [
+            dict(row)
+            for row in connection.execute(
+                """
+                SELECT event, COALESCE(plan, '-') AS plan, COALESCE(source, '-') AS source, COUNT(*) AS count
+                FROM conversion_events
+                WHERE created_at >= ?
+                GROUP BY event, plan, source
+                ORDER BY count DESC, event ASC
+                LIMIT 30
+                """,
+                (since,),
+            ).fetchall()
+        ]
+    pro_users = int(plan_counts.get("Pro", 0))
+    agency_users = int(plan_counts.get("Agency", 0))
+    total_mrr = pro_users * 19 + agency_users * 79
+    conversion_rate = round((stripe_conversions / total_users) * 100, 2) if total_users else 0
+    return {
+        "total_users": total_users,
+        "plans": {
+            "free": int(plan_counts.get("Free", 0)),
+            "pro": pro_users,
+            "agency": agency_users,
+            "admin": int(plan_counts.get("Admin", 0)),
+        },
+        "conversion_rate_percent": conversion_rate,
+        "stripe_conversions": stripe_conversions,
+        "new_users_30d": new_users_30d,
+        "accounts_created_30d": new_users_30d,
+        "reports": reports,
+        "total_reports": sum(reports.values()),
+        "mrr_estimate_eur": total_mrr,
+        "pro_mrr_estimate": pro_users * 19,
+        "agency_mrr_estimate": agency_users * 79,
+        "funnel_30d": funnel,
+    }
 
 
 def ip_allowed(ip_value: str, allowlist: list[str]) -> bool:
@@ -1122,6 +1337,120 @@ def repo_finding(
     }
 
 
+def dependency_version_tuple(version: object) -> tuple[int, ...]:
+    value = str(version or "").strip()
+    value = re.sub(r"^[~^<>=! ]+", "", value)
+    value = value.split("||")[0].split(",")[0].strip()
+    match = re.search(r"(\d+(?:\.\d+){0,4})", value)
+    if not match:
+        return ()
+    return tuple(int(part) for part in match.group(1).split("."))
+
+
+def dependency_is_older(current: object, fixed: object) -> bool:
+    current_tuple = dependency_version_tuple(current)
+    fixed_tuple = dependency_version_tuple(fixed)
+    if not current_tuple or not fixed_tuple:
+        return False
+    size = max(len(current_tuple), len(fixed_tuple))
+    return current_tuple + (0,) * (size - len(current_tuple)) < fixed_tuple + (0,) * (size - len(fixed_tuple))
+
+
+def parse_package_json_dependencies(content: str) -> dict[str, str]:
+    payload = json.loads(content)
+    if not isinstance(payload, dict):
+        return {}
+    dependencies: dict[str, str] = {}
+    for section in ("dependencies", "devDependencies", "optionalDependencies"):
+        values = payload.get(section)
+        if isinstance(values, dict):
+            dependencies.update({str(name).lower(): str(version) for name, version in values.items()})
+    return dependencies
+
+
+def parse_requirements_dependencies(content: str) -> dict[str, str]:
+    dependencies: dict[str, str] = {}
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or line.startswith(("-r ", "--")):
+            continue
+        match = re.match(r"([A-Za-z0-9_.-]+)\s*(?:==|>=|<=|~=|>|<)?\s*([^#;\s]+)?", line)
+        if match:
+            dependencies[match.group(1).lower().replace("_", "-")] = match.group(2) or ""
+    return dependencies
+
+
+def parse_cargo_dependencies(content: str) -> dict[str, str]:
+    dependencies: dict[str, str] = {}
+    in_dependencies = False
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            in_dependencies = stripped in {"[dependencies]", "[dev-dependencies]"}
+            continue
+        if not in_dependencies or not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        name, raw_value = stripped.split("=", 1)
+        version_match = re.search(r'"([^"]+)"', raw_value)
+        if version_match:
+            dependencies[name.strip().strip('"').lower()] = version_match.group(1)
+    return dependencies
+
+
+def parse_composer_dependencies(content: str) -> dict[str, str]:
+    payload = json.loads(content)
+    if not isinstance(payload, dict):
+        return {}
+    dependencies: dict[str, str] = {}
+    for section in ("require", "require-dev"):
+        values = payload.get(section)
+        if isinstance(values, dict):
+            dependencies.update({str(name).lower(): str(version) for name, version in values.items()})
+    return dependencies
+
+
+def dependency_advisories_for_files(files: list[tuple[str, str]]) -> list[dict[str, object]]:
+    """Return offline dependency review leads from uploaded manifest files.
+
+    This intentionally does not call package registries or install dependencies;
+    it is a passive, explainable advisory layer for the Repository Audit Lab.
+    """
+    parsers = {
+        "package.json": ("npm", parse_package_json_dependencies),
+        "requirements.txt": ("pip", parse_requirements_dependencies),
+        "cargo.toml": ("cargo", parse_cargo_dependencies),
+        "composer.json": ("composer", parse_composer_dependencies),
+    }
+    findings: list[dict[str, object]] = []
+    for path, content in files:
+        name = Path(path).name.lower()
+        if name not in parsers:
+            continue
+        ecosystem, parser = parsers[name]
+        try:
+            dependencies = parser(content)
+        except (json.JSONDecodeError, ValueError, TypeError):
+            continue
+        for package, current in dependencies.items():
+            advisory = DEPENDENCY_ADVISORIES.get(ecosystem, {}).get(package.lower())
+            if not advisory:
+                continue
+            fixed = str(advisory["fixed"])
+            if not dependency_is_older(current, fixed):
+                continue
+            findings.append({
+                "ecosystem": ecosystem,
+                "package": package,
+                "current": str(current),
+                "fixed_version": fixed,
+                "severity": advisory["severity"],
+                "advisory": advisory["advisory"],
+                "path": path,
+                "remediation": f"Upgrade {package} to >= {fixed} and regenerate the lockfile.",
+            })
+    return findings[:60]
+
+
 def parse_gitignore_text(content: str, base_dir: str = "") -> list[str]:
     """Parse the subset of .gitignore syntax useful for bounded static review.
 
@@ -1458,6 +1787,24 @@ def analyze_repository(raw_files: object, repository_name: object = "") -> dict[
             applicability="Applies to deployable applications; reusable libraries may intentionally support broader dependency ranges.",
         ))
 
+    dependency_advisories = dependency_advisories_for_files(files)
+    for advisory in dependency_advisories:
+        package = str(advisory["package"])
+        fixed_version = str(advisory["fixed_version"])
+        ecosystem = str(advisory["ecosystem"]).upper()
+        findings.append(repo_finding(
+            severity=str(advisory["severity"]),
+            confidence="high",
+            category="Dependencies",
+            title=f"Known vulnerable {ecosystem} dependency: {package}",
+            path=str(advisory["path"]),
+            line=1,
+            evidence=f"{package} {advisory['current']}",
+            why=str(advisory["advisory"]),
+            remediation=str(advisory["remediation"]),
+            applicability=f"Applies when {package} is installed in production or CI. Upgrade to >= {fixed_version} and rerun tests.",
+        ))
+
     raw_findings = findings
     title_occurrences: dict[str, int] = {}
     displayed_by_title: dict[str, int] = {}
@@ -1497,6 +1844,7 @@ def analyze_repository(raw_files: object, repository_name: object = "") -> dict[
         "context": signals,
         "counts": counts,
         "findings": findings,
+        "dependency_advisories": dependency_advisories,
         "total_findings": len(raw_findings),
         "suppressed_findings": suppressed_findings,
         "finding_families": title_occurrences,
@@ -5047,6 +5395,24 @@ class Handler(SimpleHTTPRequestHandler):
                 },
             })
             return
+        if parsed.path == "/api/feature-flags":
+            user, headers = self.get_or_create_user()
+            plan = user.get("plan", "Free")
+            self.send_json({
+                "plan": plan,
+                "features": public_feature_flags(plan),
+            }, headers=headers)
+            return
+        if parsed.path == "/api/metrics":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to view account metrics."}, 401, headers)
+                return
+            try:
+                self.send_json(user_growth_metrics(str(user["_id"])), headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 404, headers)
+            return
         if parsed.path == "/api/api-keys":
             user, headers = self.get_or_create_user()
             if not user.get("authenticated") and not is_admin_user(user):
@@ -5199,6 +5565,16 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             self.send_json(self.admin_overview(), headers=headers)
             return
+        if parsed.path == "/admin/metrics":
+            user, headers = self.get_or_create_user()
+            header_code = self.headers.get("X-Admin-Code", "")
+            if not is_admin_user(user) and not (
+                admin_code() and hmac.compare_digest(header_code, admin_code())
+            ):
+                self.send_json({"error": "Unauthorized"}, 401, headers)
+                return
+            self.send_json(admin_growth_metrics(), headers=headers)
+            return
         if parsed.path == "/api/cron/backup/download":
             if not cron_secret():
                 self.send_json({"error": "Cron is not configured."}, 503)
@@ -5280,8 +5656,27 @@ class Handler(SimpleHTTPRequestHandler):
                 headers,
             )
             return
+        if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/dependencies"):
+            user, headers = self.get_or_create_user()
+            if not feature_allowed(user.get("plan", "Free"), "dependency_advisory"):
+                self.send_json({"error": "Dependency advisory requires Pro or Agency."}, 402, headers)
+                return
+            report_id = parsed.path.split("/")[3]
+            audit = self.fetch_repository_audit(str(user["_id"]), report_id)
+            if not audit:
+                self.send_json({"error": "Repository audit not found."}, 404, headers)
+                return
+            self.send_json({
+                "report_id": report_id,
+                "repository": audit.get("repository"),
+                "dependency_advisories": audit.get("dependency_advisories", []),
+            }, headers=headers)
+            return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/sarif"):
             user, headers = self.get_or_create_user()
+            if not feature_allowed(user.get("plan", "Free"), "repo_audit_sarif"):
+                self.send_json({"error": "SARIF export requires Pro or Agency."}, 402, headers)
+                return
             report_id = parsed.path.split("/")[3]
             audit = self.fetch_repository_audit(str(user["_id"]), report_id)
             if not audit:

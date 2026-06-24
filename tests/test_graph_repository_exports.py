@@ -2,6 +2,7 @@ import json
 import tempfile
 import threading
 import unittest
+import urllib.error
 import urllib.request
 import uuid
 from http.server import ThreadingHTTPServer
@@ -159,6 +160,16 @@ class GraphRepositoryExportEndpointTests(unittest.TestCase):
         )
         audit_id = data["audit"]["id"]
         self.assertEqual(data["audit"]["ignored_files"], 1)
+
+        with self.assertRaises(urllib.error.HTTPError) as paywall:
+            self.get_bytes(f"/api/reports/{audit_id}/sarif")
+        self.assertEqual(paywall.exception.code, 402)
+        paywall.exception.close()
+
+        with server.db() as connection:
+            connection.execute(
+                "UPDATE users SET plan = 'Pro' WHERE nickname IS NOT NULL"
+            )
 
         sarif, sarif_type, sarif_disposition = self.get_bytes(f"/api/reports/{audit_id}/sarif")
         self.assertIn("application/sarif+json", sarif_type)

@@ -70,11 +70,13 @@ regression tests.
 - SARIF export for code scanning and security-review pipelines.
 - Adjustable confidence threshold in the UI.
 - `.gitignore` parsing to reduce generated-file and fixture noise.
-- Future dependency advisory matching and framework-aware rules.
+- Dependency advisory matching for npm, pip, Cargo and Composer manifests.
+- Future framework-aware route/controller rules.
 
 Status: the defensive static-analysis MVP is implemented with JSON/SARIF
 exports, confidence filtering, `.gitignore` support and persisted redacted
-audit reports. It does not execute source code, install dependencies or retain
+audit reports. It now includes offline dependency advisory matching for common
+manifest files. It does not execute source code, install dependencies or retain
 uploaded source bundles.
 
 ### Monetization
@@ -86,6 +88,8 @@ uploaded source bundles.
 - First-party conversion signals for checkout clicks, paywall hits and monitor-limit hits.
 
 Status: Free-to-Pro/Agency onboarding, billing status messaging, agency client folder value and first-party conversion signals are implemented in the app.
+Plan-level feature flags, account metrics and non-invasive upgrade nudges are
+also implemented.
 
 ### API
 
@@ -113,10 +117,10 @@ documented in `POSTGRES_MIGRATION.md`.
   still the only active runtime adapter until paid usage justifies migration.
 - Conversion analytics are first-party event counts, not a full experiment
   dashboard.
-- Standard-library trace currently covers about 52.43% of the monolithic
-  backend with 21 tests. The new graph/SARIF/export/security paths are covered,
-  but reaching 70% honestly requires more fixtures around admin, cron,
-  monitoring, PDF internals and network edge cases or a backend modularization.
+- Standard-library trace currently covers about 57.27% of the monolithic
+  backend with 31 tests. The graph/SARIF/export/security/admin/cron/growth
+  paths are covered, but reaching 70% honestly requires more fixtures around
+  monitoring, network edge cases and route handlers or a backend modularization.
 
 ## Safety Boundary
 

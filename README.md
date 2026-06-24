@@ -144,6 +144,8 @@ Current public traction as of June 23, 2026:
 - [Performance notes](PERFORMANCE.md)
 - [AI development guide](docs/AI_DEVELOPMENT_GUIDE.md)
 - [Showcase and share copy](docs/SHOWCASE.md)
+- [Product Hunt launch plan](docs/PRODUCT_HUNT_LAUNCH.md)
+- [GitHub issues backlog](docs/GITHUB_ISSUES_BACKLOG.md)
 - [Sanitized example reports](docs/EXAMPLE_REPORTS.md)
 - [Product roadmap](ROADMAP.md)
 - [Public roadmap issues](https://github.com/haizen1312/osintpro/issues)
@@ -174,6 +176,8 @@ Current public traction as of June 23, 2026:
 - GitHub Actions workflow for free scheduled monitor runs and SQLite backup artifacts.
 - Beginner-friendly Web Audit Lab and Network Traffic Lab for authorized passive review.
 - Static Repository Audit Lab with client-side and `.gitignore` filtering, bounded uploads, redacted evidence, confidence thresholding, JSON export, SARIF export and no code execution.
+- Repository dependency advisory for npm, pip, Cargo and Composer manifests using offline passive checks.
+- Account growth metrics, plan feature flags and in-app Free-to-Pro upgrade nudges.
 - Security-conscious repository hygiene: `.gitignore`, `.env.example`, `SECURITY.md`, no committed secrets.
 
 ## Local Development
