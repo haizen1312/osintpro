@@ -178,6 +178,8 @@ Current public traction as of June 23, 2026:
 - Static Repository Audit Lab with client-side and `.gitignore` filtering, bounded uploads, redacted evidence, confidence thresholding, JSON export, SARIF export and no code execution.
 - Repository dependency advisory for npm, pip, Cargo and Composer manifests using offline passive checks.
 - Account growth metrics, plan feature flags and in-app Free-to-Pro upgrade nudges.
+- Public API status and GET domain analysis endpoints for Agency/Admin API keys.
+- Pro/Agency webhook notifications for monitor events plus optional SMTP email alerts.
 - Security-conscious repository hygiene: `.gitignore`, `.env.example`, `SECURITY.md`, no committed secrets.
 
 ## Local Development
@@ -297,12 +299,20 @@ OSINTPRO_DB_PATH="/path/to/osintpro.sqlite3"
 OSINTPRO_BACKUP_DIR="/path/to/backups"
 OSINTPRO_BACKUP_RETENTION=30
 OSINTPRO_ALERT_WEBHOOK_URL="https://example.com/webhook"
+OSINTPRO_SMTP_HOST=""
+OSINTPRO_SMTP_PORT=587
+OSINTPRO_SMTP_USER=""
+OSINTPRO_SMTP_PASSWORD=""
+OSINTPRO_SMTP_FROM=""
+OSINTPRO_NOTIFICATION_EMAIL_TO=""
 OSINTPRO_REPORT_BRAND="OSINTPRO"
 OSINTPRO_DB_TYPE="sqlite"
 ```
 
 `OSINTPRO_REGISTRATION_IP_ALLOWLIST` can exclude trusted connections from the free-account anti-abuse limit.
 `OSINTPRO_REPORT_BRAND` changes the heading used in generated HTML/PDF reports for agency delivery.
+Account-level webhooks are managed through `/api/webhooks`. SMTP email alerts
+remain disabled unless all SMTP variables and a recipient are configured.
 
 ## Free Persistence Strategy
 

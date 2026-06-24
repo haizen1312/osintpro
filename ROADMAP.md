@@ -98,6 +98,18 @@ also implemented.
 - Add per-key usage metering, quotas, logs and deletion controls before selling API access.
 
 Status: API preview documentation, public metadata endpoint and Agency/Admin API key MVP are implemented. Higher-volume API selling remains deferred until persistent storage and stronger metering are in place.
+Public API status and GET domain analysis endpoints are implemented for API key
+users, alongside the existing POST report endpoints.
+
+### Notifications
+
+- Account webhooks for monitor and report events.
+- Optional SMTP email notification for monitor drift.
+- Delivery logs for webhook/email attempts.
+
+Status: Pro/Agency webhook management, monitor.changed delivery and optional
+SMTP email notification are implemented. Email remains disabled until SMTP
+environment variables and a recipient are configured.
 
 ### Infrastructure
 
@@ -117,10 +129,11 @@ documented in `POSTGRES_MIGRATION.md`.
   still the only active runtime adapter until paid usage justifies migration.
 - Conversion analytics are first-party event counts, not a full experiment
   dashboard.
-- Standard-library trace currently covers about 57.27% of the monolithic
-  backend with 31 tests. The graph/SARIF/export/security/admin/cron/growth
-  paths are covered, but reaching 70% honestly requires more fixtures around
-  monitoring, network edge cases and route handlers or a backend modularization.
+- Standard-library trace currently covers about 59.48% of the monolithic
+  backend with 35 tests. The graph/SARIF/export/security/admin/cron/growth/API
+  and webhook paths are covered, but reaching 70% honestly requires more
+  fixtures around monitoring, network edge cases and route handlers or a deeper
+  backend extraction.
 
 ## Safety Boundary
 

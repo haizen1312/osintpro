@@ -66,6 +66,8 @@ Before paid launch:
 - documented restore drill
 - admin export check
 - alert webhook for cron failures
+- account webhook delivery test for monitor events
+- SMTP test if email alerts are enabled
 
 ## Environment Checklist
 

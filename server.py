@@ -87,8 +87,15 @@ FEATURE_FLAGS = {
     "dependency_advisory": "Pro",
     "wallet_graph": "Pro",
     "monitoring": "Pro",
+    "webhooks": "Pro",
+    "email_notifications": "Pro",
     "api_access": "Agency",
     "team_collaboration": "Agency",
+}
+WEBHOOK_EVENTS = {
+    "monitor.changed",
+    "monitor.checked",
+    "report.generated",
 }
 DOMAIN_RE = re.compile(r"^(?=.{1,253}$)([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}$")
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9._-]{2,32}$")
@@ -544,6 +551,30 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
+
+            CREATE TABLE IF NOT EXISTS webhooks (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                url TEXT NOT NULL,
+                active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(user_id, event_type, url),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS notification_events (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                event_type TEXT NOT NULL,
+                channel TEXT NOT NULL,
+                status TEXT NOT NULL,
+                target TEXT,
+                message TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
             """
         )
         ensure_column(connection, "users", "email", "TEXT")
@@ -566,6 +597,8 @@ def init_db() -> None:
         connection.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id, revoked_at, created_at)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_repository_reports_user ON repository_reports(user_id, created_at)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_webhooks_user ON webhooks(user_id, event_type, active)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_notification_events_user ON notification_events(user_id, created_at)")
 
 
 def ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
@@ -1024,6 +1057,186 @@ def cron_authorized(headers: object) -> bool:
 
 def alert_webhook_url() -> str:
     return os.getenv("OSINTPRO_ALERT_WEBHOOK_URL", "")
+
+
+def smtp_settings() -> dict[str, str]:
+    return {
+        "host": os.getenv("OSINTPRO_SMTP_HOST", ""),
+        "port": os.getenv("OSINTPRO_SMTP_PORT", "587"),
+        "user": os.getenv("OSINTPRO_SMTP_USER", ""),
+        "password": os.getenv("OSINTPRO_SMTP_PASSWORD", ""),
+        "sender": os.getenv("OSINTPRO_SMTP_FROM", os.getenv("OSINTPRO_SMTP_USER", "")),
+        "recipient": os.getenv("OSINTPRO_NOTIFICATION_EMAIL_TO", ""),
+    }
+
+
+def clean_webhook_event(value: object) -> str:
+    event = str(value or "").strip().lower()
+    if event not in WEBHOOK_EVENTS:
+        raise ValueError("Unsupported webhook event.")
+    return event
+
+
+def clean_webhook_url(value: object) -> str:
+    url = str(value or "").strip()
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ValueError("Webhook URL must be HTTPS.")
+    host = parsed.hostname or ""
+    if host in {"localhost", "127.0.0.1", "::1"}:
+        raise ValueError("Webhook URL cannot target local addresses.")
+    try:
+        if ipaddress.ip_address(host).is_private:
+            raise ValueError("Webhook URL cannot target private IP addresses.")
+    except ValueError as exc:
+        if "Webhook URL" in str(exc):
+            raise
+    if len(url) > 512:
+        raise ValueError("Webhook URL is too long.")
+    return url
+
+
+def notification_log(
+    connection: sqlite3.Connection,
+    user_id: str | None,
+    event_type: str,
+    channel: str,
+    status: str,
+    target: str | None = None,
+    message: str | None = None,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO notification_events
+            (id, user_id, event_type, channel, status, target, message, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            str(uuid.uuid4()),
+            user_id,
+            event_type,
+            channel,
+            status,
+            target,
+            redact_text(message or "")[:240],
+            utc_now(),
+        ),
+    )
+
+
+def webhook_rows(connection: sqlite3.Connection, user_id: str) -> list[sqlite3.Row]:
+    return connection.execute(
+        """
+        SELECT id, event_type, url, active, created_at, updated_at
+        FROM webhooks
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        """,
+        (user_id,),
+    ).fetchall()
+
+
+def public_webhook(row: sqlite3.Row) -> dict[str, object]:
+    return {
+        "id": row["id"],
+        "event_type": row["event_type"],
+        "url": row["url"],
+        "active": bool(row["active"]),
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def deliver_webhook(url: str, event_type: str, payload: dict[str, object]) -> tuple[bool, str]:
+    body = json.dumps(redact_data({
+        "event": event_type,
+        "sent_at": utc_now(),
+        "payload": payload,
+    })).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "OSINTPRO-webhook/1.0",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            response.read(2048)
+            return 200 <= response.status < 300, f"HTTP {response.status}"
+    except (OSError, urllib.error.URLError, TimeoutError) as exc:
+        return False, exc.__class__.__name__
+
+
+def deliver_user_webhooks(
+    connection: sqlite3.Connection,
+    user_id: str,
+    event_type: str,
+    payload: dict[str, object],
+) -> dict[str, int]:
+    sent = 0
+    failed = 0
+    rows = connection.execute(
+        """
+        SELECT id, url
+        FROM webhooks
+        WHERE user_id = ? AND event_type = ? AND active = 1
+        ORDER BY created_at ASC
+        LIMIT 10
+        """,
+        (user_id, event_type),
+    ).fetchall()
+    for row in rows:
+        ok, message = deliver_webhook(row["url"], event_type, payload)
+        sent += 1 if ok else 0
+        failed += 0 if ok else 1
+        notification_log(
+            connection,
+            user_id,
+            event_type,
+            "webhook",
+            "sent" if ok else "failed",
+            row["url"],
+            message,
+        )
+    return {"webhooks_sent": sent, "webhooks_failed": failed}
+
+
+def monitor_email_body(domain: str, payload: dict[str, object]) -> str:
+    return (
+        f"OSINTPRO monitor alert for {domain}\n\n"
+        f"Event: monitor.changed\n"
+        f"Previous score: {payload.get('previous_score')}\n"
+        f"New score: {payload.get('score')}\n"
+        f"Summary: {payload.get('summary')}\n\n"
+        "Open OSINTPRO to review the full report and update the client case."
+    )
+
+
+def send_monitor_email(domain: str, payload: dict[str, object], recipient: str | None = None) -> tuple[bool, str]:
+    settings = smtp_settings()
+    to_address = recipient or settings["recipient"]
+    required = [settings["host"], settings["user"], settings["password"], settings["sender"], to_address]
+    if not all(required):
+        return False, "SMTP not configured."
+    try:
+        import smtplib
+        from email.message import EmailMessage
+
+        message = EmailMessage()
+        message["Subject"] = f"OSINTPRO monitor changed: {domain}"
+        message["From"] = settings["sender"]
+        message["To"] = to_address
+        message.set_content(monitor_email_body(domain, payload))
+        with smtplib.SMTP(settings["host"], int(settings["port"]), timeout=8) as smtp:
+            smtp.starttls()
+            smtp.login(settings["user"], settings["password"])
+            smtp.send_message(message)
+        return True, "sent"
+    except (OSError, ValueError, TimeoutError) as exc:
+        return False, exc.__class__.__name__
 
 
 def postgres_settings() -> dict[str, object]:
@@ -3358,13 +3571,25 @@ def run_monitor_rows(connection: sqlite3.Connection, rows: list[sqlite3.Row]) ->
                 "score": report["score"],
             })
             if changed:
-                send_alert("monitor.changed", {
+                payload = {
                     "domain": monitor["domain"],
                     "user_id": monitor["user_id"],
                     "previous_score": monitor["last_score"],
                     "score": report["score"],
                     "summary": report["summary"],
-                })
+                }
+                send_alert("monitor.changed", payload)
+                deliver_user_webhooks(connection, str(monitor["user_id"]), "monitor.changed", payload)
+                email_ok, email_message = send_monitor_email(str(monitor["domain"]), payload)
+                notification_log(
+                    connection,
+                    str(monitor["user_id"]),
+                    "monitor.changed",
+                    "email",
+                    "sent" if email_ok else "skipped",
+                    smtp_settings().get("recipient") or None,
+                    email_message,
+                )
         except Exception:
             failed += 1
             connection.execute(
@@ -5167,6 +5392,8 @@ class Handler(SimpleHTTPRequestHandler):
                 "stripe_events": connection.execute("SELECT COUNT(*) AS count FROM stripe_events").fetchone()["count"],
                 "conversion_events": connection.execute("SELECT COUNT(*) AS count FROM conversion_events").fetchone()["count"],
                 "api_keys": connection.execute("SELECT COUNT(*) AS count FROM api_keys WHERE revoked_at IS NULL").fetchone()["count"],
+                "webhooks": connection.execute("SELECT COUNT(*) AS count FROM webhooks WHERE active = 1").fetchone()["count"],
+                "notification_events": connection.execute("SELECT COUNT(*) AS count FROM notification_events").fetchone()["count"],
             }
             users = connection.execute(
                 """
@@ -5423,6 +5650,22 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             self.send_json({"api_keys": self.api_key_rows_for_user(str(user["_id"]))}, headers=headers)
             return
+        if parsed.path == "/api/webhooks":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to manage webhooks."}, 401, headers)
+                return
+            if not feature_allowed(user.get("plan", "Free"), "webhooks"):
+                self.send_json({"error": "Webhooks require Pro or Agency."}, 402, headers)
+                return
+            with db() as connection:
+                rows = webhook_rows(connection, str(user["_id"]))
+            self.send_json({
+                "events": sorted(WEBHOOK_EVENTS),
+                "webhooks": [public_webhook(row) for row in rows],
+                "email_configured": all(smtp_settings()[key] for key in ("host", "user", "password", "sender")),
+            }, headers=headers)
+            return
         if parsed.path.startswith("/api/v1/reports/"):
             user, api_key, error = self.api_user_from_key()
             if error:
@@ -5440,6 +5683,48 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Report not found."}, 404)
                 return
             self.send_json({"report": report, "credential_info": {"prefix": api_key["prefix"]}})
+            return
+        if parsed.path in {"/api/v1/status", "/api/status"}:
+            user, api_key, error = self.api_user_from_key()
+            if error:
+                self.send_json({"error": error}, 401)
+                return
+            limited = self.api_rate_limited(str(api_key["id"]), parsed.path)
+            if limited:
+                self.send_json({"error": "API rate limit reached."}, 429)
+                return
+            self.send_json({
+                "plan": user.get("plan"),
+                "rate_limit_per_minute": api_key_rate_limit(),
+                "credential_info": {"prefix": api_key["prefix"]},
+                "available_endpoints": [
+                    "POST /api/v1/domain-reports",
+                    "GET /api/v1/domains/analyze?domain=example.com",
+                    "POST /api/v1/social-reports",
+                    "POST /api/v1/wallet-reports",
+                    "GET /api/v1/reports/{id}",
+                ],
+            })
+            return
+        if parsed.path in {"/api/v1/domains/analyze", "/api/domains/analyze"}:
+            user, api_key, error = self.api_user_from_key()
+            if error:
+                self.send_json({"error": error}, 401)
+                return
+            if self.api_rate_limited(str(api_key["id"]), parsed.path):
+                self.send_json({"error": "API rate limit reached."}, 429)
+                return
+            query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            try:
+                report = analyze(str(query.get("domain", "")))
+                with db() as connection:
+                    store_report(connection, str(user["_id"]), report, None)
+                    record_conversion_event(connection, str(user["_id"]), "api_domain_report", user.get("plan"), "api_v1_get")
+                self.send_json({"report": report, "credential_info": {"prefix": api_key["prefix"]}}, status=201)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400)
+            except Exception:
+                self.send_json({"error": "API domain report failed. No internal details exposed."}, 500)
             return
         if parsed.path == "/api/session":
             user, headers = self.get_or_create_user()
@@ -5915,6 +6200,72 @@ class Handler(SimpleHTTPRequestHandler):
                 }, status=201, headers=headers)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
+            return
+
+        if parsed.path == "/api/webhooks":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to create webhooks."}, 401, headers)
+                return
+            if not feature_allowed(user.get("plan", "Free"), "webhooks"):
+                self.send_json({"error": "Webhooks require Pro or Agency."}, 402, headers)
+                return
+            try:
+                body = self.read_json()
+                event_type = clean_webhook_event(body.get("event_type"))
+                url = clean_webhook_url(body.get("url"))
+                now = utc_now()
+                with db() as connection:
+                    connection.execute(
+                        """
+                        INSERT INTO webhooks (id, user_id, event_type, url, active, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, 1, ?, ?)
+                        ON CONFLICT(user_id, event_type, url)
+                        DO UPDATE SET active = 1, updated_at = excluded.updated_at
+                        """,
+                        (str(uuid.uuid4()), user["_id"], event_type, url, now, now),
+                    )
+                    rows = webhook_rows(connection, str(user["_id"]))
+                    record_conversion_event(connection, str(user["_id"]), "webhook_created", user.get("plan"), "monitoring")
+                self.send_json({"webhooks": [public_webhook(row) for row in rows]}, status=201, headers=headers)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400, headers)
+            return
+
+        if parsed.path == "/api/notifications/test":
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to test notifications."}, 401, headers)
+                return
+            if not feature_allowed(user.get("plan", "Free"), "webhooks"):
+                self.send_json({"error": "Notifications require Pro or Agency."}, 402, headers)
+                return
+            payload = {
+                "domain": "test.example.com",
+                "user_id": user["_id"],
+                "previous_score": 70,
+                "score": 82,
+                "summary": "Test notification only. No monitor changed.",
+            }
+            with db() as connection:
+                webhook_summary = deliver_user_webhooks(connection, str(user["_id"]), "monitor.changed", payload)
+                email_ok, email_message = send_monitor_email("test.example.com", payload)
+                notification_log(
+                    connection,
+                    str(user["_id"]),
+                    "monitor.changed",
+                    "email",
+                    "sent" if email_ok else "skipped",
+                    smtp_settings().get("recipient") or None,
+                    email_message,
+                )
+                record_conversion_event(connection, str(user["_id"]), "notification_test", user.get("plan"), "monitoring")
+            self.send_json({
+                "ok": True,
+                **webhook_summary,
+                "email_status": "sent" if email_ok else "skipped",
+                "email_message": email_message,
+            }, headers=headers)
             return
 
         if parsed.path == "/api/v1/domain-reports":
@@ -6522,6 +6873,8 @@ class Handler(SimpleHTTPRequestHandler):
                 connection.execute("DELETE FROM client_folders WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM monitors WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM api_keys WHERE user_id = ?", (user["_id"],))
+                connection.execute("DELETE FROM webhooks WHERE user_id = ?", (user["_id"],))
+                connection.execute("UPDATE notification_events SET user_id = NULL WHERE user_id = ?", (user["_id"],))
                 connection.execute("UPDATE stripe_events SET user_id = NULL WHERE user_id = ?", (user["_id"],))
                 connection.execute("DELETE FROM users WHERE id = ?", (user["_id"],))
             self.send_json({"ok": True}, headers={
@@ -6557,6 +6910,23 @@ class Handler(SimpleHTTPRequestHandler):
                     (user["_id"],),
                 ).fetchall()
             self.send_json({"api_keys": [dict(public_api_key(row)) for row in rows]}, headers=headers)
+            return
+        if parsed.path.startswith("/api/webhooks/"):
+            user, headers = self.get_or_create_user()
+            if not user.get("authenticated"):
+                self.send_json({"error": "Sign in to manage webhooks."}, 401, headers)
+                return
+            webhook_id = parsed.path.split("/")[-1]
+            if not UUID_RE.match(webhook_id):
+                self.send_json({"error": "Invalid webhook."}, 400, headers)
+                return
+            with db() as connection:
+                connection.execute(
+                    "UPDATE webhooks SET active = 0, updated_at = ? WHERE id = ? AND user_id = ?",
+                    (utc_now(), webhook_id, user["_id"]),
+                )
+                rows = webhook_rows(connection, str(user["_id"]))
+            self.send_json({"webhooks": [public_webhook(row) for row in rows]}, headers=headers)
             return
         if parsed.path.startswith("/api/monitors/"):
             user, headers = self.get_or_create_user()
