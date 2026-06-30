@@ -17,6 +17,10 @@ demo, exports, auth and billing paths have been tested end to end on Render.
 
 ## Launch Copy
 
+Full copy-paste launch assets are in [`PRODUCT_HUNT_COPY.md`](PRODUCT_HUNT_COPY.md):
+Product Hunt post, FAQ, social posts, demo GIF script, launch-day timeline,
+positioning variants and objection handling.
+
 Headline:
 
 ```text
