@@ -4791,6 +4791,18 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", "0")
         self.end_headers()
 
+    def send_head_only(
+        self,
+        status: int = 200,
+        content_type: str = "text/html; charset=utf-8",
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        for key, value in (headers or {}).items():
+            self.send_header(key, value)
+        self.end_headers()
+
     def send_page_file(self, filename: str, status: int = 200) -> None:
         path = ROOT / filename
         try:
@@ -7152,6 +7164,25 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"folders": self.folders_for_user(str(user["_id"]))}, headers=headers)
             return
         self.send_json({"error": "Endpoint not found"}, 404)
+
+    def do_HEAD(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path in {"/login", "/register", "/forgot-password"}:
+            self.send_head_only()
+            return
+        if parsed.path.startswith("/reset-password/"):
+            token = parsed.path.rsplit("/", 1)[-1]
+            with db() as connection:
+                valid = reset_row_for_token(connection, token) is not None
+            self.send_head_only(status=200 if valid else 410)
+            return
+        if parsed.path == "/settings/security":
+            if not self.authenticated_user_row():
+                self.send_redirect("/login")
+                return
+            self.send_head_only()
+            return
+        super().do_HEAD()
 
 
 def server_config() -> tuple[str, int]:

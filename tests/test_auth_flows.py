@@ -94,6 +94,13 @@ class AuthFlowPageTests(unittest.TestCase):
             self.assertEqual(response.status, 200)
             self.assertIn(marker, html)
 
+    def test_auth_pages_support_head_checks(self):
+        for path in ("/login", "/register", "/forgot-password"):
+            request = urllib.request.Request(self.base_url + path, method="HEAD")
+            with self.opener.open(request) as response:
+                self.assertEqual(response.status, 200)
+                self.assertIn("text/html", response.headers["Content-Type"])
+
     def test_security_settings_redirects_when_signed_out(self):
         with self.opener.open(self.base_url + "/settings/security") as response:
             html = response.read().decode("utf-8")
