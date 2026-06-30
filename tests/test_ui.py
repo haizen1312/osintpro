@@ -20,6 +20,18 @@ class ResponsiveUiTests(unittest.TestCase):
         self.assertIn("body.nav-open .nav", styles)
         self.assertIn("min-height: 48px", styles)
 
+    def test_launch_mobile_polish_contract_is_present(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        styles = (ROOT / "styles.css").read_text(encoding="utf-8")
+
+        self.assertIn("Map public evidence. Ship a client-ready dossier.", html)
+        self.assertIn("hero-proof", html)
+        self.assertIn("Mobile launch polish", styles)
+        self.assertIn("@media (max-width: 760px)", styles)
+        self.assertIn("overflow-x: hidden", styles)
+        self.assertIn("grid-template-columns: minmax(0, 1fr);", styles)
+        self.assertIn("#signalCanvas {\n    display: none;", styles)
+
 
 if __name__ == "__main__":
     unittest.main()

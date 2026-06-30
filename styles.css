@@ -2481,6 +2481,45 @@ body {
   border: 1px solid var(--line);
 }
 
+.hero-copy {
+  display: grid;
+  align-content: end;
+  gap: 14px;
+}
+
+.hero-actions,
+.hero-proof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hero-actions {
+  margin-top: 4px;
+}
+
+.hero-proof {
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.hero-proof span {
+  min-width: min(100%, 190px);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.hero-proof strong {
+  display: block;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
 .mark,
 .user-chip span {
   border-radius: var(--radius-sharp);
@@ -2541,4 +2580,283 @@ textarea:focus {
   background: var(--color-ink);
   color: var(--color-paper);
   box-shadow: none;
+}
+
+/* Mobile launch polish: final overrides must come last so older breakpoints cannot reintroduce desktop layout. */
+@media (max-width: 760px) {
+  html,
+  body {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--color-paper);
+  }
+
+  #signalCanvas {
+    display: none;
+  }
+
+  .app {
+    display: block;
+    min-width: 0;
+  }
+
+  .rail {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    gap: 10px;
+    padding: 10px 12px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 250, 242, .14);
+    background: rgba(13, 17, 23, .98);
+  }
+
+  .brand {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .brand strong,
+  .brand span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .brand span {
+    display: block;
+    color: rgba(247, 245, 240, .68);
+    font-size: 11px;
+  }
+
+  .mobile-menu-button {
+    display: grid;
+    justify-self: end;
+    border-color: rgba(247, 245, 240, .2);
+    background: transparent;
+  }
+
+  .mobile-menu-button span {
+    background: var(--color-paper);
+  }
+
+  .nav {
+    position: absolute;
+    top: calc(100% + 1px);
+    right: 12px;
+    left: 12px;
+    display: none;
+    max-height: calc(100vh - 84px);
+    padding: 10px;
+    overflow-y: auto;
+    border: 1px solid rgba(247, 245, 240, .16);
+    background: rgba(13, 17, 23, .99);
+  }
+
+  body.nav-open .nav {
+    display: grid;
+  }
+
+  .nav-label {
+    display: block;
+    margin-top: 12px;
+    color: rgba(247, 245, 240, .54);
+  }
+
+  .nav-label:first-child {
+    margin-top: 0;
+  }
+
+  .nav-btn {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 12px;
+    color: rgba(247, 245, 240, .74);
+    white-space: normal;
+  }
+
+  .nav-btn.active,
+  .nav-btn:hover {
+    color: var(--color-paper);
+  }
+
+  .account {
+    display: none;
+  }
+
+  .workspace {
+    width: 100%;
+    padding: 12px;
+  }
+
+  .user-chip {
+    position: static;
+    width: 100%;
+    margin: 0 0 12px;
+    justify-content: space-between;
+    background: var(--panel-strong);
+  }
+
+  .hero,
+  .dashboard-grid,
+  .onboarding-strip,
+  .grid,
+  .deep-grid,
+  .ops-grid,
+  .social-grid,
+  .auth-grid,
+  .admin-status-grid,
+  .lab-grid,
+  .term-grid,
+  .feature-grid,
+  .concept-grid,
+  .schema-grid,
+  .dossier-grid,
+  .wallet-grid,
+  .pricing,
+  .summary-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .hero > div:first-child,
+  .status-card,
+  .section,
+  .panel,
+  .dash-card,
+  .primary-dash,
+  .notice,
+  .result,
+  .auth-card {
+    min-width: 0;
+    padding: 14px;
+  }
+
+  .hero h1 {
+    max-width: 100%;
+    margin-bottom: 0;
+    font-size: clamp(34px, 12vw, 48px);
+    line-height: .98;
+  }
+
+  .hero p {
+    margin-bottom: 0;
+    font-size: 16px;
+    line-height: 1.48;
+  }
+
+  .hero-actions,
+  .hero-proof,
+  .actions,
+  .row-actions,
+  .price-actions,
+  .export-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .hero-proof span {
+    min-width: 0;
+    padding-top: 9px;
+    border-top: 1px solid var(--line);
+  }
+
+  .hero-proof {
+    gap: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .status-card {
+    display: grid;
+    gap: 8px;
+  }
+
+  .section-head {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .folder-picker,
+  .scan-form,
+  .scan-form.compact {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .target-field,
+  input,
+  select,
+  textarea,
+  button,
+  .button-link {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  h2 {
+    font-size: clamp(23px, 8vw, 32px);
+    line-height: 1.05;
+  }
+
+  .primary,
+  .secondary,
+  .button-link {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 13px;
+    font-size: 13px;
+    white-space: normal;
+  }
+
+  .pill {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .report-list,
+  .finding-list,
+  .admin-table,
+  .table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .auth-page {
+    display: block;
+    min-height: 100vh;
+    padding: 12px;
+  }
+
+  .auth-shell,
+  .auth-shell.compact {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .auth-panel,
+  .auth-dossier {
+    min-width: 0;
+    padding: 18px;
+  }
+
+  .auth-panel h1 {
+    font-size: clamp(34px, 13vw, 48px);
+  }
 }
