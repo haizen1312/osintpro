@@ -32,6 +32,22 @@ class ResponsiveUiTests(unittest.TestCase):
         self.assertIn("grid-template-columns: minmax(0, 1fr);", styles)
         self.assertIn("#signalCanvas {\n    display: none;", styles)
 
+    def test_ordered_workspace_and_game_security_lab_are_present(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        script = (ROOT / "app.js").read_text(encoding="utf-8")
+        styles = (ROOT / "styles.css").read_text(encoding="utf-8")
+
+        self.assertIn("Command", html)
+        self.assertIn("Evidence", html)
+        self.assertIn("Defensive Labs", html)
+        self.assertIn('data-section="game-security"', html)
+        self.assertIn('id="gameSecurityForm"', html)
+        self.assertIn("Online game vulnerability review", html)
+        self.assertIn("renderGameSecurityLab", script)
+        self.assertIn("no cheats", script.lower())
+        self.assertIn(".workspace-map", styles)
+        self.assertIn(".game-scope-grid", styles)
+
 
 if __name__ == "__main__":
     unittest.main()

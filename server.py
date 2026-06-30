@@ -5735,6 +5735,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "no credential attacks",
                     "no unauthorized packet capture",
                     "no wallet movement or evasion guidance",
+                    "no cheat development or anti-cheat bypass guidance",
                 ],
                 "modules": [
                     "domain_intel",
@@ -5744,6 +5745,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "web_audit_lab",
                     "repository_audit_lab",
                     "network_traffic_lab",
+                    "game_security_lab",
                     "monitoring",
                     "exports",
                 ],

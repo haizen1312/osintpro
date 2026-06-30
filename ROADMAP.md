@@ -17,6 +17,7 @@ Web Audit Lab, Repository Audit Lab, Network Traffic Lab, Social OSINT and Walle
 - Expand beginner-friendly Web Audit Lab workflows without adding invasive scanning.
 - Expand defensive repository review without executing uploaded code or generating exploits.
 - Add beginner-friendly network traffic analysis without unauthorized packet capture.
+- Add defensive online-game security review for studios without cheat, bypass or exploit guidance.
 - Keep hosting costs at zero until paid usage justifies infrastructure spend.
 - Keep infrastructure risk visible while the project stays on zero-cost hosting.
 
@@ -33,9 +34,20 @@ Web Audit Lab, Repository Audit Lab, Network Traffic Lab, Social OSINT and Walle
 - Better case summaries for agencies and investigators.
 
 Status: client folders, active folder routing, saved playbook organization,
-case summaries, entity graph filters, JSON-LD/DOT/CSV graph export and
-dual-mode Network Traffic Lab are implemented. Auth is now split across
-dedicated login, register, password reset and security settings pages.
+case summaries, entity graph filters, JSON-LD/DOT/CSV graph export, a cleaner
+command/evidence/labs/operations dashboard and dual-mode Network Traffic Lab
+are implemented. Auth is now split across dedicated login, register, password
+reset and security settings pages.
+
+### Game Security Lab
+
+- Defensive review workflow for studios building online PC games.
+- Trust-boundary checklist for auth, inventory, economy, netcode, anti-cheat telemetry, backend APIs and build pipeline.
+- Engineering-ticket output that avoids cheats, bypasses, packet tampering steps or exploit automation.
+
+Status: Game Security Lab is implemented as a defensive engineering checklist
+inside the app. It is intentionally educational and remediation-oriented, not
+an offensive game-hacking module.
 
 ### Wallet OSINT
 
@@ -132,7 +144,7 @@ documented in `POSTGRES_MIGRATION.md`.
 - Conversion analytics are first-party event counts, not a full experiment
   dashboard.
 - Standard-library trace currently covers about 59.48% of the monolithic
-  backend with 40 tests. The graph/SARIF/export/security/admin/cron/growth/API
+  backend with 43 tests. The graph/SARIF/export/security/admin/cron/growth/API
   and webhook paths are covered, but reaching 70% honestly requires more
   fixtures around monitoring, network edge cases and route handlers or a deeper
   backend extraction.
@@ -141,3 +153,4 @@ documented in `POSTGRES_MIGRATION.md`.
 
 OSINTPRO will remain a passive OSINT product. It will not add exploit execution, brute force, credential attacks, invasive scanning, wallet movement, mixing, obfuscation or evasion tooling.
 Network analysis will remain limited to authorized traffic interpretation, passive evidence and beginner education.
+Game security workflows will remain limited to authorized defensive review for studios and engineering teams, without cheat development, bypass guidance or exploit instructions.

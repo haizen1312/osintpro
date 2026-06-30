@@ -38,21 +38,22 @@
       </button>
 
       <nav class="nav" id="primaryNavigation" aria-label="Primary navigation">
-        <span class="nav-label">Overview</span>
+        <span class="nav-label">Command</span>
         <button class="nav-btn active" data-section="dashboard">Dashboard</button>
-        <span class="nav-label">Analyze</span>
+        <button class="nav-btn" data-section="cases">Cases</button>
+        <button class="nav-btn" data-section="schema">Entity Graph</button>
+        <span class="nav-label">Evidence</span>
         <button class="nav-btn" data-section="scan">Domain Intel</button>
         <button class="nav-btn" data-section="social">Social Intel</button>
         <button class="nav-btn" data-section="wallet">Wallet Trace</button>
+        <span class="nav-label">Defensive Labs</span>
         <button class="nav-btn" data-section="web-audit">Web Audit Lab</button>
         <button class="nav-btn" data-section="repo-audit">Repo Audit Lab</button>
         <button class="nav-btn" data-section="network-lab">Network Lab</button>
-        <span class="nav-label">Workspace</span>
-        <button class="nav-btn" data-section="cases">Cases</button>
-        <button class="nav-btn" data-section="schema">Entity Graph</button>
+        <button class="nav-btn" data-section="game-security">Game Security Lab</button>
+        <span class="nav-label">Operations</span>
         <button class="nav-btn" data-section="reports">History</button>
         <button class="nav-btn" data-section="monitoring">Monitoring</button>
-        <span class="nav-label">Business</span>
         <button class="nav-btn" data-section="billing">Billing</button>
         <button class="nav-btn" data-section="api-preview">API Preview</button>
         <button class="nav-btn" data-section="account">Account</button>
@@ -109,19 +110,69 @@
           </select>
           <button class="secondary small" type="button" data-section-jump="cases">Manage cases</button>
         </div>
-        <div class="dashboard-grid">
-          <article class="dash-card primary-dash">
-            <span class="pill">Start here</span>
-            <h2>Run a passive investigation</h2>
-            <p>Choose a domain, social handle or wallet address. Results are stored privately per account and connected in the entity graph.</p>
-            <div class="actions">
-              <button class="primary" type="button" data-section-jump="scan">Domain</button>
-              <button class="secondary" type="button" data-section-jump="social">Social</button>
-              <button class="secondary" type="button" data-section-jump="wallet">Wallet</button>
-              <button class="secondary" type="button" data-section-jump="web-audit">Web audit</button>
-              <button class="secondary" type="button" data-section-jump="repo-audit">Repository</button>
-              <button class="secondary" type="button" data-section-jump="network-lab">Network</button>
+        <div class="workspace-map" aria-label="OSINTPRO workspace map">
+          <article class="map-card command-card-main">
+            <span class="pill">Command</span>
+            <h2>Start with the investigation workspace</h2>
+            <p>Pick one evidence source, then move everything into cases, graphs, monitoring and exports.</p>
+            <div class="map-actions">
+              <button class="primary" type="button" data-section-jump="cases">Open cases</button>
+              <button class="secondary" type="button" data-section-jump="schema">Open graph</button>
             </div>
+          </article>
+          <article class="map-card">
+            <span class="map-index">01</span>
+            <strong>Collect public evidence</strong>
+            <p>Domain, social, wallet and repository signals.</p>
+          </article>
+          <article class="map-card">
+            <span class="map-index">02</span>
+            <strong>Review defensive labs</strong>
+            <p>Web, repo, network and game security workflows.</p>
+          </article>
+          <article class="map-card">
+            <span class="map-index">03</span>
+            <strong>Deliver and monitor</strong>
+            <p>Reports, graph exports, alerts and webhooks.</p>
+          </article>
+        </div>
+
+        <div class="module-directory" aria-label="Investigation modules">
+          <article>
+            <span class="pill">Evidence</span>
+            <h3>Public-source collection</h3>
+            <div class="directory-actions">
+              <button class="secondary" type="button" data-section-jump="scan">Domain Intel</button>
+              <button class="secondary" type="button" data-section-jump="social">Social Intel</button>
+              <button class="secondary" type="button" data-section-jump="wallet">Wallet Trace</button>
+            </div>
+          </article>
+          <article>
+            <span class="pill">Labs</span>
+            <h3>Defensive review workflows</h3>
+            <div class="directory-actions">
+              <button class="secondary" type="button" data-section-jump="web-audit">Web Audit</button>
+              <button class="secondary" type="button" data-section-jump="repo-audit">Repo Audit</button>
+              <button class="secondary" type="button" data-section-jump="network-lab">Network</button>
+              <button class="secondary" type="button" data-section-jump="game-security">Game Security</button>
+            </div>
+          </article>
+          <article>
+            <span class="pill">Delivery</span>
+            <h3>Case output</h3>
+            <div class="directory-actions">
+              <button class="secondary" type="button" data-section-jump="reports">History</button>
+              <button class="secondary" type="button" data-section-jump="monitoring">Monitoring</button>
+              <button class="secondary" type="button" data-section-jump="billing">Plans</button>
+            </div>
+          </article>
+        </div>
+
+        <div class="dashboard-grid compact-metrics">
+          <article class="dash-card primary-dash">
+            <span class="pill">Workspace state</span>
+            <h2>Private account workspace</h2>
+            <p>Reports, monitors and graph nodes stay scoped to the active account and client folder.</p>
           </article>
           <article class="dash-card">
             <span>Plan</span>
@@ -361,6 +412,47 @@
         <div id="networkLabResult" class="result empty">
           <h2>No network lab yet</h2>
           <p>Choose Website traffic for a domain or Own network for your local lab machine.</p>
+        </div>
+      </section>
+
+      <section class="section" id="game-security">
+        <div class="section-head">
+          <div>
+            <span class="pill">Game Security Lab</span>
+            <h2>Online game vulnerability review</h2>
+          </div>
+        </div>
+        <div class="notice boundary-notice">
+          <strong>Defensive engineering only</strong>
+          <span>For studios and engineering teams reviewing their own PC online games, backends and anti-cheat architecture. No cheats, no bypasses, no exploit steps and no offensive automation.</span>
+        </div>
+        <form id="gameSecurityForm" class="scan-form">
+          <div class="target-field">
+            <label for="gameTitle">Game or project name</label>
+            <input id="gameTitle" name="gameTitle" placeholder="Arena Ops" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="target-field">
+            <label for="gameArchitecture">Architecture</label>
+            <select id="gameArchitecture" name="gameArchitecture">
+              <option value="client-server">Client-server authoritative</option>
+              <option value="peer-to-peer">Peer-to-peer or host migration</option>
+              <option value="dedicated-server">Dedicated servers</option>
+              <option value="hybrid">Hybrid / unknown</option>
+            </select>
+          </div>
+          <button class="primary" type="submit" id="gameSecurityButton">Build review</button>
+        </form>
+        <div class="mode-switch game-scope-grid" aria-label="Game security review scope">
+          <label><input type="checkbox" value="auth" checked> Account and session auth</label>
+          <label><input type="checkbox" value="economy" checked> Inventory and economy</label>
+          <label><input type="checkbox" value="netcode" checked> Netcode trust boundaries</label>
+          <label><input type="checkbox" value="anticheat" checked> Anti-cheat telemetry</label>
+          <label><input type="checkbox" value="backend" checked> Backend APIs</label>
+          <label><input type="checkbox" value="builds"> Build pipeline and patching</label>
+        </div>
+        <div id="gameSecurityResult" class="result empty">
+          <h2>No game security review yet</h2>
+          <p>Enter a game/project name and architecture. The lab creates a defensive checklist for engineers to fix online-game risk areas before release.</p>
         </div>
       </section>
 

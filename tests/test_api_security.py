@@ -90,6 +90,8 @@ class ApiSecurityTests(unittest.TestCase):
             payload = json.load(response)
         self.assertEqual(payload["product"], "OSINTPRO")
         self.assertIn("no exploit execution", payload["safety_boundary"])
+        self.assertIn("no cheat development or anti-cheat bypass guidance", payload["safety_boundary"])
+        self.assertIn("game_security_lab", payload["modules"])
 
         missing_signature = self.post_json_expect_error("/api/stripe/webhook", {})
         self.assertEqual(missing_signature.code, 400)

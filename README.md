@@ -49,6 +49,7 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 - Web Audit Lab: Burp-style beginner workflow with safe commands, evidence checklist and technical glossary.
 - Repository Audit Lab: static source review with file/line evidence, confidence, applicability and remediation without executing uploaded code.
 - Network Traffic Lab: Wireshark-style website traffic mode plus own-network mode for local authorized LAN analysis.
+- Game Security Lab: defensive checklist for studios reviewing online PC game auth, economy, netcode, anti-cheat telemetry, backend APIs and build pipelines.
 - Social OSINT: public username presence checks across social, developer and community platforms.
 - Wallet OSINT: public Bitcoin and Ethereum/EVM balance, recent movements, counterparties and explorer links.
 - Entity graph: a workspace view that connects domains, usernames, profiles, DNS, findings, technologies, wallets, transactions and counterparties.
@@ -132,6 +133,7 @@ Current public traction as of June 23, 2026:
 - [How to explain OSINTPRO](docs/EXPLAIN_OSINTPRO.md)
 - [Web Audit Lab guide](docs/WEB_AUDIT_LAB.md)
 - [Repository Audit Lab guide](docs/REPOSITORY_AUDIT_LAB.md)
+- [Game Security Lab guide](docs/GAME_SECURITY_LAB.md)
 - [GitHub growth playbook](docs/GITHUB_GROWTH.md)
 - [Data sources and unit costs](docs/DATA_SOURCES.md)
 - [Distribution plan](docs/DISTRIBUTION.md)
@@ -175,6 +177,7 @@ Current public traction as of June 23, 2026:
 - Cron-protected monitoring and backup endpoints.
 - GitHub Actions workflow for free scheduled monitor runs and SQLite backup artifacts.
 - Beginner-friendly Web Audit Lab and Network Traffic Lab for authorized passive review.
+- Defensive Game Security Lab for authorized studio engineering reviews, with remediation tickets and no cheat/bypass/exploit guidance.
 - Static Repository Audit Lab with client-side and `.gitignore` filtering, bounded uploads, redacted evidence, confidence thresholding, JSON export, SARIF export and no code execution.
 - Repository dependency advisory for npm, pip, Cargo and Composer manifests using offline passive checks.
 - Account growth metrics, plan feature flags and in-app Free-to-Pro upgrade nudges.

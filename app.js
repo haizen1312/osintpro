@@ -959,6 +959,199 @@ function renderLocalNetworkLab(data) {
   `;
 }
 
+const gameSecurityScopes = {
+  auth: {
+    title: "Account and session auth",
+    risk: "Account takeover, weak session lifecycle or unsafe launcher tokens.",
+    checks: [
+      "Review password reset, device login and launcher token expiry.",
+      "Confirm session tokens rotate after privilege changes and logout.",
+      "Separate game client identity from admin, support and moderation access."
+    ],
+    fixes: [
+      "Use short-lived access tokens with server-side revocation.",
+      "Require step-up checks for trading, purchases, refunds and account recovery.",
+      "Log suspicious login changes without exposing secrets to the client."
+    ]
+  },
+  economy: {
+    title: "Inventory and economy",
+    risk: "Client-side trust can allow item duplication, forged rewards or currency drift.",
+    checks: [
+      "Confirm rewards, inventory mutations and purchases are decided server-side.",
+      "Review idempotency keys for purchases, trades, crafting and loot claims.",
+      "Reconcile wallet/currency balances from append-only server events."
+    ],
+    fixes: [
+      "Move economic authority to a server ledger with immutable event IDs.",
+      "Add replay protection to every inventory-changing request.",
+      "Alert on impossible currency deltas, duplicate claims and out-of-order events."
+    ]
+  },
+  netcode: {
+    title: "Netcode trust boundaries",
+    risk: "Authoritative gaps can enable impossible movement, invalid hits or state desync.",
+    checks: [
+      "List which game-state decisions are client-authoritative versus server-authoritative.",
+      "Validate movement, firing, cooldowns and match events against server time.",
+      "Look for inputs that the client can send without rate, state or map validation."
+    ],
+    fixes: [
+      "Keep match-critical state authoritative on dedicated or trusted servers.",
+      "Validate client actions against server-side physics windows and cooldowns.",
+      "Record compact server replays for dispute review and anti-cheat triage."
+    ]
+  },
+  anticheat: {
+    title: "Anti-cheat telemetry",
+    risk: "Telemetry gaps make cheating hard to detect and easy to dispute.",
+    checks: [
+      "Define which signals are collected from client, server and match replay.",
+      "Verify telemetry is privacy-scoped and cannot leak secrets or personal data.",
+      "Check that moderation actions have evidence IDs and appeal context."
+    ],
+    fixes: [
+      "Prefer server-side anomaly detection for impossible outcomes.",
+      "Keep client anti-cheat as one signal, not the only source of truth.",
+      "Build analyst review queues with redacted evidence and clear retention."
+    ]
+  },
+  backend: {
+    title: "Backend APIs",
+    risk: "Game APIs often expose unsafe debug routes, missing authorization or weak rate controls.",
+    checks: [
+      "Inventory public API routes used by launcher, game client, store and telemetry.",
+      "Review object-level authorization for profiles, guilds, inventories and match results.",
+      "Check rate limits and abuse controls for matchmaking, chat and trade endpoints."
+    ],
+    fixes: [
+      "Apply object-level authorization on every player-owned resource.",
+      "Separate production, staging and internal admin API surfaces.",
+      "Use structured audit logs for moderation, inventory and economy changes."
+    ]
+  },
+  builds: {
+    title: "Build pipeline and patching",
+    risk: "Unsigned builds, leaked debug symbols or slow patching can make abuse response harder.",
+    checks: [
+      "Confirm build signing, launcher update integrity and rollback policy.",
+      "Review how debug flags, staging endpoints and secrets are stripped from client builds.",
+      "Measure time from critical bug report to forced client/server patch."
+    ],
+    fixes: [
+      "Sign builds and validate patch manifests before install.",
+      "Keep environment secrets out of client assets and crash logs.",
+      "Prepare emergency server-side feature flags for risky systems."
+    ]
+  }
+};
+
+function architectureNotes(architecture) {
+  const notes = {
+    "client-server": [
+      "Good baseline for online games when match-critical state is server-authoritative.",
+      "Focus review effort on what the client can still claim: movement, rewards, purchases and telemetry."
+    ],
+    "peer-to-peer": [
+      "Higher trust-boundary risk because one player machine may influence match state.",
+      "Focus on host migration, tamper-resistant validation, replay review and dispute handling."
+    ],
+    "dedicated-server": [
+      "Best fit for competitive integrity if servers validate timing, state and economy events.",
+      "Focus on operational hardening, replay retention and backend authorization."
+    ],
+    "hybrid": [
+      "Unknown or hybrid systems need a trust-boundary map before individual findings matter.",
+      "Start by documenting which system has authority for each player-visible outcome."
+    ]
+  };
+  return notes[architecture] || notes.hybrid;
+}
+
+function renderGameSecurityLab() {
+  const title = document.querySelector("#gameTitle").value.trim() || "Online game";
+  const architecture = document.querySelector("#gameArchitecture").value;
+  const selected = Array.from(document.querySelectorAll(".game-scope-grid input:checked")).map(input => input.value);
+  const scopes = selected.length ? selected : ["auth", "economy", "netcode", "backend"];
+  const notes = architectureNotes(architecture);
+  const rows = scopes.map(scope => gameSecurityScopes[scope]).filter(Boolean);
+  const result = document.querySelector("#gameSecurityResult");
+
+  result.className = "result";
+  result.innerHTML = `
+    <div class="result-head">
+      <div>
+        <span class="pill">Game Security Lab</span>
+        <h2>${escapeHtml(title)}</h2>
+        <p>Defensive review plan for ${escapeHtml(architecture.replace("-", " "))} online game engineering.</p>
+      </div>
+      <strong class="score">${rows.length}</strong>
+    </div>
+
+    <section class="lab-panel disclaimer-panel">
+      <div class="mini-head">
+        <span class="pill">Boundary</span>
+        <h3>For authorized game teams only</h3>
+      </div>
+      <p>This lab helps engineers find and fix risk areas in games they own or are paid to review. No cheats, no bypasses, no exploit chains, no packet tampering steps and no offensive automation.</p>
+    </section>
+
+    <div class="lab-grid">
+      <article class="lab-card lab-hero">
+        <span class="pill">Architecture notes</span>
+        <h3>Trust model first</h3>
+        <ol class="step-list">
+          ${notes.map(note => `<li>${escapeHtml(note)}</li>`).join("")}
+          <li>Write down which system is authoritative for identity, inventory, economy, movement, matchmaking and moderation.</li>
+        </ol>
+      </article>
+      <article class="lab-card">
+        <span>Review areas</span>
+        <strong>${rows.length}</strong>
+        <p>${rows.map(row => escapeHtml(row.title)).join(", ")}</p>
+      </article>
+      <article class="lab-card">
+        <span>Output</span>
+        <strong>Dossier</strong>
+        <p>Use the checklist below as engineering tickets, not as exploit instructions.</p>
+      </article>
+    </div>
+
+    <section class="lab-panel">
+      <div class="mini-head">
+        <span class="pill">Risk matrix</span>
+        <h3>What to review and fix</h3>
+      </div>
+      <div class="risk-matrix">
+        ${rows.map(row => `
+          <article class="risk-row">
+            <strong>${escapeHtml(row.title)}</strong>
+            <div>
+              <p><b>Risk:</b> ${escapeHtml(row.risk)}</p>
+              <p><b>Checks:</b> ${row.checks.map(escapeHtml).join(" ")}</p>
+              <p><b>Fix direction:</b> ${row.fixes.map(escapeHtml).join(" ")}</p>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+
+    <section class="lab-panel">
+      <div class="mini-head">
+        <span class="pill">Engineering tickets</span>
+        <h3>Convert review into work</h3>
+      </div>
+      <ol class="step-list">
+        <li>Create one ticket per trust boundary: identity, inventory, economy, match state, telemetry and moderation.</li>
+        <li>Attach evidence from server logs, replay review, API route inventory or repository audit findings.</li>
+        <li>Mark every fix as prevention, detection or response so production owners know what changed.</li>
+        <li>Retest with authorized QA accounts and keep the results in the case folder.</li>
+      </ol>
+    </section>
+  `;
+  showToast("Game security review ready.");
+}
+
 function renderWebAuditLab(report) {
   const domain = report.domain;
   state.currentWebAuditReportId = report.id;
@@ -2483,6 +2676,11 @@ document.querySelectorAll("[data-network-mode]").forEach(button => {
 });
 
 document.querySelector("#localNetworkButton").addEventListener("click", buildLocalNetworkLab);
+
+document.querySelector("#gameSecurityForm").addEventListener("submit", event => {
+  event.preventDefault();
+  renderGameSecurityLab();
+});
 
 document.querySelector("#walletForm").addEventListener("submit", event => {
   event.preventDefault();
