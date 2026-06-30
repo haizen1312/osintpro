@@ -34,8 +34,8 @@ Web Audit Lab, Repository Audit Lab, Network Traffic Lab, Social OSINT and Walle
 
 Status: client folders, active folder routing, saved playbook organization,
 case summaries, entity graph filters, JSON-LD/DOT/CSV graph export and
-dual-mode Network Traffic Lab are implemented. Password reset remains gated
-until a trusted recovery channel exists.
+dual-mode Network Traffic Lab are implemented. Auth is now split across
+dedicated login, register, password reset and security settings pages.
 
 ### Wallet OSINT
 
@@ -109,7 +109,9 @@ users, alongside the existing POST report endpoints.
 
 Status: Pro/Agency webhook management, monitor.changed delivery and optional
 SMTP email notification are implemented. Email remains disabled until SMTP
-environment variables and a recipient are configured.
+environment variables and a recipient are configured. Password reset links use
+one-time hashed tokens and send only when SMTP and an account recovery address
+are available.
 
 ### Infrastructure
 
@@ -130,7 +132,7 @@ documented in `POSTGRES_MIGRATION.md`.
 - Conversion analytics are first-party event counts, not a full experiment
   dashboard.
 - Standard-library trace currently covers about 59.48% of the monolithic
-  backend with 35 tests. The graph/SARIF/export/security/admin/cron/growth/API
+  backend with 40 tests. The graph/SARIF/export/security/admin/cron/growth/API
   and webhook paths are covered, but reaching 70% honestly requires more
   fixtures around monitoring, network edge cases and route handlers or a deeper
   backend extraction.

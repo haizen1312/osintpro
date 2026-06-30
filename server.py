@@ -204,11 +204,13 @@ PUBLIC_STATIC_PATHS = {
     "/",
     "/index.html",
     "/app.js",
+    "/auth.js",
     "/styles.css",
     "/admin.html",
     "/admin/metrics",
     "/admin.js",
     "/favicon.ico",
+    "/favicon.svg",
     "/robots.txt",
     "/sitemap.xml",
     "/.well-known/security.txt",
@@ -575,6 +577,16 @@ def init_db() -> None:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
+
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                expires_at TEXT NOT NULL,
+                used_at TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
             """
         )
         ensure_column(connection, "users", "email", "TEXT")
@@ -599,6 +611,8 @@ def init_db() -> None:
         connection.execute("CREATE INDEX IF NOT EXISTS idx_repository_reports_user ON repository_reports(user_id, created_at)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_webhooks_user ON webhooks(user_id, event_type, active)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_notification_events_user ON notification_events(user_id, created_at)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token_hash)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id, created_at)")
 
 
 def ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
@@ -2098,6 +2112,68 @@ def verify_password(password: str, stored: str | None) -> bool:
     except ValueError:
         return False
     return hmac.compare_digest(candidate, expected)
+
+
+def hash_reset_token(token: str) -> str:
+    """Store reset tokens as keyed digests so database leaks do not expose links."""
+    return hmac.new(server_secret().encode("utf-8"), token.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def public_base_url() -> str:
+    return os.getenv("OSINTPRO_PUBLIC_URL", "https://osintpro-48j4.onrender.com").rstrip("/")
+
+
+def reset_password_url(token: str) -> str:
+    return f"{public_base_url()}/reset-password/{quote(token)}"
+
+
+def send_password_reset_email(email: str, token: str) -> tuple[bool, str]:
+    settings = smtp_settings()
+    required = [settings["host"], settings["user"], settings["password"], settings["sender"], email]
+    if not all(required):
+        return False, "SMTP not configured."
+    try:
+        import smtplib
+        from email.message import EmailMessage
+
+        message = EmailMessage()
+        message["Subject"] = "OSINTPRO - Reset your password"
+        message["From"] = settings["sender"]
+        message["To"] = email
+        message.set_content(
+            "Password reset requested for your OSINTPRO account.\n\n"
+            f"Reset your password here. The link expires in 1 hour:\n{reset_password_url(token)}\n\n"
+            "If you did not request this, ignore this email."
+        )
+        with smtplib.SMTP(settings["host"], int(settings["port"]), timeout=8) as smtp:
+            smtp.starttls()
+            smtp.login(settings["user"], settings["password"])
+            smtp.send_message(message)
+        return True, "sent"
+    except (OSError, ValueError, TimeoutError) as exc:
+        return False, exc.__class__.__name__
+
+
+def reset_row_for_token(connection: sqlite3.Connection, token: str) -> sqlite3.Row | None:
+    token_hash = hash_reset_token(token)
+    row = connection.execute(
+        """
+        SELECT user_id, expires_at, used_at
+        FROM password_resets
+        WHERE token_hash = ?
+        """,
+        (token_hash,),
+    ).fetchone()
+    if not row or row["used_at"]:
+        return None
+    try:
+        expires_at = dt.datetime.fromisoformat(str(row["expires_at"]))
+    except ValueError:
+        return None
+    now = dt.datetime.now(dt.UTC)
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=dt.UTC)
+    return row if expires_at >= now else None
 
 
 def clean_domain(raw: str) -> str:
@@ -4709,6 +4785,29 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_redirect(self, location: str) -> None:
+        self.send_response(302)
+        self.send_header("Location", location)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def send_page_file(self, filename: str, status: int = 200) -> None:
+        path = ROOT / filename
+        try:
+            document = path.read_text(encoding="utf-8")
+        except OSError:
+            self.send_json({"error": "File not available"}, 404)
+            return
+        self.send_html(document, status=status)
+
+    def authenticated_user_row(self) -> sqlite3.Row | None:
+        current = self.session_id()
+        if not current:
+            return None
+        with db() as connection:
+            row = connection.execute("SELECT * FROM users WHERE id = ?", (current,)).fetchone()
+        return row if row and row["nickname"] else None
+
     def send_download(
         self,
         body: bytes,
@@ -5583,6 +5682,29 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path in {"/login", "/register", "/forgot-password"}:
+            if self.authenticated_user_row():
+                self.send_redirect("/")
+                return
+            page = {
+                "/login": "login.html",
+                "/register": "register.html",
+                "/forgot-password": "forgot-password.html",
+            }[parsed.path]
+            self.send_page_file(page)
+            return
+        if parsed.path.startswith("/reset-password/"):
+            token = parsed.path.rsplit("/", 1)[-1]
+            with db() as connection:
+                valid = reset_row_for_token(connection, token) is not None
+            self.send_page_file("reset-password.html" if valid else "reset-expired.html", status=200 if valid else 410)
+            return
+        if parsed.path == "/settings/security":
+            if not self.authenticated_user_row():
+                self.send_redirect("/login")
+                return
+            self.send_page_file("security.html")
+            return
         if not parsed.path.startswith("/api/") and parsed.path not in PUBLIC_STATIC_PATHS:
             self.send_json({"error": "File not available"}, 404)
             return
@@ -6106,6 +6228,83 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, 400)
             return
 
+        if parsed.path == "/api/auth/forgot-password":
+            generic = {"message": "If that account can receive reset email, a reset link has been sent."}
+            try:
+                body = self.read_json()
+                identifier = str(body.get("email") or body.get("identifier") or body.get("nickname") or "").strip()
+                if not identifier:
+                    self.send_json({"error": "Account identifier required."}, 400)
+                    return
+                lookup_email = identifier.lower()
+                try:
+                    lookup_nickname = normalize_nickname(identifier)
+                except ValueError:
+                    lookup_nickname = ""
+                with db() as connection:
+                    row = connection.execute(
+                        """
+                        SELECT id, email
+                        FROM users
+                        WHERE lower(coalesce(email, '')) = ? OR nickname = ?
+                        """,
+                        (lookup_email, lookup_nickname),
+                    ).fetchone()
+                    if row and row["email"]:
+                        token = secrets.token_urlsafe(32)
+                        now = utc_now()
+                        expires_at = (dt.datetime.now(dt.UTC) + dt.timedelta(hours=1)).replace(microsecond=0).isoformat()
+                        connection.execute(
+                            """
+                            INSERT INTO password_resets
+                                (id, user_id, token_hash, expires_at, created_at)
+                            VALUES (?, ?, ?, ?, ?)
+                            """,
+                            (str(uuid.uuid4()), row["id"], hash_reset_token(token), expires_at, now),
+                        )
+                        ok, message = send_password_reset_email(str(row["email"]), token)
+                        notification_log(
+                            connection,
+                            str(row["id"]),
+                            "password.reset_requested",
+                            "email",
+                            "sent" if ok else "skipped",
+                            str(row["email"]),
+                            message,
+                        )
+                self.send_json(generic)
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400)
+            return
+
+        if parsed.path == "/api/auth/reset-password":
+            try:
+                body = self.read_json()
+                token = str(body.get("token", "")).strip()
+                new_password = str(body.get("password") or body.get("new_password") or "")
+                if not token:
+                    self.send_json({"error": "Reset token required."}, 400)
+                    return
+                new_hash = password_hash(new_password)
+                now = utc_now()
+                with db() as connection:
+                    reset = reset_row_for_token(connection, token)
+                    if not reset:
+                        self.send_json({"error": "Reset link expired."}, 410)
+                        return
+                    connection.execute(
+                        "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
+                        (new_hash, now, reset["user_id"]),
+                    )
+                    connection.execute(
+                        "UPDATE password_resets SET used_at = ? WHERE token_hash = ?",
+                        (now, hash_reset_token(token)),
+                    )
+                self.send_json({"ok": True})
+            except ValueError as exc:
+                self.send_json({"error": str(exc)}, 400)
+            return
+
         if parsed.path == "/api/auth/logout":
             self.send_json({"ok": True}, headers={
                 "Set-Cookie": self.make_session_cookie("", max_age=0)
@@ -6130,7 +6329,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": str(exc)}, 400, headers)
             return
 
-        if parsed.path == "/api/auth/password":
+        if parsed.path in {"/api/auth/password", "/api/auth/change-password"}:
             user, headers = self.get_or_create_user()
             if not user.get("authenticated"):
                 self.send_json({"error": "Sign in to change your password."}, 401, headers)

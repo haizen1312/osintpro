@@ -7,6 +7,7 @@
   <meta name="description" content="OSINTPRO is a passive OSINT workspace for domain intelligence, web audit workflows, brand monitoring, social username checks and blockchain wallet tracing.">
   <meta name="keywords" content="passive OSINT, domain intelligence, web audit, brand monitoring, wallet OSINT, blockchain tracing, threat intelligence">
   <title>OSINTPRO Intelligence Workspace</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css?v=20260623">
 </head>
 <body>
@@ -603,35 +604,20 @@
             <p class="mono" id="accountMeta"></p>
           </article>
           <article class="auth-card">
-            <h2>Register</h2>
-            <form id="registerForm" class="auth-form">
-              <label for="registerNickname">Nickname</label>
-              <input id="registerNickname" type="text" autocomplete="username" placeholder="operator" spellcheck="false">
-              <label for="registerPassword">Password</label>
-              <input id="registerPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters">
-              <button class="primary" type="submit">Create account</button>
-            </form>
+            <h2>Start access</h2>
+            <p>Use a nickname account to keep reports, credits, monitors and Stripe purchases attached to one workspace.</p>
+            <div class="auth-action-grid">
+              <a class="primary button-link" href="/register">Create account</a>
+              <a class="secondary button-link" href="/login">Sign in</a>
+            </div>
           </article>
           <article class="auth-card">
-            <h2>Login</h2>
-            <form id="loginForm" class="auth-form">
-              <label for="loginNickname">Nickname</label>
-              <input id="loginNickname" type="text" autocomplete="username" placeholder="operator" spellcheck="false">
-              <label for="loginPassword">Password</label>
-              <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
-              <button class="secondary" type="submit">Sign in</button>
-            </form>
-          </article>
-          <article class="auth-card">
-            <h2>Change password</h2>
-            <p>Password reset is intentionally disabled until a trusted recovery channel is added. For now, signed-in users can change password with the current password.</p>
-            <form id="passwordForm" class="auth-form">
-              <label for="currentPassword">Current password</label>
-              <input id="currentPassword" type="password" autocomplete="current-password" placeholder="Current password">
-              <label for="newPassword">New password</label>
-              <input id="newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters">
-              <button class="secondary" type="submit">Update password</button>
-            </form>
+            <h2>Security controls</h2>
+            <p>Change password from a dedicated security page. Recovery links are one-time tokens when SMTP is configured.</p>
+            <div class="auth-action-grid">
+              <a class="secondary button-link" href="/settings/security">Security settings</a>
+              <a class="secondary button-link" href="/forgot-password">Reset password</a>
+            </div>
           </article>
           <article class="auth-card danger-card">
             <h2>Delete account</h2>

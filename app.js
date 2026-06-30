@@ -2494,66 +2494,6 @@ document.querySelector("#walletForm").addEventListener("submit", event => {
   analyzeWallet(address);
 });
 
-document.querySelector("#registerForm").addEventListener("submit", async event => {
-  event.preventDefault();
-  try {
-    const data = await api("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify({
-        nickname: document.querySelector("#registerNickname").value,
-        password: document.querySelector("#registerPassword").value
-      })
-    });
-    document.querySelector("#registerPassword").value = "";
-    state.user = data.user;
-    await loadSession();
-    showAccountMessage("Account created. Credits, reports and plans are now tied to your nickname.");
-  } catch (error) {
-    document.querySelector("#registerPassword").value = "";
-    showAccountMessage(error.message, true);
-  }
-});
-
-document.querySelector("#loginForm").addEventListener("submit", async event => {
-  event.preventDefault();
-  try {
-    const data = await api("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({
-        nickname: document.querySelector("#loginNickname").value,
-        password: document.querySelector("#loginPassword").value
-      })
-    });
-    document.querySelector("#loginPassword").value = "";
-    state.user = data.user;
-    await loadSession();
-    showAccountMessage("Signed in.");
-  } catch (error) {
-    document.querySelector("#loginPassword").value = "";
-    showAccountMessage(error.message, true);
-  }
-});
-
-document.querySelector("#passwordForm").addEventListener("submit", async event => {
-  event.preventDefault();
-  try {
-    await api("/api/auth/password", {
-      method: "POST",
-      body: JSON.stringify({
-        current_password: document.querySelector("#currentPassword").value,
-        new_password: document.querySelector("#newPassword").value
-      })
-    });
-    document.querySelector("#currentPassword").value = "";
-    document.querySelector("#newPassword").value = "";
-    showAccountMessage("Password updated.");
-  } catch (error) {
-    document.querySelector("#currentPassword").value = "";
-    document.querySelector("#newPassword").value = "";
-    showAccountMessage(error.message, true);
-  }
-});
-
 document.querySelector("#folderForm").addEventListener("submit", async event => {
   event.preventDefault();
   try {

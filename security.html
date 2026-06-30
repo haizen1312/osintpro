@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Security Settings - OSINTPRO</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css?v=20260630-auth">
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-panel">
+      <a class="auth-brand" href="/" aria-label="OSINTPRO home">
+        <span>OP</span>
+        <strong>OSINTPRO</strong>
+      </a>
+      <p class="pill">Security settings</p>
+      <h1>Change password.</h1>
+      <p class="auth-copy">Confirm the current password before replacing it. This protects signed-in sessions on shared machines.</p>
+
+      <form class="auth-form standalone" id="securityPageForm" novalidate>
+        <div class="field">
+          <label for="currentPassword">Current password</label>
+          <input id="currentPassword" name="current_password" type="password" autocomplete="current-password" required>
+          <p class="field-error" id="currentPasswordError"></p>
+        </div>
+        <div class="field">
+          <label for="newPassword">New password</label>
+          <input id="newPassword" name="new_password" type="password" autocomplete="new-password" required>
+          <div class="strength-meter" aria-hidden="true"><span id="passwordStrengthBar"></span></div>
+          <p class="field-hint" id="passwordStrengthText">Use at least 8 characters.</p>
+          <p class="field-error" id="newPasswordError"></p>
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm new password</label>
+          <input id="confirmPassword" name="confirm_password" type="password" autocomplete="new-password" required>
+          <p class="field-error" id="confirmPasswordError"></p>
+        </div>
+        <button class="primary" type="submit">Save password</button>
+      </form>
+
+      <p class="auth-links"><a href="/">Return to workspace</a></p>
+      <div class="billing-message" id="authMessage"></div>
+    </section>
+    <aside class="auth-dossier">
+      <span class="dossier-label">Security note</span>
+      <dl>
+        <div><dt>Reset links</dt><dd>One hour expiry</dd></div>
+        <div><dt>Storage</dt><dd>PBKDF2 password hashes</dd></div>
+        <div><dt>Sessions</dt><dd>Signed server cookies</dd></div>
+      </dl>
+    </aside>
+  </main>
+  <script src="/auth.js?v=20260630-auth"></script>
+</body>
+</html>

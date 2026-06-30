@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login - OSINTPRO</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css?v=20260630-auth">
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-panel">
+      <a class="auth-brand" href="/" aria-label="OSINTPRO home">
+        <span>OP</span>
+        <strong>OSINTPRO</strong>
+      </a>
+      <p class="pill">Operator access</p>
+      <h1>Sign in to your workspace.</h1>
+      <p class="auth-copy">Continue an investigation, review saved evidence, or prepare a client export.</p>
+
+      <form class="auth-form standalone" id="loginPageForm" novalidate>
+        <div class="field">
+          <label for="loginNickname">Nickname</label>
+          <input id="loginNickname" name="nickname" type="text" autocomplete="username" spellcheck="false" required>
+          <p class="field-error" id="loginNicknameError"></p>
+        </div>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+          <p class="field-error" id="loginPasswordError"></p>
+        </div>
+        <button class="primary" type="submit">Sign in</button>
+      </form>
+
+      <p class="auth-links">
+        <a href="/forgot-password">Forgot password?</a>
+        <span>New here?</span>
+        <a href="/register">Create account</a>
+      </p>
+      <div class="billing-message" id="authMessage"></div>
+    </section>
+    <aside class="auth-dossier">
+      <span class="dossier-label">Access scope</span>
+      <dl>
+        <div><dt>Reports</dt><dd>Private to your account</dd></div>
+        <div><dt>Credits</dt><dd>Bound to nickname</dd></div>
+        <div><dt>Billing</dt><dd>Handled through Stripe</dd></div>
+      </dl>
+    </aside>
+  </main>
+  <script src="/auth.js?v=20260630-auth"></script>
+</body>
+</html>

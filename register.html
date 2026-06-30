@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register - OSINTPRO</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css?v=20260630-auth">
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-panel">
+      <a class="auth-brand" href="/" aria-label="OSINTPRO home">
+        <span>OP</span>
+        <strong>OSINTPRO</strong>
+      </a>
+      <p class="pill">New workspace</p>
+      <h1>Create a nickname account.</h1>
+      <p class="auth-copy">No email is required for core access. Add recovery later only if your workspace needs it.</p>
+
+      <form class="auth-form standalone" id="registerPageForm" novalidate>
+        <div class="field">
+          <label for="registerNickname">Nickname</label>
+          <input id="registerNickname" name="nickname" type="text" autocomplete="username" spellcheck="false" required>
+          <p class="field-hint">2-32 characters: letters, numbers, dot, underscore or dash.</p>
+          <p class="field-error" id="registerNicknameError"></p>
+        </div>
+        <div class="field">
+          <label for="registerPassword">Password</label>
+          <input id="registerPassword" name="password" type="password" autocomplete="new-password" required>
+          <div class="strength-meter" aria-hidden="true"><span id="passwordStrengthBar"></span></div>
+          <p class="field-hint" id="passwordStrengthText">Use at least 8 characters.</p>
+          <p class="field-error" id="registerPasswordError"></p>
+        </div>
+        <button class="primary" type="submit">Create account</button>
+      </form>
+
+      <p class="auth-links">
+        <span>Already have access?</span>
+        <a href="/login">Sign in</a>
+      </p>
+      <div class="billing-message" id="authMessage"></div>
+    </section>
+    <aside class="auth-dossier">
+      <span class="dossier-label">Free tier</span>
+      <dl>
+        <div><dt>Reports</dt><dd>5 starter reports</dd></div>
+        <div><dt>Monitor</dt><dd>1 domain for 30 days</dd></div>
+        <div><dt>Upgrade</dt><dd>Pro unlocks unlimited reports</dd></div>
+      </dl>
+    </aside>
+  </main>
+  <script src="/auth.js?v=20260630-auth"></script>
+</body>
+</html>
