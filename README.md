@@ -46,10 +46,11 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 - Certificate Transparency: observable names and subdomains from public CT logs.
 - Passive technology fingerprinting from headers and web signals.
 - Risk findings, vulnerability hypotheses and Red/Purple Team recommendations derived only from passive evidence.
+- Realistic abuse context for each finding: how an attacker may benefit, likely business impact, evidence to collect and owner action.
 - Web Audit Lab: Burp-style beginner workflow with safe commands, evidence checklist and technical glossary.
 - Repository Audit Lab: static source review with file/line evidence, confidence, applicability and remediation without executing uploaded code.
 - Network Traffic Lab: Wireshark-style website traffic mode plus own-network mode for local authorized LAN analysis.
-- Game Security Lab: defensive checklist for studios reviewing online PC game auth, economy, netcode, anti-cheat telemetry, backend APIs and build pipelines.
+- Game Security Lab: defensive checklist for studios reviewing online PC game auth, economy, netcode, anti-cheat telemetry, backend APIs and build pipelines with realistic abuse scenarios.
 - Social OSINT: public username presence checks across social, developer and community platforms.
 - Wallet OSINT: public Bitcoin and Ethereum/EVM balance, recent movements, counterparties and explorer links.
 - Entity graph: a workspace view that connects domains, usernames, profiles, DNS, findings, technologies, wallets, transactions and counterparties.
@@ -178,6 +179,7 @@ Current public traction as of June 23, 2026:
 - GitHub Actions workflow for free scheduled monitor runs and SQLite backup artifacts.
 - Beginner-friendly Web Audit Lab and Network Traffic Lab for authorized passive review.
 - Defensive Game Security Lab for authorized studio engineering reviews, with remediation tickets and no cheat/bypass/exploit guidance.
+- Owner-ready risk narratives explain attacker behavior at a safe level, business impact, evidence to collect and concrete defensive action.
 - Static Repository Audit Lab with client-side and `.gitignore` filtering, bounded uploads, redacted evidence, confidence thresholding, JSON export, SARIF export and no code execution.
 - Repository dependency advisory for npm, pip, Cargo and Composer manifests using offline passive checks.
 - Account growth metrics, plan feature flags and in-app Free-to-Pro upgrade nudges.

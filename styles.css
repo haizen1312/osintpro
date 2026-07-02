@@ -1193,6 +1193,31 @@ textarea:focus {
   border-color: rgba(255, 93, 108, .34);
 }
 
+.abuse-brief {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(255, 189, 89, .24);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-sharp);
+  background:
+    linear-gradient(90deg, rgba(196, 69, 54, .08), transparent 62%),
+    rgba(0, 0, 0, .14);
+}
+
+.abuse-brief p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.abuse-brief b {
+  color: var(--cyan);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
 .ops-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, .9fr) minmax(0, .9fr);

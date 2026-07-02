@@ -1548,6 +1548,7 @@ def repo_finding(
     remediation: str,
     applicability: str = "Applies when this code path is reachable in production.",
 ) -> dict[str, object]:
+    abuse_context = repository_abuse_context(category, title)
     return {
         "rule_id": repo_rule_id(category, title),
         "severity": severity,
@@ -1559,8 +1560,51 @@ def repo_finding(
         "line": line,
         "evidence": repo_evidence(evidence),
         "why": why,
+        "abuse_path": abuse_context["abuse_path"],
+        "business_impact": abuse_context["business_impact"],
+        "owner_action": abuse_context["owner_action"],
         "remediation": remediation,
         "applicability": applicability,
+    }
+
+
+def repository_abuse_context(category: str, title: str) -> dict[str, str]:
+    """Explain realistic defensive impact without giving exploitation steps."""
+    key = f"{category} {title}".lower()
+    if "secret" in key or "credential" in key or "aws" in key or "private key" in key:
+        return {
+            "abuse_path": "An attacker who obtains the repository or build artifact could try the exposed credential against the issuing service, then pivot into data, billing or deployment systems if the key is still valid.",
+            "business_impact": "Cloud cost spikes, customer data exposure, supply-chain compromise or unauthorized production changes.",
+            "owner_action": "Treat the value as exposed: revoke it, rotate dependent secrets, inspect provider logs and replace long-lived keys with scoped workload identities.",
+        }
+    if "command" in key or "execution" in key or "deserialization" in key:
+        return {
+            "abuse_path": "If external input can reach this code path, an attacker may try to turn data into server-side execution or unsafe object loading.",
+            "business_impact": "Service takeover, data theft, ransomware staging or lateral movement from the affected runtime.",
+            "owner_action": "Remove dynamic execution, enforce strict allowlists, isolate the runtime and add tests that prove untrusted input stays data-only.",
+        }
+    if "database" in key or "sql" in key:
+        return {
+            "abuse_path": "If user-controlled values influence the query shape, an attacker may attempt to read or alter records outside the intended object scope.",
+            "business_impact": "Customer data leakage, account takeover support paths, billing manipulation or audit-log tampering.",
+            "owner_action": "Use parameterized queries, object-level authorization and query logging around sensitive tables.",
+        }
+    if "browser" in key or "cors" in key or "innerhtml" in key:
+        return {
+            "abuse_path": "A malicious site or crafted content could try to make a trusted browser read data or execute script in a context the user already trusts.",
+            "business_impact": "Session abuse, data exposure, fraudulent actions or loss of customer trust after visible account compromise.",
+            "owner_action": "Constrain trusted origins, sanitize rendered HTML and add browser security headers with regression tests.",
+        }
+    if "transport" in key or "tls" in key:
+        return {
+            "abuse_path": "On an untrusted network, a machine-in-the-middle position could make the application trust an impostor endpoint.",
+            "business_impact": "Credential interception, poisoned API responses or silent data exposure in internal tooling.",
+            "owner_action": "Restore certificate validation, pin only where operationally justified and monitor for disabled verification in CI.",
+        }
+    return {
+        "abuse_path": "A real attacker would first confirm whether this code path is reachable, then look for trust-boundary mistakes around the affected data.",
+        "business_impact": "Operational risk depends on reachability, privilege and data sensitivity.",
+        "owner_action": "Confirm applicability with the owning engineer, add a regression test and document the accepted risk or fix.",
     }
 
 
@@ -1673,6 +1717,9 @@ def dependency_advisories_for_files(files: list[tuple[str, str]]) -> list[dict[s
                 "severity": advisory["severity"],
                 "advisory": advisory["advisory"],
                 "path": path,
+                "abuse_path": "An attacker may target known vulnerable package versions when the dependency is reachable through public routes, parsing code or build tooling.",
+                "business_impact": "Impact depends on the advisory class, but common outcomes include data exposure, account abuse, build compromise or denial of service.",
+                "owner_action": "Confirm whether the package is loaded in production, upgrade to the fixed version and redeploy from a clean lockfile.",
                 "remediation": f"Upgrade {package} to >= {fixed} and regenerate the lockfile.",
             })
     return findings[:60]
@@ -3135,6 +3182,50 @@ def technology_fingerprint(headers: dict[str, object], web: dict[str, object]) -
     return sorted(tech)
 
 
+def public_finding(
+    level: str,
+    title: str,
+    detail: str,
+    abuse_path: str,
+    business_impact: str,
+    owner_action: str,
+    evidence_to_collect: str,
+) -> dict[str, str]:
+    """Create a defensive finding with realistic owner-oriented risk context."""
+    return {
+        "level": level,
+        "title": title,
+        "detail": detail,
+        "abuse_path": abuse_path,
+        "business_impact": business_impact,
+        "owner_action": owner_action,
+        "evidence_to_collect": evidence_to_collect,
+    }
+
+
+def hypothesis(
+    severity: str,
+    confidence: str,
+    title: str,
+    evidence: str,
+    next_step: str,
+    attacker_path: str,
+    likely_impact: str,
+    defensive_priority: str,
+) -> dict[str, str]:
+    """Explain potential abuse without payloads, bypasses or attack procedure."""
+    return {
+        "severity": severity,
+        "confidence": confidence,
+        "title": title,
+        "evidence": evidence,
+        "next_step": next_step,
+        "attacker_path": attacker_path,
+        "likely_impact": likely_impact,
+        "defensive_priority": defensive_priority,
+    }
+
+
 def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
     dns = report.get("dns", {})
     https = report.get("https", {})
@@ -3151,25 +3242,89 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
 
     for item in headers if https_available else []:
         if not item.get("present"):
-            findings.append({"level": "medium", "title": f"Missing header: {item['name']}", "detail": "Reduces the publicly observable browser-side security posture."})
+            findings.append(public_finding(
+                "medium",
+                f"Missing header: {item['name']}",
+                "Reduces the publicly observable browser-side security posture.",
+                "A real attacker would combine missing browser controls with an application bug, malicious embed or unsafe third-party content to increase account or data exposure.",
+                "Customer sessions, forms, admin panels or embedded flows may become easier to abuse if a separate application flaw exists.",
+                "Add the missing header with a staged rollout and regression tests for critical pages.",
+                "Collect affected response paths, current header values, CSP/HSTS rollout status and iframe/script dependencies.",
+            ))
     flags = email.get("flags", {})
     email_applicable = bool(email.get("applicable"))
     if email_applicable and flags.get("mx_present") and not flags.get("spf_present"):
-        findings.append({"level": "high", "title": "SPF missing", "detail": "The domain does not publish an SPF policy in the main TXT records."})
+        findings.append(public_finding(
+            "high",
+            "SPF missing",
+            "The domain does not publish an SPF policy in the main TXT records.",
+            "An attacker can send mail that appears aligned with the brand, then rely on weak receiving-side checks to reach customers or employees.",
+            "Invoice fraud, support impersonation, credential harvesting and brand-trust damage.",
+            "Publish SPF for authorized senders, remove obsolete senders and pair it with DMARC reporting.",
+            "Collect legitimate mail vendors, bounce domains, helpdesk workflows and recent spoofing complaints.",
+        ))
     if email_applicable and not flags.get("dmarc_present"):
-        findings.append({"level": "high", "title": "DMARC missing", "detail": "No public anti-impersonation policy was found on _dmarc."})
+        findings.append(public_finding(
+            "high",
+            "DMARC missing",
+            "No public anti-impersonation policy was found on _dmarc.",
+            "An attacker can imitate the domain in phishing campaigns while the company has no public policy telling receivers how to handle failed authentication.",
+            "Higher chance of executive impersonation, customer scams and vendor-payment fraud.",
+            "Start with DMARC p=none plus reports, validate legitimate flows and move toward quarantine/reject.",
+            "Collect aggregate reports, mail sources, third-party sender inventory and finance/support spoofing scenarios.",
+        ))
     if isinstance(days, int) and days < 30:
-        findings.append({"level": "high", "title": "TLS expiring soon", "detail": f"The certificate expires in {days} days."})
+        findings.append(public_finding(
+            "high",
+            "TLS expiring soon",
+            f"The certificate expires in {days} days.",
+            "Attackers do not need to break TLS: an outage window can push users toward insecure workarounds, fake support links or rushed emergency changes.",
+            "Service outage, failed checkout/login flows and increased phishing success during incident confusion.",
+            "Verify automated renewal, alert owners and rehearse renewal failure recovery.",
+            "Collect certificate owner, renewal automation logs, alert routing and dependency inventory.",
+        ))
     security_txt = web.get("security_txt", {})
     if security_txt.get("available") and not security_txt.get("present"):
-        findings.append({"level": "low", "title": "security.txt missing", "detail": "No standard public security disclosure channel was found."})
+        findings.append(public_finding(
+            "low",
+            "security.txt missing",
+            "No standard public security disclosure channel was found.",
+            "A researcher or customer who finds a weakness may struggle to report it, increasing the chance of public disclosure before triage.",
+            "Slower vulnerability intake, missed reports and reputational damage from unmanaged disclosure.",
+            "Publish security.txt with contact, policy and expiry fields routed to the right owner.",
+            "Collect current security contact, intake SLA, disclosure policy and escalation owner.",
+        ))
     if not dns.get("caa"):
-        findings.append({"level": "low", "title": "CAA missing", "detail": "The domain does not publicly restrict which CAs can issue certificates."})
+        findings.append(public_finding(
+            "low",
+            "CAA missing",
+            "The domain does not publicly restrict which CAs can issue certificates.",
+            "If a certificate authority or validation process is abused, there is no DNS-level policy limiting who may issue for the domain.",
+            "Weaker certificate governance and harder incident scoping after suspicious certificate issuance.",
+            "Add CAA records for approved CAs and document who can change certificate policy.",
+            "Collect current CAs, wildcard usage, ACME providers and certificate issuance history.",
+        ))
     signals = advanced.get("signals", {}) if isinstance(advanced, dict) else {}
     if not signals.get("dnssec_enabled"):
-        findings.append({"level": "low", "title": "DNSSEC not observed", "detail": "No public DS/DNSKEY records were found from the local resolver."})
+        findings.append(public_finding(
+            "low",
+            "DNSSEC not observed",
+            "No public DS/DNSKEY records were found from the local resolver.",
+            "In some DNS attack or misrouting scenarios, unsigned zones provide less cryptographic assurance for resolver responses.",
+            "Lower DNS integrity assurance for mail, web and certificate validation records.",
+            "Evaluate DNSSEC support with the registrar and DNS provider before enabling.",
+            "Collect registrar support, DNS provider support, rollback plan and operational ownership.",
+        ))
     if advanced.get("takeover_hints"):
-        findings.append({"level": "high", "title": "CNAME to managed providers", "detail": "Some subdomains point to SaaS/cloud platforms: verify ownership to prevent takeover."})
+        findings.append(public_finding(
+            "high",
+            "CNAME to managed providers",
+            "Some subdomains point to SaaS/cloud platforms: verify ownership to prevent takeover.",
+            "An attacker may look for abandoned cloud/SaaS resources referenced by DNS and try to claim the unowned resource behind the hostname.",
+            "Brand impersonation under a trusted subdomain, phishing pages, cookie exposure or customer-data capture depending on host use.",
+            "Verify every managed-provider CNAME is claimed by an active account and remove stale DNS records.",
+            "Collect DNS owner, cloud/SaaS account owner, last deployment date and proof of resource ownership.",
+        ))
     return findings[:10]
 
 
@@ -3188,83 +3343,110 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
     vulns: list[dict[str, str]] = []
 
     if https_available and not headers.get("content-security-policy", {}).get("present"):
-        vulns.append({
-            "severity": "medium",
-            "confidence": "high",
-            "title": "Potentially broader XSS surface",
-            "evidence": "Content-Security-Policy was not observed on the main HTTPS response.",
-            "next_step": "Validate with authorized application testing and define a CSP for scripts, frames and connect-src.",
-        })
+        vulns.append(hypothesis(
+            "medium",
+            "high",
+            "Potentially broader XSS surface",
+            "Content-Security-Policy was not observed on the main HTTPS response.",
+            "Validate with authorized application testing and define a CSP for scripts, frames and connect-src.",
+            "If an input-handling bug exists, the absence of CSP gives an attacker more room to make malicious browser code run and communicate outward.",
+            "Session abuse, account actions performed in a trusted browser, sensitive page content exposure or reputational damage.",
+            "Deploy a report-only CSP first, fix violations, then enforce for authenticated and payment/admin surfaces.",
+        ))
     if https_available and not headers.get("strict-transport-security", {}).get("present"):
-        vulns.append({
-            "severity": "medium",
-            "confidence": "high",
-            "title": "Downgrade/SSL stripping not mitigated by HSTS",
-            "evidence": "Strict-Transport-Security was not observed.",
-            "next_step": "Enable HSTS with an appropriate max-age after full HTTPS validation.",
-        })
+        vulns.append(hypothesis(
+            "medium",
+            "high",
+            "Downgrade/SSL stripping not mitigated by HSTS",
+            "Strict-Transport-Security was not observed.",
+            "Enable HSTS with an appropriate max-age after full HTTPS validation.",
+            "On first contact or after a stale bookmark, a network-positioned attacker may try to keep the user on an insecure path or confusing redirect chain.",
+            "Credential exposure risk on hostile networks and lower trust in login or checkout flows.",
+            "Force HTTPS everywhere, validate subdomains, then enable long-lived HSTS and preload only after rollout confidence.",
+        ))
     if (
         https_available
         and not headers.get("x-frame-options", {}).get("present")
         and not headers.get("content-security-policy", {}).get("present")
     ):
-        vulns.append({
-            "severity": "medium",
-            "confidence": "medium",
-            "title": "Clickjacking to verify",
-            "evidence": "X-Frame-Options and CSP frame-ancestors are missing.",
-            "next_step": "Test iframe embedding in an authorized environment and block untrusted frames.",
-        })
+        vulns.append(hypothesis(
+            "medium",
+            "medium",
+            "Clickjacking to verify",
+            "X-Frame-Options and CSP frame-ancestors are missing.",
+            "Test iframe embedding in an authorized environment and block untrusted frames.",
+            "A malicious page may visually wrap or overlay the real site and trick a logged-in user into unintended clicks.",
+            "Unwanted account changes, support actions or workflow approvals if sensitive pages are frameable.",
+            "Block untrusted framing and review high-risk authenticated actions for confirmation and CSRF protection.",
+        ))
     if email.get("applicable") and not flags.get("dmarc_present"):
-        vulns.append({
-            "severity": "high",
-            "confidence": "high",
-            "title": "Email brand spoofing more likely",
-            "evidence": "DMARC record not found on _dmarc.",
-            "next_step": "Publish DMARC at least with p=none and reporting, then move toward quarantine/reject.",
-        })
+        vulns.append(hypothesis(
+            "high",
+            "high",
+            "Email brand spoofing more likely",
+            "DMARC record not found on _dmarc.",
+            "Publish DMARC at least with p=none and reporting, then move toward quarantine/reject.",
+            "An attacker can impersonate executives, billing, support or vendor contacts while receivers lack a clear policy for failed authentication.",
+            "Payment fraud, credential theft, malware delivery and loss of customer trust.",
+            "Inventory senders, enable reporting, fix alignment, then enforce quarantine/reject with finance/support awareness.",
+        ))
     if email.get("applicable") and flags.get("dmarc_present") and not (flags.get("dmarc_reject") or flags.get("dmarc_quarantine")):
-        vulns.append({
-            "severity": "medium",
-            "confidence": "high",
-            "title": "DMARC present but not enforced",
-            "evidence": "DMARC was found, but no observable quarantine/reject policy is active.",
-            "next_step": "Analyze aggregate reports and plan gradual enforcement.",
-        })
+        vulns.append(hypothesis(
+            "medium",
+            "high",
+            "DMARC present but not enforced",
+            "DMARC was found, but no observable quarantine/reject policy is active.",
+            "Analyze aggregate reports and plan gradual enforcement.",
+            "Attackers may still benefit from brand spoofing because failed messages are monitored but not strongly rejected.",
+            "Continued phishing exposure despite partial email-security investment.",
+            "Use DMARC reports to close legitimate gaps, then move to quarantine and reject with change management.",
+        ))
     if not dns.get("caa"):
-        vulns.append({
-            "severity": "low",
-            "confidence": "high",
-            "title": "Weak certificate governance",
-            "evidence": "CAA record missing.",
-            "next_step": "Restrict the CAs authorized to issue certificates for the domain.",
-        })
+        vulns.append(hypothesis(
+            "low",
+            "high",
+            "Weak certificate governance",
+            "CAA record missing.",
+            "Restrict the CAs authorized to issue certificates for the domain.",
+            "A certificate-issuance incident is harder to contain when every public CA is implicitly allowed.",
+            "Slower certificate incident response and weaker policy evidence for auditors or insurers.",
+            "Document approved CAs and publish CAA records, including reporting where supported.",
+        ))
     if advanced.get("takeover_hints"):
-        vulns.append({
-            "severity": "high",
-            "confidence": "medium",
-            "title": "Potential subdomain takeover to verify",
-            "evidence": "Public CNAMEs to managed providers were observed in Certificate Transparency subdomains.",
-            "next_step": "Verify ownership of cloud/SaaS resources before any technical testing.",
-        })
+        vulns.append(hypothesis(
+            "high",
+            "medium",
+            "Potential subdomain takeover to verify",
+            "Public CNAMEs to managed providers were observed in Certificate Transparency subdomains.",
+            "Verify ownership of cloud/SaaS resources before any technical testing.",
+            "An attacker may search for unclaimed provider resources referenced by DNS and attempt to bind the trusted subdomain to content they control.",
+            "Trusted-domain phishing, brand abuse, session/cookie exposure depending on scope and customer deception.",
+            "Confirm ownership in the provider console, remove stale CNAMEs and monitor CT/DNS drift.",
+        ))
     signals = advanced.get("signals", {}) if isinstance(advanced, dict) else {}
     if not signals.get("dnssec_enabled"):
-        vulns.append({
-            "severity": "low",
-            "confidence": "medium",
-            "title": "DNS integrity not strengthened by DNSSEC",
-            "evidence": "DS/DNSKEY records were not observed.",
-            "next_step": "Evaluate DNSSEC with the registrar/DNS provider if compatible with operations.",
-        })
+        vulns.append(hypothesis(
+            "low",
+            "medium",
+            "DNS integrity not strengthened by DNSSEC",
+            "DS/DNSKEY records were not observed.",
+            "Evaluate DNSSEC with the registrar/DNS provider if compatible with operations.",
+            "A DNS-path attacker or resolver issue has less cryptographic resistance when records are unsigned.",
+            "Lower assurance for mail, web and certificate-control records in high-risk environments.",
+            "Run a registrar/provider readiness check and plan DNSSEC with rollback before enabling.",
+        ))
     days = cert.get("days_remaining")
     if isinstance(days, int) and days < 45:
-        vulns.append({
-            "severity": "medium" if days >= 15 else "high",
-            "confidence": "high",
-            "title": "Operational risk on TLS certificate",
-            "evidence": f"Certificate expires in {days} days.",
-            "next_step": "Verify automatic renewal and alerting before the critical window.",
-        })
+        vulns.append(hypothesis(
+            "medium" if days >= 15 else "high",
+            "high",
+            "Operational risk on TLS certificate",
+            f"Certificate expires in {days} days.",
+            "Verify automatic renewal and alerting before the critical window.",
+            "Attackers can exploit user confusion during outages by pushing fake support, fake payment or fake login paths.",
+            "Lost revenue, failed login/checkout, support load and increased phishing susceptibility during incident response.",
+            "Test renewal automation, alert escalation and emergency certificate replacement before the final week.",
+        ))
     return vulns[:8]
 
 

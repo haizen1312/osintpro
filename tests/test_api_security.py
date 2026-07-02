@@ -96,6 +96,48 @@ class ApiSecurityTests(unittest.TestCase):
         missing_signature = self.post_json_expect_error("/api/stripe/webhook", {})
         self.assertEqual(missing_signature.code, 400)
 
+    def test_risk_findings_include_owner_ready_abuse_context(self):
+        report = {
+            "dns": {"caa": []},
+            "https": {"available": True, "security_headers": [
+                {"name": "content-security-policy", "present": False}
+            ]},
+            "email_security": {
+                "applicable": True,
+                "flags": {"mx_present": True, "spf_present": False, "dmarc_present": False},
+            },
+            "web_presence": {"security_txt": {"available": True, "present": False}},
+            "advanced_intel": {"signals": {"dnssec_enabled": False}, "takeover_hints": [{}]},
+        }
+
+        finding = server.risk_findings(report)[0]
+        self.assertIn("abuse_path", finding)
+        self.assertIn("business_impact", finding)
+        self.assertIn("owner_action", finding)
+        self.assertIn("evidence_to_collect", finding)
+
+        hypothesis = server.vulnerability_hypotheses(report)[0]
+        self.assertIn("attacker_path", hypothesis)
+        self.assertIn("likely_impact", hypothesis)
+        self.assertIn("defensive_priority", hypothesis)
+
+    def test_repository_findings_include_business_context(self):
+        finding = server.repo_finding(
+            severity="high",
+            confidence="medium",
+            category="Database",
+            title="SQL built with string interpolation",
+            path="app.py",
+            line=10,
+            evidence="db.execute(f'SELECT * FROM users WHERE id={user_id}')",
+            why="Dynamic SQL construction can create SQL injection.",
+            remediation="Use parameterized queries.",
+        )
+
+        self.assertIn("attacker may attempt", finding["abuse_path"])
+        self.assertIn("Customer data", finding["business_impact"])
+        self.assertIn("parameterized", finding["owner_action"])
+
 
 if __name__ == "__main__":
     unittest.main()

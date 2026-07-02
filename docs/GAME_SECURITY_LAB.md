@@ -35,11 +35,15 @@ The app generates a structured review package:
 
 1. Architecture note for the selected game model.
 2. Defensive review checklist for selected scopes.
-3. Risk matrix covering impact, evidence and owner.
+3. Risk matrix covering how abuse may happen, business impact, evidence and owner.
 4. Engineering tickets written as remediation work.
 
 The output is intentionally safe for client delivery and internal sprint
 planning. It focuses on what to fix, who owns it and what evidence to collect.
+
+Each risk scenario is written for defensive planning. It explains how an
+attacker may benefit at a high level, but avoids cheat instructions, bypass
+methods, packet tampering steps, exploit chains or reverse-engineering guidance.
 
 ## Safety Boundary
 

@@ -45,6 +45,10 @@ class ResponsiveUiTests(unittest.TestCase):
         self.assertIn("Online game vulnerability review", html)
         self.assertIn("renderGameSecurityLab", script)
         self.assertIn("no cheats", script.lower())
+        self.assertIn("How an attacker may act", script)
+        self.assertIn("Business impact", script)
+        self.assertIn("abuse-brief", script)
+        self.assertIn(".abuse-brief", styles)
         self.assertIn(".workspace-map", styles)
         self.assertIn(".game-scope-grid", styles)
 

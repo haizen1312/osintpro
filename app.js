@@ -329,6 +329,13 @@ function renderRepoAudit(audit) {
           <code>${escapeHtml(item.path)}:${escapeHtml(item.line)}</code>
           <pre>${escapeHtml(item.evidence || "Evidence redacted")}</pre>
           <p><strong>Why:</strong> ${escapeHtml(item.why)}</p>
+          ${item.abuse_path ? `
+            <div class="abuse-brief">
+              <p><b>How an attacker may abuse it:</b> ${escapeHtml(item.abuse_path)}</p>
+              <p><b>Business impact:</b> ${escapeHtml(item.business_impact || "Impact depends on reachability and privilege.")}</p>
+              <p><b>Owner action:</b> ${escapeHtml(item.owner_action || "Confirm applicability and assign remediation ownership.")}</p>
+            </div>
+          ` : ""}
           <p><strong>Applies when:</strong> ${escapeHtml(item.applicability)}</p>
           <p><strong>Fix:</strong> ${escapeHtml(item.remediation)}</p>
         </article>
@@ -350,6 +357,13 @@ function renderRepoAudit(audit) {
               </div>
               <code>${escapeHtml(item.path)}</code>
               <p>${escapeHtml(item.advisory)}</p>
+              ${item.abuse_path ? `
+                <div class="abuse-brief">
+                  <p><b>How an attacker may abuse it:</b> ${escapeHtml(item.abuse_path)}</p>
+                  <p><b>Business impact:</b> ${escapeHtml(item.business_impact || "Impact depends on whether the dependency is reachable.")}</p>
+                  <p><b>Owner action:</b> ${escapeHtml(item.owner_action || "Upgrade, redeploy and verify the package is not loaded from stale artifacts.")}</p>
+                </div>
+              ` : ""}
               <p><strong>Fix:</strong> ${escapeHtml(item.remediation)}</p>
             </article>
           `).join("")}
@@ -469,6 +483,14 @@ function renderFindings(findings = []) {
       <span class="tag ${item.level === "high" ? "missing" : ""}">${escapeHtml(item.level)}</span>
       <strong>${escapeHtml(item.title)}</strong>
       <p>${escapeHtml(item.detail)}</p>
+      ${item.abuse_path ? `
+        <div class="abuse-brief">
+          <p><b>How an attacker may abuse it:</b> ${escapeHtml(item.abuse_path)}</p>
+          <p><b>Business impact:</b> ${escapeHtml(item.business_impact || "Impact depends on reachability, privilege and exposed data.")}</p>
+          <p><b>Owner action:</b> ${escapeHtml(item.owner_action || "Confirm applicability, assign an owner and track remediation.")}</p>
+          <p><b>Evidence to collect:</b> ${escapeHtml(item.evidence_to_collect || "Collect logs, ownership context and current configuration.")}</p>
+        </div>
+      ` : ""}
     </div>
   `).join("");
 }
@@ -482,6 +504,13 @@ function renderVulnerabilities(items = []) {
       <span class="tag ${item.severity === "high" ? "missing" : ""}">${escapeHtml(item.severity)}</span>
       <strong>${escapeHtml(item.title)}</strong>
       <p>${escapeHtml(item.evidence)}</p>
+      ${item.attacker_path ? `
+        <div class="abuse-brief">
+          <p><b>Likely attacker path:</b> ${escapeHtml(item.attacker_path)}</p>
+          <p><b>Likely impact:</b> ${escapeHtml(item.likely_impact || "Impact depends on asset exposure and authenticated surface.")}</p>
+          <p><b>Defensive priority:</b> ${escapeHtml(item.defensive_priority || "Validate safely, then assign an owner and deadline.")}</p>
+        </div>
+      ` : ""}
       <small>${escapeHtml(item.next_step)}</small>
     </div>
   `).join("");
@@ -963,6 +992,8 @@ const gameSecurityScopes = {
   auth: {
     title: "Account and session auth",
     risk: "Account takeover, weak session lifecycle or unsafe launcher tokens.",
+    attacker: "A real attacker would usually start with reused credentials, stolen launcher tokens, weak recovery flows or session persistence on shared machines, then try to convert account access into trades, refunds, moderation abuse or resale.",
+    impact: "Player account loss, support overload, refund fraud, streamer/community reputational damage and possible regulatory complaints when recovery is weak.",
     checks: [
       "Review password reset, device login and launcher token expiry.",
       "Confirm session tokens rotate after privilege changes and logout.",
@@ -977,6 +1008,8 @@ const gameSecurityScopes = {
   economy: {
     title: "Inventory and economy",
     risk: "Client-side trust can allow item duplication, forged rewards or currency drift.",
+    attacker: "A motivated abuser looks for any place where the client can claim rewards, repeat a transaction, replay a request or create race conditions around purchases, loot, crafting, trades or refunds.",
+    impact: "Inflation, marketplace collapse, chargeback disputes, rare-item devaluation and loss of trust from legitimate players.",
     checks: [
       "Confirm rewards, inventory mutations and purchases are decided server-side.",
       "Review idempotency keys for purchases, trades, crafting and loot claims.",
@@ -991,6 +1024,8 @@ const gameSecurityScopes = {
   netcode: {
     title: "Netcode trust boundaries",
     risk: "Authoritative gaps can enable impossible movement, invalid hits or state desync.",
+    attacker: "An abuser tries to discover which match outcomes the client can influence, then looks for impossible movement, timing, targeting, cooldown or state claims that the server accepts too easily.",
+    impact: "Competitive integrity loss, churn from honest players, tournament disputes and expensive moderation review.",
     checks: [
       "List which game-state decisions are client-authoritative versus server-authoritative.",
       "Validate movement, firing, cooldowns and match events against server time.",
@@ -1005,6 +1040,8 @@ const gameSecurityScopes = {
   anticheat: {
     title: "Anti-cheat telemetry",
     risk: "Telemetry gaps make cheating hard to detect and easy to dispute.",
+    attacker: "Cheat developers look for blind spots between client telemetry, server truth and review evidence, then tune behavior to stay below detection or create plausible deniability.",
+    impact: "Longer cheat lifetime, noisy ban appeals, false-positive risk and weaker confidence in enforcement decisions.",
     checks: [
       "Define which signals are collected from client, server and match replay.",
       "Verify telemetry is privacy-scoped and cannot leak secrets or personal data.",
@@ -1019,6 +1056,8 @@ const gameSecurityScopes = {
   backend: {
     title: "Backend APIs",
     risk: "Game APIs often expose unsafe debug routes, missing authorization or weak rate controls.",
+    attacker: "An attacker maps public launcher, game, store, chat and telemetry endpoints, then looks for missing object-level authorization, weak rate limits or internal routes exposed by mistake.",
+    impact: "Profile data leakage, inventory manipulation, chat abuse, matchmaking disruption and moderation bypass.",
     checks: [
       "Inventory public API routes used by launcher, game client, store and telemetry.",
       "Review object-level authorization for profiles, guilds, inventories and match results.",
@@ -1033,6 +1072,8 @@ const gameSecurityScopes = {
   builds: {
     title: "Build pipeline and patching",
     risk: "Unsigned builds, leaked debug symbols or slow patching can make abuse response harder.",
+    attacker: "Abusers inspect public builds and update channels for leaked configuration, stale debug flags, predictable patch manifests or slow server-side kill switches.",
+    impact: "Faster abuse research, delayed incident response, leaked secrets in client assets and forced emergency releases.",
     checks: [
       "Confirm build signing, launcher update integrity and rollback policy.",
       "Review how debug flags, staging endpoints and secrets are stripped from client builds.",
@@ -1128,6 +1169,8 @@ function renderGameSecurityLab() {
             <strong>${escapeHtml(row.title)}</strong>
             <div>
               <p><b>Risk:</b> ${escapeHtml(row.risk)}</p>
+              <p><b>How an attacker may act:</b> ${escapeHtml(row.attacker)}</p>
+              <p><b>Business impact:</b> ${escapeHtml(row.impact)}</p>
               <p><b>Checks:</b> ${row.checks.map(escapeHtml).join(" ")}</p>
               <p><b>Fix direction:</b> ${row.fixes.map(escapeHtml).join(" ")}</p>
             </div>
