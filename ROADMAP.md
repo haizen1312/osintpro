@@ -73,7 +73,8 @@ and configurable report branding are implemented. PDF reports now use a
 branded multipage A4 layout with executive summary, findings, evidence,
 methodology and numbered confidentiality footers. Export endpoints have HTTP
 regression tests. Domain, repository and lab findings now include safe attacker
-abuse context, business impact and owner actions without exploit procedure.
+abuse context, business impact and owner actions in UI, PDF and findings CSV
+without exploit procedure.
 
 ### Repository Audit
 
@@ -146,7 +147,7 @@ documented in `POSTGRES_MIGRATION.md`.
 - Conversion analytics are first-party event counts, not a full experiment
   dashboard.
 - Standard-library trace currently covers about 59.48% of the monolithic
-  backend with 45 tests. The graph/SARIF/export/security/admin/cron/growth/API
+  backend with 49 tests. The graph/SARIF/export/security/admin/cron/growth/API
   and webhook paths are covered, but reaching 70% honestly requires more
   fixtures around monitoring, network edge cases and route handlers or a deeper
   backend extraction.

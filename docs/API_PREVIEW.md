@@ -90,6 +90,7 @@ These endpoints power the web app and remain session-cookie based.
 | `/api/graphs/current/export?format=dot` | `GET` | session cookie | Export the account graph as Graphviz DOT. |
 | `/api/graphs/current/export?format=csv` | `GET` | session cookie | Export the account graph as a CSV edge list. |
 | `/api/reports/{id}/pdf` | `GET` | session cookie | Server-side PDF export for a report owned by the account. |
+| `/api/reports/{id}/findings.csv` | `GET` | session cookie | Owner-ready findings CSV with abuse context, business impact and owner action. |
 | `/api/reports/{id}/sarif` | `GET` | session cookie | SARIF export for a saved Repository Audit Lab report. |
 | `/api/reports/{id}/repository.json` | `GET` | session cookie | Redacted JSON export for a saved Repository Audit Lab report. |
 | `/api/api-keys` | `GET/POST` | Agency/Admin session | List or create API keys. |

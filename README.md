@@ -169,6 +169,7 @@ Current public traction as of June 23, 2026:
 - Entity graph filters for domains, people, wallets and findings.
 - Entity graph export as JSON-LD, Graphviz DOT and CSV edge list.
 - Server-side PDF export plus CSV exports for reports, wallet history and Web Audit Lab checklists.
+- Per-report findings CSV export with attacker-abuse context, business impact and owner action columns.
 - Guest exports retain only the latest session report and show browser download feedback.
 - Report comparison for repeated domain reports.
 - Saved Web Audit Lab playbooks for repeatable beginner-safe reviews.

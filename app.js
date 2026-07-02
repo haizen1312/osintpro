@@ -1459,6 +1459,7 @@ function reportActions(report) {
   return `
     <div class="row-actions">
       <a class="secondary small button-link" href="/api/reports/${report.id}/pdf" data-download>PDF</a>
+      <a class="secondary small button-link" href="/api/reports/${report.id}/findings.csv" data-download>Findings CSV</a>
       <button class="secondary small" type="button" data-compare-domain="${escapeHtml(report.domain)}">Compare</button>
     </div>
   `;
@@ -1589,6 +1590,7 @@ function renderReport(report) {
         <p>${escapeHtml(report.summary)}</p>
         <div class="actions">
           <a class="secondary button-link" href="/api/reports/${report.id}/pdf" data-download>Download PDF</a>
+          <a class="secondary button-link" href="/api/reports/${report.id}/findings.csv" data-download>Findings CSV</a>
           <a class="secondary button-link" href="/api/reports/${report.id}/html" target="_blank" rel="noreferrer">HTML report</a>
           <button class="secondary" type="button" data-monitor-domain="${escapeHtml(report.domain)}">Monitor domain</button>
         </div>

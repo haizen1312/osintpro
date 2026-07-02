@@ -3190,6 +3190,7 @@ def public_finding(
     business_impact: str,
     owner_action: str,
     evidence_to_collect: str,
+    root_cause: str = "general",
 ) -> dict[str, str]:
     """Create a defensive finding with realistic owner-oriented risk context."""
     return {
@@ -3200,6 +3201,8 @@ def public_finding(
         "business_impact": business_impact,
         "owner_action": owner_action,
         "evidence_to_collect": evidence_to_collect,
+        "type": root_cause,
+        "root_cause": root_cause,
     }
 
 
@@ -3250,6 +3253,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
                 "Customer sessions, forms, admin panels or embedded flows may become easier to abuse if a separate application flaw exists.",
                 "Add the missing header with a staged rollout and regression tests for critical pages.",
                 "Collect affected response paths, current header values, CSP/HSTS rollout status and iframe/script dependencies.",
+                f"security_header:{item['name']}",
             ))
     flags = email.get("flags", {})
     email_applicable = bool(email.get("applicable"))
@@ -3262,6 +3266,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Invoice fraud, support impersonation, credential harvesting and brand-trust damage.",
             "Publish SPF for authorized senders, remove obsolete senders and pair it with DMARC reporting.",
             "Collect legitimate mail vendors, bounce domains, helpdesk workflows and recent spoofing complaints.",
+            "spf",
         ))
     if email_applicable and not flags.get("dmarc_present"):
         findings.append(public_finding(
@@ -3272,6 +3277,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Higher chance of executive impersonation, customer scams and vendor-payment fraud.",
             "Start with DMARC p=none plus reports, validate legitimate flows and move toward quarantine/reject.",
             "Collect aggregate reports, mail sources, third-party sender inventory and finance/support spoofing scenarios.",
+            "dmarc",
         ))
     if isinstance(days, int) and days < 30:
         findings.append(public_finding(
@@ -3282,6 +3288,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Service outage, failed checkout/login flows and increased phishing success during incident confusion.",
             "Verify automated renewal, alert owners and rehearse renewal failure recovery.",
             "Collect certificate owner, renewal automation logs, alert routing and dependency inventory.",
+            "tls_expiry",
         ))
     security_txt = web.get("security_txt", {})
     if security_txt.get("available") and not security_txt.get("present"):
@@ -3293,6 +3300,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Slower vulnerability intake, missed reports and reputational damage from unmanaged disclosure.",
             "Publish security.txt with contact, policy and expiry fields routed to the right owner.",
             "Collect current security contact, intake SLA, disclosure policy and escalation owner.",
+            "security_txt",
         ))
     if not dns.get("caa"):
         findings.append(public_finding(
@@ -3303,6 +3311,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Weaker certificate governance and harder incident scoping after suspicious certificate issuance.",
             "Add CAA records for approved CAs and document who can change certificate policy.",
             "Collect current CAs, wildcard usage, ACME providers and certificate issuance history.",
+            "caa",
         ))
     signals = advanced.get("signals", {}) if isinstance(advanced, dict) else {}
     if not signals.get("dnssec_enabled"):
@@ -3314,6 +3323,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Lower DNS integrity assurance for mail, web and certificate validation records.",
             "Evaluate DNSSEC support with the registrar and DNS provider before enabling.",
             "Collect registrar support, DNS provider support, rollback plan and operational ownership.",
+            "dnssec",
         ))
     if advanced.get("takeover_hints"):
         findings.append(public_finding(
@@ -3324,6 +3334,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Brand impersonation under a trusted subdomain, phishing pages, cookie exposure or customer-data capture depending on host use.",
             "Verify every managed-provider CNAME is claimed by an active account and remove stale DNS records.",
             "Collect DNS owner, cloud/SaaS account owner, last deployment date and proof of resource ownership.",
+            "subdomain_takeover",
         ))
     return findings[:10]
 
@@ -3401,17 +3412,6 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
             "Continued phishing exposure despite partial email-security investment.",
             "Use DMARC reports to close legitimate gaps, then move to quarantine and reject with change management.",
         ))
-    if not dns.get("caa"):
-        vulns.append(hypothesis(
-            "low",
-            "high",
-            "Weak certificate governance",
-            "CAA record missing.",
-            "Restrict the CAs authorized to issue certificates for the domain.",
-            "A certificate-issuance incident is harder to contain when every public CA is implicitly allowed.",
-            "Slower certificate incident response and weaker policy evidence for auditors or insurers.",
-            "Document approved CAs and publish CAA records, including reporting where supported.",
-        ))
     if advanced.get("takeover_hints"):
         vulns.append(hypothesis(
             "high",
@@ -3422,18 +3422,6 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
             "An attacker may search for unclaimed provider resources referenced by DNS and attempt to bind the trusted subdomain to content they control.",
             "Trusted-domain phishing, brand abuse, session/cookie exposure depending on scope and customer deception.",
             "Confirm ownership in the provider console, remove stale CNAMEs and monitor CT/DNS drift.",
-        ))
-    signals = advanced.get("signals", {}) if isinstance(advanced, dict) else {}
-    if not signals.get("dnssec_enabled"):
-        vulns.append(hypothesis(
-            "low",
-            "medium",
-            "DNS integrity not strengthened by DNSSEC",
-            "DS/DNSKEY records were not observed.",
-            "Evaluate DNSSEC with the registrar/DNS provider if compatible with operations.",
-            "A DNS-path attacker or resolver issue has less cryptographic resistance when records are unsigned.",
-            "Lower assurance for mail, web and certificate-control records in high-risk environments.",
-            "Run a registrar/provider readiness check and plan DNSSEC with rollback before enabling.",
         ))
     days = cert.get("days_remaining")
     if isinstance(days, int) and days < 45:
@@ -4217,14 +4205,27 @@ class PdfReportBuilder:
         level: str,
         title: str,
         detail: str,
-        recommendation: str,
         section: str,
+        abuse_path: str = "",
+        business_impact: str = "",
+        owner_action: str = "",
+        evidence_to_collect: str = "",
     ) -> None:
         title_lines = pdf_wrap(title, 62)
         detail_lines = pdf_wrap(detail, 91)
-        rec_lines = pdf_wrap(recommendation, 86)
+        blocks = [
+            ("HOW AN ATTACKER MAY ABUSE IT", abuse_path),
+            ("BUSINESS IMPACT", business_impact),
+            ("OWNER ACTION", owner_action),
+        ]
+        if evidence_to_collect:
+            blocks.append(("EVIDENCE TO COLLECT", evidence_to_collect))
+        wrapped_blocks = [
+            (label, pdf_wrap(value or "Confirm applicability with the asset owner.", 84))
+            for label, value in blocks
+        ]
         height = 38 + (len(title_lines) * 13) + (len(detail_lines) * 12)
-        height += (len(rec_lines) * 12)
+        height += sum(17 + (len(lines) * 11) for _, lines in wrapped_blocks)
         self.ensure_space(height + 12, section)
         bottom = self.y - height
         color = {
@@ -4244,11 +4245,13 @@ class PdfReportBuilder:
         for line in detail_lines:
             self.text(line, PDF_MARGIN + 16, cursor, 9, False, PDF_MUTED)
             cursor -= 12
-        self.text("RECOMMENDATION", PDF_MARGIN + 16, cursor - 3, 7, True, color)
-        cursor -= 17
-        for line in rec_lines:
-            self.text(line, PDF_MARGIN + 16, cursor, 9)
-            cursor -= 12
+        for label, lines in wrapped_blocks:
+            self.text(label, PDF_MARGIN + 16, cursor - 3, 7, True, color)
+            cursor -= 15
+            for line in lines:
+                self.text(line, PDF_MARGIN + 16, cursor, 8.8)
+                cursor -= 11
+            cursor -= 2
         self.y = bottom - 12
 
     def finish(self) -> bytes:
@@ -4338,15 +4341,19 @@ def report_pdf(report: dict[str, object]) -> bytes:
     headers = https.get("security_headers", [])
     findings = report.get("findings", []) or []
     hypotheses = report.get("vulnerability_hypotheses", []) or []
+    seen_roots = {
+        str(item.get("root_cause") or item.get("type") or item.get("title") or "").lower()
+        for item in findings
+    }
     all_findings = [
         {
             "level": item.get("level", "info"),
             "title": item.get("title", "Finding"),
             "detail": item.get("detail", ""),
-            "recommendation": (
-                "Review the evidence, confirm applicability and validate the "
-                "control with the asset owner."
-            ),
+            "abuse_path": item.get("abuse_path", ""),
+            "business_impact": item.get("business_impact", ""),
+            "owner_action": item.get("owner_action", ""),
+            "evidence_to_collect": item.get("evidence_to_collect", ""),
         }
         for item in findings
     ]
@@ -4355,9 +4362,14 @@ def report_pdf(report: dict[str, object]) -> bytes:
             "level": item.get("severity", "info"),
             "title": item.get("title", "Review hypothesis"),
             "detail": item.get("evidence", ""),
-            "recommendation": item.get("next_step", ""),
+            "abuse_path": item.get("attacker_path", ""),
+            "business_impact": item.get("likely_impact", ""),
+            "owner_action": item.get("next_step", ""),
+            "evidence_to_collect": item.get("defensive_priority", ""),
         }
         for item in hypotheses
+        if str(item.get("root_cause") or item.get("type") or item.get("title") or "").lower()
+        not in seen_roots
     )
 
     builder.new_page("Executive summary")
@@ -4379,6 +4391,16 @@ def report_pdf(report: dict[str, object]) -> bytes:
     builder.metric("Resolved IPs", len(addresses), PDF_MARGIN + card_width + 12, builder.y - 62, card_width, PDF_CYAN)
     builder.metric("Findings", len(all_findings), PDF_MARGIN + (2 * card_width) + 24, builder.y - 62, card_width, PDF_HIGH if all_findings else PDF_GREEN)
     builder.y -= 92
+    if int(report.get("score") or 0) == 100 and all_findings and all(
+        str(item.get("level", "")).lower() == "low" for item in all_findings
+    ):
+        builder.paragraph(
+            "Score reflects material risk only. Low-severity notes below do not affect scoring.",
+            "Executive summary",
+            9.5,
+            PDF_MUTED,
+        )
+        builder.y -= 4
     builder.heading("Scope summary", "Executive summary", 15)
     builder.bullet(f"Email posture: {email_label}. {email.get('scope_note', '')}", "Executive summary")
     builder.bullet(
@@ -4412,16 +4434,22 @@ def report_pdf(report: dict[str, object]) -> bytes:
                 str(item["level"]),
                 str(item["title"]),
                 str(item["detail"]),
-                str(item["recommendation"]),
                 "Findings",
+                str(item.get("abuse_path") or ""),
+                str(item.get("business_impact") or ""),
+                str(item.get("owner_action") or ""),
+                str(item.get("evidence_to_collect") or ""),
             )
     else:
         builder.finding(
             "info",
             "No priority passive finding",
             "The observed public surface did not produce a high-priority hypothesis.",
-            "Keep monitoring DNS, TLS and browser security headers for drift.",
             "Findings",
+            "No attacker path was inferred from passive evidence.",
+            "No material business impact was identified from this passive snapshot.",
+            "Keep monitoring DNS, TLS and browser security headers for drift.",
+            "Baseline DNS, TLS and header state for future drift checks.",
         )
 
     builder.new_page("Evidence")
@@ -4703,6 +4731,48 @@ def graph_format_csv(graph: dict[str, object]) -> bytes:
             target.get("type", ""),
             "lead",
             utc_now(),
+        ])
+    return output.getvalue().encode("utf-8")
+
+
+def report_findings_csv(report: dict[str, object]) -> bytes:
+    """Export owner-ready finding context for spreadsheet review."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "source",
+        "level",
+        "title",
+        "detail",
+        "how_attacker_may_abuse_it",
+        "business_impact",
+        "owner_action",
+        "evidence_to_collect",
+        "root_cause",
+    ])
+    for item in report.get("findings", []) or []:
+        writer.writerow([
+            "finding",
+            item.get("level", ""),
+            item.get("title", ""),
+            item.get("detail", ""),
+            item.get("abuse_path", ""),
+            item.get("business_impact", ""),
+            item.get("owner_action", ""),
+            item.get("evidence_to_collect", ""),
+            item.get("root_cause") or item.get("type", ""),
+        ])
+    for item in report.get("vulnerability_hypotheses", []) or []:
+        writer.writerow([
+            "hypothesis",
+            item.get("severity", ""),
+            item.get("title", ""),
+            item.get("evidence", ""),
+            item.get("attacker_path", ""),
+            item.get("likely_impact", ""),
+            item.get("next_step", ""),
+            item.get("defensive_priority", ""),
+            item.get("root_cause") or item.get("type", ""),
         ])
     return output.getvalue().encode("utf-8")
 
@@ -6304,6 +6374,21 @@ class Handler(SimpleHTTPRequestHandler):
                 body,
                 "application/pdf",
                 f"osintpro-{report.get('domain') or report_id}.pdf",
+                headers,
+            )
+            return
+        if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/findings.csv"):
+            user, headers = self.get_or_create_user()
+            report_id = parsed.path.split("/")[3]
+            report = self.fetch_report(str(user["_id"]), report_id)
+            if not report:
+                self.send_json({"error": "Report not found"}, 404, headers)
+                return
+            body = report_findings_csv(report)
+            self.send_download(
+                body,
+                "text/csv; charset=utf-8",
+                f"osintpro-findings-{report.get('domain') or report_id}.csv",
                 headers,
             )
             return
