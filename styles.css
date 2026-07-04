@@ -10,6 +10,8 @@
   --color-severity-medium: #d9a441;
   --color-severity-low: #4a8a5c;
   --color-border: #2a2f38;
+  --color-info: #234757;
+  --color-code-on-dark: #d9fff6;
   --radius-sharp: 2px;
   --bg: var(--color-paper);
   --panel: rgba(255, 250, 242, .9);
@@ -19,7 +21,7 @@
   --line: rgba(42, 47, 56, .28);
   --green: var(--color-accent);
   --green-dark: var(--color-accent-dark);
-  --cyan: #365f73;
+  --cyan: var(--color-info);
   --amber: var(--color-severity-medium);
   --red: var(--color-severity-high);
   --shadow: none;
@@ -440,7 +442,7 @@ body {
   border: 1px solid rgba(57, 255, 184, .42);
   border-radius: 6px;
   background: rgba(5, 15, 12, .98);
-  color: var(--ink);
+  color: var(--color-code-on-dark);
   box-shadow: none;
   opacity: 0;
   pointer-events: none;
@@ -1335,7 +1337,7 @@ textarea:focus {
   overflow-wrap: anywhere;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
-  color: #b9fff0;
+  color: var(--color-info);
 }
 
 .lines {
@@ -1489,7 +1491,7 @@ textarea:focus {
 }
 
 .graph-node text {
-  fill: #d8fff5;
+  fill: var(--color-ink);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   pointer-events: none;
@@ -1601,7 +1603,7 @@ textarea:focus {
   padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  color: #b9fff0;
+  color: var(--color-info);
   font-size: 12px;
   overflow-wrap: anywhere;
 }
@@ -1850,8 +1852,8 @@ textarea:focus {
   overflow-x: auto;
   border: 1px solid rgba(98, 216, 255, .15);
   border-radius: 6px;
-  background: rgba(0, 0, 0, .34);
-  color: #b9fff0;
+  background: #020807;
+  color: var(--color-code-on-dark);
   white-space: pre-wrap;
 }
 
@@ -1914,8 +1916,8 @@ textarea:focus {
   padding: 12px;
   border: 1px solid rgba(98, 216, 255, .16);
   border-radius: 6px;
-  background: rgba(0, 0, 0, .35);
-  color: #b9fff0;
+  background: #020807;
+  color: var(--color-code-on-dark);
   overflow-x: auto;
 }
 

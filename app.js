@@ -1941,24 +1941,24 @@ function scoreTone(score) {
 
 function nodeColor(type) {
   return {
-    site: "#39ffb8",
-    person: "#62d8ff",
-    profile: "#9de7ff",
-    ip: "#d6f7ef",
-    nameserver: "#7cffce",
+    site: "#c44536",
+    person: "#234757",
+    profile: "#5e655f",
+    ip: "#4a8a5c",
+    nameserver: "#4a8a5c",
     mail: "#ffbd59",
     email: "#ffbd59",
-    wallet: "#39ffb8",
-    counterparty: "#b9fff0",
+    wallet: "#4a8a5c",
+    counterparty: "#234757",
     transaction: "#ffbd59",
-    registry: "#b8ffdf",
-    technology: "#a7b8ff",
-    subdomain: "#62d8ff",
+    registry: "#5e655f",
+    technology: "#6f4c0f",
+    subdomain: "#234757",
     folder: "#ffbd59",
-    tag: "#d6f7ef",
+    tag: "#5e655f",
     risk: "#ff5d6c",
     finding: "#ffbd59"
-  }[type] || "#e9fff7";
+  }[type] || "#0d1117";
 }
 
 function renderGraph(nodes = [], edges = []) {
