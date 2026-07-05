@@ -19,7 +19,8 @@ const state = {
   shownUpsells: new Set(),
   trackedSections: new Set(),
   language: localStorage.getItem("osintpro-language") || "en",
-  translations: {}
+  translations: {},
+  staticTranslations: {}
 };
 
 if (localStorage.getItem("op-performance-mode") === "on") {
@@ -41,10 +42,47 @@ async function loadTranslations(lang = state.language) {
   const payload = await response.json();
   state.language = payload.ui ? lang : "en";
   state.translations = payload.ui || {};
+  state.staticTranslations = payload.static || {};
   localStorage.setItem("osintpro-language", state.language);
 }
 
-function applyTranslations() {
+function translateExactText(value) {
+  const raw = String(value || "");
+  const trimmed = raw.trim();
+  if (!trimmed) return raw;
+  const translated = state.staticTranslations?.[trimmed];
+  if (!translated || translated === trimmed) return raw;
+  return raw.replace(trimmed, translated);
+}
+
+function applyStaticTranslations(root = document.body) {
+  if (!root || !state.staticTranslations) return;
+  const skip = new Set(["SCRIPT", "STYLE", "CODE", "PRE", "TEXTAREA", "SELECT"]);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const parent = node.parentElement;
+      if (!parent || skip.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
+      if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const next = translateExactText(node.nodeValue);
+    if (next !== node.nodeValue) node.nodeValue = next;
+  });
+  root.querySelectorAll?.("[placeholder], [title], [aria-label]").forEach(node => {
+    ["placeholder", "title", "aria-label"].forEach(name => {
+      const value = node.getAttribute(name);
+      if (!value) return;
+      const next = translateExactText(value);
+      if (next !== value) node.setAttribute(name, next);
+    });
+  });
+}
+
+function applyTranslations(root = document.body) {
   const textMap = {
     "#languageLabel": ["language.label", "Language"],
     "[data-section='dashboard']": ["nav.dashboard", "Dashboard"],
@@ -75,6 +113,7 @@ function applyTranslations() {
   document.querySelectorAll("#languageSelect option").forEach(option => {
     option.textContent = t(`language.${option.value}`, option.textContent);
   });
+  applyStaticTranslations(root);
 }
 
 async function setLanguage(lang) {
@@ -503,20 +542,20 @@ function nicknameInitials(nickname) {
 }
 
 function list(items) {
-  if (!items || !items.length) return "<span class=\"mono\">no data</span>";
+  if (!items || !items.length) return `<span class="mono">${escapeHtml(translateExactText("no data"))}</span>`;
   return `<div class="mono lines">${items.map(item => `<span>${escapeHtml(item)}</span>`).join("")}</div>`;
 }
 
 function flag(value) {
-  return `<span class="tag ${value ? "" : "missing"}">${value ? "OK" : "Missing"}</span>`;
+  return `<span class="tag ${value ? "" : "missing"}">${escapeHtml(value ? translateExactText("OK") : translateExactText("Missing"))}</span>`;
 }
 
 function optionalFlag(value, presentLabel = "Observed", absentLabel = "Not declared") {
-  return `<span class="tag neutral">${value ? presentLabel : absentLabel}</span>`;
+  return `<span class="tag neutral">${escapeHtml(translateExactText(value ? presentLabel : absentLabel))}</span>`;
 }
 
 function scopedFlag(value, applicable) {
-  return applicable ? flag(value) : `<span class="tag neutral">N/A</span>`;
+  return applicable ? flag(value) : `<span class="tag neutral">${escapeHtml(translateExactText("N/A"))}</span>`;
 }
 
 function folderOptions(selected = "") {
@@ -531,9 +570,9 @@ function activeFolderId() {
 }
 
 function probeLabel(probe) {
-  if (!probe) return "not available";
-  if (probe.available === false) return "assessment unavailable";
-  return probe.present ? `HTTP ${probe.status}` : (probe.status ? `HTTP ${probe.status}` : "not found");
+  if (!probe) return translateExactText("not available");
+  if (probe.available === false) return translateExactText("assessment unavailable");
+  return probe.present ? `HTTP ${probe.status}` : (probe.status ? `HTTP ${probe.status}` : translateExactText("not found"));
 }
 
 function renderFindings(findings = []) {
@@ -1383,8 +1422,8 @@ function renderWebAuditLab(report) {
         <h2>${escapeHtml(domain)}</h2>
         <p>${escapeHtml(report.summary)}</p>
         <div class="actions">
-          <a class="secondary button-link" href="/api/reports/${escapeHtml(report.id)}/web-audit.csv" data-download>Export checklist CSV</a>
-          <button class="secondary" type="button" data-save-playbook="${escapeHtml(report.id)}">Save playbook</button>
+          <a class="secondary button-link" href="/api/reports/${escapeHtml(report.id)}/web-audit.csv" data-download>${escapeHtml(translateExactText("Export checklist CSV"))}</a>
+          <button class="secondary" type="button" data-save-playbook="${escapeHtml(report.id)}">${escapeHtml(translateExactText("Save playbook"))}</button>
         </div>
       </div>
       <strong class="score">${escapeHtml(report.score)}/100</strong>
@@ -1392,36 +1431,36 @@ function renderWebAuditLab(report) {
 
     <div class="lab-grid">
       <article class="lab-card lab-hero">
-        <span class="pill">Burp-style map</span>
-        <h3>Beginner workflow</h3>
+        <span class="pill">${escapeHtml(translateExactText("Burp-style map"))}</span>
+        <h3>${escapeHtml(translateExactText("Beginner workflow"))}</h3>
         <ol class="step-list">
-          <li><strong>Scope:</strong> write down the exact domain you are allowed to test.</li>
-          <li><strong>Proxy:</strong> inspect one normal browser request before changing anything.</li>
-          <li><strong>Repeater:</strong> resend only safe GET requests such as the homepage or public metadata files.</li>
-          <li><strong>Evidence:</strong> save headers, status codes and screenshots for the client report.</li>
-          <li><strong>Fix:</strong> prioritize missing headers, disclosure files, TLS expiry and email spoofing posture.</li>
+          <li><strong>${escapeHtml(translateExactText("Scope"))}:</strong> ${escapeHtml(translateExactText("write down the exact domain you are allowed to test."))}</li>
+          <li><strong>Proxy:</strong> ${escapeHtml(translateExactText("inspect one normal browser request before changing anything."))}</li>
+          <li><strong>Repeater:</strong> ${escapeHtml(translateExactText("resend only safe GET requests such as the homepage or public metadata files."))}</li>
+          <li><strong>${escapeHtml(translateExactText("Evidence"))}:</strong> ${escapeHtml(translateExactText("save headers, status codes and screenshots for the client report."))}</li>
+          <li><strong>${escapeHtml(translateExactText("Fix"))}:</strong> ${escapeHtml(translateExactText("prioritize missing headers, disclosure files, TLS expiry and email spoofing posture."))}</li>
         </ol>
       </article>
 
       <article class="lab-card">
-        <span>Header posture</span>
-        <strong>${missingHeaders.length ? `${missingHeaders.length} missing` : "ready"}</strong>
-        <p>${missingHeaders.length ? missingHeaders.map(item => item.name).join(", ") : "Main browser security headers are present."}</p>
+        <span>${escapeHtml(translateExactText("Header posture"))}</span>
+        <strong>${missingHeaders.length ? `${missingHeaders.length} ${escapeHtml(translateExactText("missing"))}` : escapeHtml(translateExactText("ready"))}</strong>
+        <p>${missingHeaders.length ? missingHeaders.map(item => item.name).join(", ") : escapeHtml(translateExactText("Main browser security headers are present."))}</p>
       </article>
 
       <article class="lab-card">
-        <span>Findings</span>
+        <span>${escapeHtml(translateExactText("Findings"))}</span>
         <strong>${findings.length}</strong>
-        <p>${findings.length ? "Review the prioritized issues below before touching any tooling." : "No priority passive findings."}</p>
+        <p>${findings.length ? escapeHtml(translateExactText("Review the prioritized issues below before touching any tooling.")) : escapeHtml(translateExactText("No priority passive findings."))}</p>
       </article>
     </div>
 
     <section class="lab-panel disclaimer-panel">
       <div class="mini-head">
-        <span class="pill">Authorized use only</span>
-        <h3>Legal and safety boundary</h3>
+        <span class="pill">${escapeHtml(translateExactText("Authorized use only"))}</span>
+        <h3>${escapeHtml(translateExactText("Legal and safety boundary"))}</h3>
       </div>
-      <p>Use this lab only on domains, apps and accounts you own or are explicitly authorized to test. OSINTPRO provides passive evidence, beginner education and documentation workflows. Misuse against third-party systems is prohibited and remains the responsibility of the operator.</p>
+      <p>${escapeHtml(translateExactText("Use this lab only on domains, apps and accounts you own or are explicitly authorized to test. OSINTPRO provides passive evidence, beginner education and documentation workflows. Misuse against third-party systems is prohibited and remains the responsibility of the operator."))}</p>
     </section>
 
     <section class="lab-panel">
@@ -1682,19 +1721,19 @@ function renderReport(report) {
   document.querySelector("#result").innerHTML = `
     <div class="report-top">
       <div>
-        <span class="pill">Sellable report</span>
+        <span class="pill">${escapeHtml(translateExactText("Sellable report"))}</span>
         <h2>${escapeHtml(report.domain)}</h2>
         <p>${escapeHtml(report.summary)}</p>
         <div class="actions">
-          <a class="secondary button-link" href="/api/reports/${report.id}/pdf" data-download>Download PDF</a>
-          <a class="secondary button-link" href="/api/reports/${report.id}/findings.csv" data-download>Findings CSV</a>
-          <a class="secondary button-link" href="/api/reports/${report.id}/html" target="_blank" rel="noreferrer">HTML report</a>
-          <button class="secondary" type="button" data-monitor-domain="${escapeHtml(report.domain)}">Monitor domain</button>
+          <a class="secondary button-link" href="/api/reports/${report.id}/pdf" data-download>${escapeHtml(translateExactText("Download PDF"))}</a>
+          <a class="secondary button-link" href="/api/reports/${report.id}/findings.csv" data-download>${escapeHtml(translateExactText("Findings CSV"))}</a>
+          <a class="secondary button-link" href="/api/reports/${report.id}/html" target="_blank" rel="noreferrer">${escapeHtml(translateExactText("HTML report"))}</a>
+          <button class="secondary" type="button" data-monitor-domain="${escapeHtml(report.domain)}">${escapeHtml(translateExactText("Monitor domain"))}</button>
         </div>
       </div>
       <div class="score ${scoreClass}">
         <div>
-          <span>Score</span>
+          <span>${escapeHtml(translateExactText("Score"))}</span>
           <strong>${report.score}</strong>
         </div>
       </div>
@@ -1702,21 +1741,21 @@ function renderReport(report) {
 
     <div class="summary-strip">
       <div><strong>${report.dns.addresses?.length || 0}</strong><span>IP</span></div>
-      <div><strong>${email.applicable ? email.score ?? 0 : "N/A"}</strong><span>email posture</span></div>
-      <div><strong>${subdomains.length}</strong><span>CT names</span></div>
+      <div><strong>${email.applicable ? email.score ?? 0 : escapeHtml(translateExactText("N/A"))}</strong><span>${escapeHtml(translateExactText("email posture"))}</span></div>
+      <div><strong>${subdomains.length}</strong><span>${escapeHtml(translateExactText("CT names"))}</span></div>
     </div>
 
     <div class="grid">
       <article class="card">
-        <strong>Resolved IPs</strong>
+        <strong>${escapeHtml(translateExactText("Resolved IPs"))}</strong>
         ${list(report.dns.addresses)}
       </article>
       <article class="card">
-        <strong>Mail exchange</strong>
+        <strong>${escapeHtml(translateExactText("Mail exchange"))}</strong>
         ${list(report.dns.mx)}
       </article>
       <article class="card">
-        <strong>Nameserver</strong>
+        <strong>${escapeHtml(translateExactText("Nameserver"))}</strong>
         ${list(report.dns.ns)}
       </article>
       <article class="card">
@@ -1728,23 +1767,23 @@ function renderReport(report) {
         ${list(report.dns.soa)}
       </article>
       <article class="card">
-        <strong>TLS certificate</strong>
-        <p class="mono">${cert.subject ? escapeHtml(cert.subject) : "not available"}<br>${cert.expires ? `Expires: ${escapeHtml(cert.expires)}` : ""}<br>${cert.days_remaining !== null && cert.days_remaining !== undefined ? `${cert.days_remaining} days remaining` : ""}</p>
+        <strong>${escapeHtml(translateExactText("TLS certificate"))}</strong>
+        <p class="mono">${cert.subject ? escapeHtml(cert.subject) : escapeHtml(translateExactText("not available"))}<br>${cert.expires ? `${escapeHtml(translateExactText("Expires"))}: ${escapeHtml(cert.expires)}` : ""}<br>${cert.days_remaining !== null && cert.days_remaining !== undefined ? `${cert.days_remaining} ${escapeHtml(translateExactText("days remaining"))}` : ""}</p>
       </article>
       <article class="card">
-        <strong>HTTP status</strong>
-        <p class="mono">${report.https?.status || "not available"} ${escapeHtml(report.https?.server || "")}</p>
+        <strong>${escapeHtml(translateExactText("HTTP status"))}</strong>
+        <p class="mono">${report.https?.status || escapeHtml(translateExactText("not available"))} ${escapeHtml(report.https?.server || "")}</p>
       </article>
       <article class="card">
-        <strong>Analysis time</strong>
+        <strong>${escapeHtml(translateExactText("Analysis time"))}</strong>
         <p class="mono">${escapeHtml(formatDate(report.generated_at))}</p>
       </article>
     </div>
 
     <div class="deep-grid">
       <article class="intel-card">
-        <div><span class="pill">Email Security</span><strong>${email.applicable ? `${email.score ?? 0}/100` : "N/A"}</strong></div>
-        <p>${escapeHtml(email.scope_note || "Email scope could not be determined.")}</p>
+        <div><span class="pill">${escapeHtml(translateExactText("Email Security"))}</span><strong>${email.applicable ? `${email.score ?? 0}/100` : escapeHtml(translateExactText("N/A"))}</strong></div>
+        <p>${escapeHtml(email.scope_note || translateExactText("Email scope could not be determined."))}</p>
         <div class="flag-grid">
           <span>${scopedFlag(flags.spf_present, email.applicable)} SPF</span>
           <span>${scopedFlag(flags.dmarc_present, email.applicable)} DMARC</span>
@@ -1756,12 +1795,12 @@ function renderReport(report) {
       </article>
 
       <article class="intel-card">
-        <div><span class="pill">Registry Intel</span><strong>${rdap.available ? "RDAP" : "n/a"}</strong></div>
-        <p class="mono">Registrar: ${escapeHtml(rdap.registrar || "not available")}<br>Created: ${escapeHtml(formatDate(rdap.created))}<br>Expires: ${escapeHtml(formatDate(rdap.expires))}</p>
+        <div><span class="pill">${escapeHtml(translateExactText("Registry Intel"))}</span><strong>${rdap.available ? "RDAP" : escapeHtml(translateExactText("n/a"))}</strong></div>
+        <p class="mono">${escapeHtml(translateExactText("Registrar"))}: ${escapeHtml(rdap.registrar || translateExactText("not available"))}<br>${escapeHtml(translateExactText("Created"))}: ${escapeHtml(formatDate(rdap.created))}<br>${escapeHtml(translateExactText("Expires"))}: ${escapeHtml(formatDate(rdap.expires))}</p>
       </article>
 
       <article class="intel-card">
-        <div><span class="pill">Web Exposure</span><strong>${[web.security_txt, web.robots_txt, web.sitemap_xml].filter(item => item?.present).length}/3</strong></div>
+        <div><span class="pill">${escapeHtml(translateExactText("Web Exposure"))}</span><strong>${[web.security_txt, web.robots_txt, web.sitemap_xml].filter(item => item?.present).length}/3</strong></div>
         <div class="flag-grid">
           <span>${scopedFlag(web.security_txt?.present, web.security_txt?.available !== false)} security.txt <em>${escapeHtml(probeLabel(web.security_txt))}</em></span>
           <span>${optionalFlag(web.robots_txt?.present, "Public", "Not published")} robots.txt <em>${escapeHtml(probeLabel(web.robots_txt))}</em></span>
@@ -1771,17 +1810,17 @@ function renderReport(report) {
       </article>
 
       <article class="intel-card">
-        <div><span class="pill">Certificate Transparency</span><strong>${subdomains.length}</strong></div>
+        <div><span class="pill">${escapeHtml(translateExactText("Certificate Transparency"))}</span><strong>${subdomains.length}</strong></div>
         ${list(subdomains.slice(0, 18))}
       </article>
 
       <article class="intel-card">
-        <div><span class="pill">Tech Signals</span><strong>${tech.length}</strong></div>
+        <div><span class="pill">${escapeHtml(translateExactText("Tech Signals"))}</span><strong>${tech.length}</strong></div>
         ${list(tech)}
       </article>
 
       <article class="intel-card">
-        <div><span class="pill">Advanced OSINT</span><strong>${takeoverHints.length}</strong></div>
+        <div><span class="pill">${escapeHtml(translateExactText("Advanced OSINT"))}</span><strong>${takeoverHints.length}</strong></div>
         <div class="flag-grid">
           <span>${flag(dnssec.enabled)} DNSSEC <em>${dnssec.score ?? 0}/100</em></span>
           <span>${scopedFlag(bimi.present, email.applicable)} BIMI</span>
@@ -3084,6 +3123,14 @@ document.querySelector("#performanceToggle").textContent = document.body.classLi
 document.querySelector("#languageSelect")?.addEventListener("change", event => {
   setLanguage(event.target.value).catch(error => showToast(error.message, true));
 });
+
+let translationFrame = 0;
+const translationObserver = new MutationObserver(() => {
+  if (state.language === "en" || !Object.keys(state.staticTranslations || {}).length) return;
+  cancelAnimationFrame(translationFrame);
+  translationFrame = requestAnimationFrame(() => applyStaticTranslations(document.body));
+});
+translationObserver.observe(document.body, { childList: true, subtree: true });
 
 startSignalCanvas();
 checkApi();

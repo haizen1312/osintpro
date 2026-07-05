@@ -1,0 +1,206 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R] /Count 4 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 2939 >>
+stream
+0.060 0.420 0.340 rg 57.0 757.0 28.0 28.0 re f
+BT /F2 10.0 Tf 1.000 1.000 1.000 rg 1 0 0 1 63.0 767.0 Tm (OP) Tj ET
+BT /F2 11.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 95.0 773.0 Tm (OSINTPRO) Tj ET
+BT /F1 8.0 Tf 0.350 0.400 0.370 rg 1 0 0 1 333.0 773.0 Tm (example.com) Tj ET
+BT /F2 7.0 Tf 0.060 0.420 0.340 rg 1 0 0 1 95.0 760.0 Tm (SINTESI ESECUTIVA) Tj ET
+0.840 0.870 0.850 RG 0.8 w 57.0 747.0 m 538.0 747.0 l S
+BT /F2 8.0 Tf 0.060 0.420 0.340 rg 1 0 0 1 57.0 727.0 Tm (INTELLIGENCE PASSIVA SUL DOMINIO) Tj ET
+BT /F2 28.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 697.0 Tm (example.com) Tj ET
+BT /F1 11.0 Tf 0.350 0.400 0.370 rg 1 0 0 1 57.0 669.0 Tm (Il dominio e raggiungibile. Mancano 2 header di sicurezza osservabili.) Tj ET
+BT /F1 8.5 Tf 0.350 0.400 0.370 rg 1 0 0 1 57.0 642.7 Tm (Generato: 2026-07-05T00:00:00+00:00) Tj ET
+BT /F1 8.5 Tf 0.350 0.400 0.370 rg 1 0 0 1 57.0 627.7 Tm (Analista: OSINTPRO Analyst) Tj ET
+0.960 0.980 0.970 rg 57.0 529.7 152.3 62.0 re f 0.840 0.870 0.850 RG 0.7 w 57.0 529.7 152.3 62.0 re S
+BT /F2 20.0 Tf 0.060 0.420 0.340 rg 1 0 0 1 69.0 562.7 Tm (82/100) Tj ET
+BT /F2 7.0 Tf 0.350 0.400 0.370 rg 1 0 0 1 69.0 543.7 Tm (PUNTEGGIO SICUREZZA) Tj ET
+0.960 0.980 0.970 rg 221.3 529.7 152.3 62.0 re f 0.840 0.870 0.850 RG 0.7 w 221.3 529.7 152.3 62.0 re S
+BT /F2 20.0 Tf 0.100 0.530 0.660 rg 1 0 0 1 233.3 562.7 Tm (1) Tj ET
+BT /F2 7.0 Tf 0.350 0.400 0.370 rg 1 0 0 1 233.3 543.7 Tm (IP RISOLTI) Tj ET
+0.960 0.980 0.970 rg 385.7 529.7 152.3 62.0 re f 0.840 0.870 0.850 RG 0.7 w 385.7 529.7 152.3 62.0 re S
+BT /F2 20.0 Tf 0.780 0.160 0.200 rg 1 0 0 1 397.7 562.7 Tm (2) Tj ET
+BT /F2 7.0 Tf 0.350 0.400 0.370 rg 1 0 0 1 397.7 543.7 Tm (FINDING) Tj ET
+BT /F2 15.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 499.7 Tm (Sintesi dello scope) Tj ET
+0.060 0.420 0.340 rg 57.0 470.7 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 472.7 Tm (Postura email: 60/100. Sono stati osservati servizio mail o record di autenticazione) Tj ET
+BT /F1 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 458.7 Tm (email.) Tj ET
+0.060 0.420 0.340 rg 57.0 437.7 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 439.7 Tm (HTTPS Stato: 200; certificato in scadenza Aug 29 21:41:26 2026 GMT.) Tj ET
+0.060 0.420 0.340 rg 57.0 418.7 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 420.7 Tm (Metadati pubblici di indicizzazione: robots.txt non pubblicato, sitemap.xml non) Tj ET
+BT /F1 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 406.7 Tm (pubblicato. La pubblicazione non e una vulnerabilita di per se.) Tj ET
+BT /F2 15.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 387.7 Tm (Azioni prioritarie) Tj ET
+0.060 0.420 0.340 rg 57.0 358.7 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 360.7 Tm (Aggiungi o rivedi gli header di sicurezza mancanti: content-security-policy.) Tj ET
+0.840 0.870 0.850 RG 0.7 w 57 49 m 538 49 l S
+BT /F1 7.5 Tf 0.350 0.400 0.370 rg 1 0 0 1 57 34 Tm (Report cliente riservato | Pagina 1 di 4) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 4304 >>
+stream
+0.060 0.420 0.340 rg 57.0 757.0 28.0 28.0 re f
+BT /F2 10.0 Tf 1.000 1.000 1.000 rg 1 0 0 1 63.0 767.0 Tm (OP) Tj ET
+BT /F2 11.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 95.0 773.0 Tm (OSINTPRO) Tj ET
+BT /F1 8.0 Tf 0.350 0.400 0.370 rg 1 0 0 1 333.0 773.0 Tm (example.com) Tj ET
+BT /F2 7.0 Tf 0.060 0.420 0.340 rg 1 0 0 1 95.0 760.0 Tm (FINDING) Tj ET
+0.840 0.870 0.850 RG 0.8 w 57.0 747.0 m 538.0 747.0 l S
+BT /F2 18.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 727.0 Tm (Finding prioritari) Tj ET
+BT /F1 9.5 Tf 0.350 0.400 0.370 rg 1 0 0 1 57.0 697.0 Tm (I finding sono osservazioni passive e ipotesi di revisione. Valida l impatto in un ambiente) Tj ET
+BT /F1 9.5 Tf 0.350 0.400 0.370 rg 1 0 0 1 57.0 682.9 Tm (autorizzato prima di presentarli come vulnerabilita confermate.) Tj ET
+0.960 0.980 0.970 rg 57.0 445.9 481.0 219.0 re f 0.840 0.870 0.850 RG 0.7 w 57.0 445.9 481.0 219.0 re S
+0.100 0.530 0.660 rg 57.0 445.9 6.0 219.0 re f
+0.100 0.530 0.660 rg 73.0 645.9 52.0 17.0 re f
+BT /F2 7.0 Tf 1.000 1.000 1.000 rg 1 0 0 1 80.0 650.9 Tm (MEDIA) Tj ET
+BT /F2 10.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 137.0 650.9 Tm (Header di sicurezza mancante) Tj ET
+BT /F1 9.0 Tf 0.350 0.400 0.370 rg 1 0 0 1 73.0 627.9 Tm (Segnale pubblico da verificare nel contesto autorizzato del proprietario.) Tj ET
+BT /F2 7.0 Tf 0.100 0.530 0.660 rg 1 0 0 1 73.0 612.9 Tm (COME POTREBBE ABUSARNE UN ATTACCANTE) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 600.9 Tm (Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 589.9 Tm (impersonificazione, abuso o confusione operativa.) Tj ET
+BT /F2 7.0 Tf 0.100 0.530 0.660 rg 1 0 0 1 73.0 573.9 Tm (IMPATTO BUSINESS) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 561.9 Tm (Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 550.9 Tm (esposizione di dati se esistono altre condizioni vulnerabili.) Tj ET
+BT /F2 7.0 Tf 0.100 0.530 0.660 rg 1 0 0 1 73.0 534.9 Tm (AZIONE PER IL PROPRIETARIO) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 522.9 Tm (Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 511.9 Tm (e aggiungi un controllo di regressione.) Tj ET
+BT /F2 7.0 Tf 0.100 0.530 0.660 rg 1 0 0 1 73.0 495.9 Tm (EVIDENZE DA RACCOGLIERE) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 483.9 Tm (Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 472.9 Tm (approvazione del remediation plan.) Tj ET
+0.960 0.980 0.970 rg 57.0 247.9 481.0 186.0 re f 0.840 0.870 0.850 RG 0.7 w 57.0 247.9 481.0 186.0 re S
+0.100 0.530 0.660 rg 57.0 247.9 6.0 186.0 re f
+0.100 0.530 0.660 rg 73.0 414.9 52.0 17.0 re f
+BT /F2 7.0 Tf 1.000 1.000 1.000 rg 1 0 0 1 80.0 419.9 Tm (MEDIA) Tj ET
+BT /F2 10.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 137.0 419.9 Tm (Superficie XSS potenzialmente piu ampia) Tj ET
+BT /F1 9.0 Tf 0.350 0.400 0.370 rg 1 0 0 1 73.0 396.9 Tm (Content-Security-Policy non osservata nella risposta HTTPS principale.) Tj ET
+BT /F2 7.0 Tf 0.100 0.530 0.660 rg 1 0 0 1 73.0 381.9 Tm (COME POTREBBE ABUSARNE UN ATTACCANTE) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 369.9 Tm (If an input-handling bug exists, the absence of CSP gives an attacker more room.) Tj ET
+BT /F2 7.0 Tf 0.100 0.530 0.660 rg 1 0 0 1 73.0 353.9 Tm (IMPATTO BUSINESS) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 341.9 Tm (Session abuse or sensitive page content exposure.) Tj ET
+BT /F2 7.0 Tf 0.100 0.530 0.660 rg 1 0 0 1 73.0 325.9 Tm (AZIONE PER IL PROPRIETARIO) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 313.9 Tm (Valida con test applicativi autorizzati e definisci una CSP per script, frame e) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 302.9 Tm (connect-src.) Tj ET
+BT /F2 7.0 Tf 0.100 0.530 0.660 rg 1 0 0 1 73.0 286.9 Tm (EVIDENZE DA RACCOGLIERE) Tj ET
+BT /F1 8.8 Tf 0.100 0.130 0.110 rg 1 0 0 1 73.0 274.9 Tm (Distribuisci prima una CSP report-only, poi applicala.) Tj ET
+0.840 0.870 0.850 RG 0.7 w 57 49 m 538 49 l S
+BT /F1 7.5 Tf 0.350 0.400 0.370 rg 1 0 0 1 57 34 Tm (Report cliente riservato | Pagina 2 di 4) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 2221 >>
+stream
+0.060 0.420 0.340 rg 57.0 757.0 28.0 28.0 re f
+BT /F2 10.0 Tf 1.000 1.000 1.000 rg 1 0 0 1 63.0 767.0 Tm (OP) Tj ET
+BT /F2 11.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 95.0 773.0 Tm (OSINTPRO) Tj ET
+BT /F1 8.0 Tf 0.350 0.400 0.370 rg 1 0 0 1 333.0 773.0 Tm (example.com) Tj ET
+BT /F2 7.0 Tf 0.060 0.420 0.340 rg 1 0 0 1 95.0 760.0 Tm (EVIDENZA) Tj ET
+0.840 0.870 0.850 RG 0.8 w 57.0 747.0 m 538.0 747.0 l S
+BT /F2 18.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 727.0 Tm (DNS e infrastruttura) Tj ET
+0.060 0.420 0.340 rg 57.0 695.0 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 697.0 Tm (IP risolto: 203.0.113.10) Tj ET
+0.060 0.420 0.340 rg 57.0 676.0 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 678.0 Tm (Nameserver: ns1.example.com) Tj ET
+0.060 0.420 0.340 rg 57.0 657.0 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 659.0 Tm (Mail exchange: 10 mail.example.com) Tj ET
+0.060 0.420 0.340 rg 57.0 638.0 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 640.0 Tm (CAA: non osservato) Tj ET
+BT /F2 15.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 621.0 Tm (TLS e controlli browser) Tj ET
+BT /F1 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 594.0 Tm (Subject certificato: CN=example.com. Scadenza: Aug 29 21:41:26 2026 GMT.) Tj ET
+0.060 0.420 0.340 rg 57.0 573.9 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 575.9 Tm (Mancante - content-security-policy: Header non trovato nella risposta HTTPS) Tj ET
+0.060 0.420 0.340 rg 57.0 554.9 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 556.9 Tm (OK - x-frame-options: DENY) Tj ET
+BT /F2 15.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 537.9 Tm (Email e metadati pubblici) Tj ET
+BT /F1 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 510.9 Tm (Sono stati osservati servizio mail o record di autenticazione email.) Tj ET
+BT /F1 9.5 Tf 0.350 0.400 0.370 rg 1 0 0 1 57.0 492.9 Tm (robots.txt and sitemap.xml are expected indexing metadata. Their presence is not a vulnerability) Tj ET
+BT /F1 9.5 Tf 0.350 0.400 0.370 rg 1 0 0 1 57.0 478.8 Tm (unless sensitive paths are disclosed.) Tj ET
+0.840 0.870 0.850 RG 0.7 w 57 49 m 538 49 l S
+BT /F1 7.5 Tf 0.350 0.400 0.370 rg 1 0 0 1 57 34 Tm (Report cliente riservato | Pagina 3 di 4) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 3032 >>
+stream
+0.060 0.420 0.340 rg 57.0 757.0 28.0 28.0 re f
+BT /F2 10.0 Tf 1.000 1.000 1.000 rg 1 0 0 1 63.0 767.0 Tm (OP) Tj ET
+BT /F2 11.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 95.0 773.0 Tm (OSINTPRO) Tj ET
+BT /F1 8.0 Tf 0.350 0.400 0.370 rg 1 0 0 1 333.0 773.0 Tm (example.com) Tj ET
+BT /F2 7.0 Tf 0.060 0.420 0.340 rg 1 0 0 1 95.0 760.0 Tm (METODOLOGIA) Tj ET
+0.840 0.870 0.850 RG 0.8 w 57.0 747.0 m 538.0 747.0 l S
+BT /F2 18.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 727.0 Tm (Metodologia e limiti) Tj ET
+BT /F1 10.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 697.0 Tm (OSINTPRO ha raccolto segnali pubblici passivi da DNS, risposte HTTPS, metadati dei) Tj ET
+BT /F1 10.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 682.2 Tm (certificati, Certificate Transparency e risorse well-known pubbliche. Non ha eseguito) Tj ET
+BT /F1 10.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 667.4 Tm (exploit, brute force, scansioni di reti private o tentativi di modifica del target.) Tj ET
+BT /F2 15.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 648.6 Tm (Regole di interpretazione) Tj ET
+0.060 0.420 0.340 rg 57.0 619.6 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 621.6 Tm (I controlli email mancanti sono finding solo quando si osserva un servizio mail o una) Tj ET
+BT /F1 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 607.6 Tm (policy email.) Tj ET
+0.060 0.420 0.340 rg 57.0 586.6 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 588.6 Tm (robots.txt e sitemap.xml sono metadati pubblici attesi e non sono vulnerabilita di per) Tj ET
+BT /F1 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 574.6 Tm (se.) Tj ET
+0.060 0.420 0.340 rg 57.0 553.6 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 555.6 Tm (OpenID, file di associazione mobile e BIMI sono opzionali salvo claim espliciti del) Tj ET
+BT /F1 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 541.6 Tm (prodotto.) Tj ET
+0.060 0.420 0.340 rg 57.0 520.6 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 522.6 Tm (I segnali CNAME takeover richiedono validazione di proprieta; un CNAME verso provider) Tj ET
+BT /F1 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 508.6 Tm (gestito non prova exploitabilita.) Tj ET
+0.060 0.420 0.340 rg 57.0 487.6 5.0 5.0 re f
+BT /F2 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 489.6 Tm (Certificate Transparency e una fonte di scoperta asset e monitoraggio, non una) Tj ET
+BT /F1 9.5 Tf 0.100 0.130 0.110 rg 1 0 0 1 71.0 475.6 Tm (vulnerabilita.) Tj ET
+BT /F2 15.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 456.6 Tm (Confine passivo) Tj ET
+BT /F1 10.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 429.6 Tm (Questo report e evidenza per revisione difensiva, non prova di identita, compromissione o) Tj ET
+BT /F1 10.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 414.8 Tm (exploitabilita. I finding devono essere confermati dal proprietario asset o da un) Tj ET
+BT /F1 10.0 Tf 0.100 0.130 0.110 rg 1 0 0 1 57.0 400.0 Tm (professionista autorizzato.) Tj ET
+0.840 0.870 0.850 RG 0.7 w 57 49 m 538 49 l S
+BT /F1 7.5 Tf 0.350 0.400 0.370 rg 1 0 0 1 57 34 Tm (Report cliente riservato | Pagina 4 di 4) Tj ET
+endstream
+endobj
+xref
+0 14
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000135 00000 n 
+0000000205 00000 n 
+0000000280 00000 n 
+0000000348 00000 n 
+0000000494 00000 n 
+0000003485 00000 n 
+0000003631 00000 n 
+0000007987 00000 n 
+0000008135 00000 n 
+0000010409 00000 n 
+0000010557 00000 n 
+trailer
+<< /Size 14 /Root 1 0 R >>
+startxref
+13642
+%%EOF

@@ -336,6 +336,85 @@ def translate_key(key: str, lang: str = DEFAULT_LANGUAGE, fallback: str | None =
     return str(value)
 
 
+def translate_static(value: object, lang: str = DEFAULT_LANGUAGE) -> str:
+    """Translate an exact user-visible phrase while leaving technical values alone."""
+    text = str(value or "")
+    cleaned = clean_language(lang)
+    if cleaned == DEFAULT_LANGUAGE or not text:
+        return text
+    locale = load_locale(cleaned)
+    static = locale.get("static", {})
+    if isinstance(static, dict) and text in static:
+        return str(static[text])
+    if text.lower() in {"high", "medium", "low", "info", "critical"}:
+        return translate_key(f"terms.{text.lower()}", cleaned, text)
+    return text
+
+
+def translate_phrase(key: str, lang: str, fallback: str, **values: object) -> str:
+    """Translate a phrase template and format named placeholders safely."""
+    template = translate_key(f"phrases.{key}", lang, fallback)
+    try:
+        return template.format(**values)
+    except (KeyError, IndexError, ValueError):
+        return fallback.format(**values)
+
+
+def translate_known_string(value: object, lang: str = DEFAULT_LANGUAGE) -> str:
+    """Translate known generated report strings without touching DNS/header values."""
+    text = str(value or "")
+    cleaned = clean_language(lang)
+    if cleaned == DEFAULT_LANGUAGE or not text:
+        return text
+    exact = translate_static(text, cleaned)
+    if exact != text:
+        return exact
+    if text.startswith("Domain is reachable. Missing ") and " observable security headers." in text:
+        count = text.removeprefix("Domain is reachable. Missing ").split(" observable", 1)[0]
+        return translate_phrase(
+            "summary_missing_headers",
+            cleaned,
+            "Domain is reachable. Missing {count} observable security headers.",
+            count=count,
+        )
+    if text.startswith("Add or review missing security headers: "):
+        headers = text.removeprefix("Add or review missing security headers: ").rstrip(".")
+        return translate_phrase(
+            "recommendation_missing_headers",
+            cleaned,
+            "Add or review missing security headers: {headers}.",
+            headers=headers,
+        )
+    if text.startswith("The certificate expires in ") and text.endswith(" days."):
+        days = text.removeprefix("The certificate expires in ").removesuffix(" days.")
+        return translate_phrase(
+            "certificate_expires_days",
+            cleaned,
+            "The certificate expires in {days} days.",
+            days=days,
+        )
+    if text.startswith("Certificate expires in ") and text.endswith(" days."):
+        days = text.removeprefix("Certificate expires in ").removesuffix(" days.")
+        return translate_phrase(
+            "certificate_expires_days",
+            cleaned,
+            "Certificate expires in {days} days.",
+            days=days,
+        )
+    return text
+
+
+def translate_known_values(value: object, lang: str = DEFAULT_LANGUAGE) -> object:
+    """Recursively translate user-facing strings in a report copy."""
+    if isinstance(value, dict):
+        return {key: translate_known_values(item, lang) for key, item in value.items()}
+    if isinstance(value, list):
+        return [translate_known_values(item, lang) for item in value]
+    if isinstance(value, str):
+        return translate_known_string(value, lang)
+    return value
+
+
 def translate_finding_item(item: dict[str, object], lang: str) -> dict[str, object]:
     template_id = str(item.get("template_id") or item.get("root_cause") or item.get("type") or "")
     if not template_id:
@@ -390,7 +469,7 @@ def translate_report(report: dict[str, object], lang: str) -> dict[str, object]:
     cleaned = clean_language(lang)
     if cleaned == DEFAULT_LANGUAGE:
         return report
-    translated = json.loads(json.dumps(report))
+    translated = translate_known_values(json.loads(json.dumps(report)), cleaned)
     translated["language"] = cleaned
     translated["findings"] = [
         translate_finding_item(item, cleaned)
@@ -4161,6 +4240,7 @@ def run_monitor_rows(connection: sqlite3.Connection, rows: list[sqlite3.Row]) ->
 
 
 def report_document(report: dict[str, object]) -> str:
+    lang = clean_language(report.get("language"))
     brand = report_brand()
     analyst = report_analyst()
     contact = report_contact()
@@ -4181,14 +4261,22 @@ def report_document(report: dict[str, object]) -> str:
 
     def lines(values: list[str]) -> str:
         if not values:
-            return "<span class='muted'>no data</span>"
+            return f"<span class='muted'>{html.escape(translate_key('terms.no_data', lang, 'no data'))}</span>"
         return "".join(f"<li>{html.escape(str(value))}</li>" for value in values)
 
+    def status_label(item: dict[str, object]) -> str:
+        if item.get("assessed") is False:
+            return translate_key("terms.not_assessed", lang, "Not assessed")
+        return translate_key("terms.ok", lang, "OK") if item.get("present") else translate_key("terms.missing", lang, "Missing")
+
     checks = "".join(
-        f"<tr><td>{html.escape(item['name'])}</td><td>{'Not assessed' if item.get('assessed') is False else 'OK' if item.get('present') else 'Missing'}</td><td>{html.escape(str(item.get('value') or item.get('reason') or ''))}</td></tr>"
+        f"<tr><td>{html.escape(item['name'])}</td><td>{html.escape(status_label(item))}</td><td>{html.escape(str(item.get('value') or translate_known_string(item.get('reason') or '', lang)))}</td></tr>"
         for item in headers
     )
-    recs = "".join(f"<li>{html.escape(item)}</li>" for item in recommendations(report))
+    recs = "".join(
+        f"<li>{html.escape(translate_known_string(item, lang))}</li>"
+        for item in recommendations(report)
+    )
     finding_rows = "".join(
         f"<tr><td>{html.escape(item.get('level', ''))}</td><td>{html.escape(item.get('title', ''))}</td><td>{html.escape(item.get('detail', ''))}</td></tr>"
         for item in findings
@@ -4199,7 +4287,7 @@ def report_document(report: dict[str, object]) -> str:
     well_known = advanced.get("well_known", {}) if isinstance(advanced, dict) else {}
     takeover_hints = advanced.get("takeover_hints", []) if isinstance(advanced, dict) else []
     well_known_rows = "".join(
-        f"<tr><td>{html.escape(name)}</td><td>{'Observed' if value.get('present') else 'Not declared'}</td><td>{html.escape(str(value.get('status') or 'n/a'))}</td></tr>"
+        f"<tr><td>{html.escape(name)}</td><td>{html.escape(translate_key('terms.observed' if value.get('present') else 'terms.not_declared', lang, 'Observed' if value.get('present') else 'Not declared'))}</td><td>{html.escape(str(value.get('status') or translate_key('terms.n_a', lang, 'n/a')))}</td></tr>"
         for name, value in well_known.items()
     )
     takeover_rows = "".join(
@@ -4218,12 +4306,12 @@ def report_document(report: dict[str, object]) -> str:
         f"<tr><td>{html.escape(item.get('control', ''))}</td><td>{html.escape(item.get('why', ''))}</td><td>{html.escape(item.get('cadence', ''))}</td></tr>"
         for item in purple_controls
     )
-    email_score_label = f"{int(email.get('score') or 0)}/100" if email.get("applicable") else "Not applicable"
+    email_score_label = f"{int(email.get('score') or 0)}/100" if email.get("applicable") else translate_key("terms.not_applicable", lang, "Not applicable")
     return f"""<!doctype html>
-<html lang="en">
+<html lang="{html.escape(lang)}">
 <head>
   <meta charset="utf-8">
-  <title>{html.escape(brand)} report - {html.escape(str(report.get("domain", "")))}</title>
+  <title>{html.escape(brand)} {html.escape(translate_key("report.report", lang, "report"))} - {html.escape(str(report.get("domain", "")))}</title>
   <style>
     @page {{ size: A4; margin: 20mm; }}
     * {{ box-sizing: border-box; }}
@@ -4260,64 +4348,64 @@ def report_document(report: dict[str, object]) -> str:
 <body>
   <header>
     <div>
-      <p class="meta">{html.escape(brand)} passive domain intelligence</p>
+      <p class="meta">{html.escape(brand)} {html.escape(translate_key("report.passive_domain_intel", lang, "passive domain intelligence"))}</p>
       <h1>{html.escape(str(report.get("domain", "")))}</h1>
       <p>{html.escape(str(report.get("summary", "")))}</p>
-      <p class="meta">Generated: {html.escape(str(report.get("generated_at", "")))}<br>Analyst: {html.escape(analyst)}</p>
+      <p class="meta">{html.escape(translate_key("report.generated", lang, "Generated"))}: {html.escape(str(report.get("generated_at", "")))}<br>{html.escape(translate_key("report.analyst", lang, "Analyst"))}: {html.escape(analyst)}</p>
     </div>
-    <div class="score"><span>Score</span><strong>{int(report.get("score", 0))}</strong></div>
+    <div class="score"><span>{html.escape(translate_key("report.score", lang, "Score"))}</span><strong>{int(report.get("score", 0))}</strong></div>
   </header>
   <main>
     <section>
-      <h2>Recommendations</h2>
+      <h2>{html.escape(translate_key("report.recommendations", lang, "Recommendations"))}</h2>
       <div class="box"><ol>{recs}</ol></div>
     </section>
     <section class="grid">
       <div class="box"><h2>IP</h2><ul>{lines(dns.get("addresses", []))}</ul></div>
       <div class="box"><h2>MX</h2><ul>{lines(dns.get("mx", []))}</ul></div>
-      <div class="box"><h2>Nameserver</h2><ul>{lines(dns.get("ns", []))}</ul></div>
-      <div class="box"><h2>TLS certificate</h2><p>{html.escape(str(cert.get("subject") or "not available"))}</p><p class="meta">Expires: {html.escape(str(cert.get("expires") or "not available"))}</p></div>
+      <div class="box"><h2>{html.escape(translate_key("report.nameserver", lang, "Nameserver"))}</h2><ul>{lines(dns.get("ns", []))}</ul></div>
+      <div class="box"><h2>{html.escape(translate_key("report.tls_certificate", lang, "TLS certificate"))}</h2><p>{html.escape(str(cert.get("subject") or translate_key("terms.not_available", lang, "not available")))}</p><p class="meta">{html.escape(translate_key("report.expires", lang, "Expires"))}: {html.escape(str(cert.get("expires") or translate_key("terms.not_available", lang, "not available")))}</p></div>
     </section>
     <section class="grid">
-      <div class="box"><h2>Email security</h2><p>Score: {email_score_label}</p><p>{html.escape(str(email.get("scope_note") or ""))}</p><ul>{lines(email.get("dmarc", []) + email.get("mta_sts", []) + email.get("tls_rpt", []))}</ul></div>
-      <div class="box"><h2>RDAP</h2><p>Registrar: {html.escape(str(rdap.get("registrar") or "not available"))}</p><p class="meta">Created: {html.escape(str(rdap.get("created") or "n/a"))}<br>Expires: {html.escape(str(rdap.get("expires") or "n/a"))}</p></div>
+      <div class="box"><h2>{html.escape(translate_key("report.email_security", lang, "Email security"))}</h2><p>{html.escape(translate_key("report.score", lang, "Score"))}: {email_score_label}</p><p>{html.escape(str(email.get("scope_note") or ""))}</p><ul>{lines(email.get("dmarc", []) + email.get("mta_sts", []) + email.get("tls_rpt", []))}</ul></div>
+      <div class="box"><h2>RDAP</h2><p>{html.escape(translate_key("report.registrar", lang, "Registrar"))}: {html.escape(str(rdap.get("registrar") or translate_key("terms.not_available", lang, "not available")))}</p><p class="meta">{html.escape(translate_key("report.created", lang, "Created"))}: {html.escape(str(rdap.get("created") or translate_key("terms.n_a", lang, "n/a")))}<br>{html.escape(translate_key("report.expires", lang, "Expires"))}: {html.escape(str(rdap.get("expires") or translate_key("terms.n_a", lang, "n/a")))}</p></div>
       <div class="box"><h2>Well-known</h2><p>security.txt: {web.get("security_txt", {}).get("status") or "n/a"}<br>robots.txt: {web.get("robots_txt", {}).get("status") or "n/a"}<br>sitemap.xml: {web.get("sitemap_xml", {}).get("status") or "n/a"}</p></div>
       <div class="box"><h2>Certificate Transparency</h2><ul>{subdomain_rows or "<li>no names found</li>"}</ul></div>
     </section>
     <section>
-      <h2>Advanced passive OSINT</h2>
+      <h2>{html.escape(translate_key("report.advanced_osint", lang, "Advanced passive OSINT"))}</h2>
       <div class="box">
-        <p>DNSSEC: {'OK' if dnssec.get('enabled') else 'not observed'} | BIMI: {('OK' if bimi.get('present') else 'not observed') if email.get('applicable') else 'not applicable'}</p>
-        <table><thead><tr><th>Well-known</th><th>Status</th><th>HTTP</th></tr></thead><tbody>{well_known_rows or "<tr><td colspan='3'>no data</td></tr>"}</tbody></table>
+        <p>DNSSEC: {translate_key('terms.ok' if dnssec.get('enabled') else 'terms.not_observed', lang, 'OK' if dnssec.get('enabled') else 'not observed')} | BIMI: {(translate_key('terms.ok' if bimi.get('present') else 'terms.not_observed', lang, 'OK' if bimi.get('present') else 'not observed')) if email.get('applicable') else translate_key('terms.not_applicable', lang, 'not applicable')}</p>
+        <table><thead><tr><th>Well-known</th><th>{html.escape(translate_key("report.status", lang, "Status"))}</th><th>HTTP</th></tr></thead><tbody>{well_known_rows or f"<tr><td colspan='3'>{html.escape(translate_key('terms.no_data', lang, 'no data'))}</td></tr>"}</tbody></table>
         <h3>CNAME takeover review</h3>
-        <table><thead><tr><th>Subdomain</th><th>Provider</th><th>CNAME</th></tr></thead><tbody>{takeover_rows or "<tr><td colspan='3'>no priority hints</td></tr>"}</tbody></table>
+        <table><thead><tr><th>{html.escape(translate_key("report.subdomain", lang, "Subdomain"))}</th><th>{html.escape(translate_key("report.provider", lang, "Provider"))}</th><th>CNAME</th></tr></thead><tbody>{takeover_rows or f"<tr><td colspan='3'>{html.escape(translate_key('terms.no_priority_hints', lang, 'no priority hints'))}</td></tr>"}</tbody></table>
       </div>
     </section>
     <section>
-      <h2>Findings</h2>
-      <table><thead><tr><th>Level</th><th>Finding</th><th>Detail</th></tr></thead><tbody>{finding_rows or "<tr><td>ok</td><td>No priority findings</td><td></td></tr>"}</tbody></table>
+      <h2>{html.escape(translate_key("report.findings", lang, "Findings"))}</h2>
+      <table><thead><tr><th>{html.escape(translate_key("report.level", lang, "Level"))}</th><th>{html.escape(translate_key("report.finding", lang, "Finding"))}</th><th>{html.escape(translate_key("report.detail", lang, "Detail"))}</th></tr></thead><tbody>{finding_rows or f"<tr><td>{html.escape(translate_key('terms.ok', lang, 'ok'))}</td><td>{html.escape(translate_key('report.no_priority_findings', lang, 'No priority findings'))}</td><td></td></tr>"}</tbody></table>
     </section>
     <section>
       <h2>Red/Purple Team</h2>
-      <table><thead><tr><th>Severity</th><th>Hypothesis</th><th>Evidence</th><th>Next step</th></tr></thead><tbody>{vuln_rows or "<tr><td>ok</td><td>No priority hypotheses</td><td></td><td></td></tr>"}</tbody></table>
-      <h2>Red team paths</h2>
-      <table><thead><tr><th>Path</th><th>Objective</th><th>Signal</th></tr></thead><tbody>{red_rows}</tbody></table>
-      <h2>Purple team controls</h2>
-      <table><thead><tr><th>Control</th><th>Reason</th><th>Cadence</th></tr></thead><tbody>{purple_rows}</tbody></table>
+      <table><thead><tr><th>{html.escape(translate_key("report.severity", lang, "Severity"))}</th><th>{html.escape(translate_key("report.hypothesis", lang, "Hypothesis"))}</th><th>{html.escape(translate_key("report.evidence", lang, "Evidence"))}</th><th>{html.escape(translate_key("report.next_step", lang, "Next step"))}</th></tr></thead><tbody>{vuln_rows or f"<tr><td>{html.escape(translate_key('terms.ok', lang, 'ok'))}</td><td>{html.escape(translate_key('report.no_priority_hypotheses', lang, 'No priority hypotheses'))}</td><td></td><td></td></tr>"}</tbody></table>
+      <h2>{html.escape(translate_key("report.red_team_paths", lang, "Red team paths"))}</h2>
+      <table><thead><tr><th>{html.escape(translate_key("report.path", lang, "Path"))}</th><th>{html.escape(translate_key("report.objective", lang, "Objective"))}</th><th>{html.escape(translate_key("report.signal", lang, "Signal"))}</th></tr></thead><tbody>{red_rows}</tbody></table>
+      <h2>{html.escape(translate_key("report.purple_team_controls", lang, "Purple team controls"))}</h2>
+      <table><thead><tr><th>{html.escape(translate_key("report.control", lang, "Control"))}</th><th>{html.escape(translate_key("report.reason", lang, "Reason"))}</th><th>{html.escape(translate_key("report.cadence", lang, "Cadence"))}</th></tr></thead><tbody>{purple_rows}</tbody></table>
     </section>
     <section>
-      <h2>Security header</h2>
-      <table><thead><tr><th>Header</th><th>Status</th><th>Value</th></tr></thead><tbody>{checks}</tbody></table>
+      <h2>{html.escape(translate_key("report.security_header", lang, "Security header"))}</h2>
+      <table><thead><tr><th>Header</th><th>{html.escape(translate_key("report.status", lang, "Status"))}</th><th>{html.escape(translate_key("report.value", lang, "Value"))}</th></tr></thead><tbody>{checks}</tbody></table>
     </section>
     <section>
-      <h2>Appendix: methodology</h2>
+      <h2>{html.escape(translate_key("report.appendix_methodology", lang, "Appendix: methodology"))}</h2>
       <div class="box">
-        <p>OSINTPRO uses passive public DNS, HTTPS, certificate and well-known resources. It does not execute exploit payloads, brute force credentials or modify the target.</p>
-        <p>Missing email controls are findings only when mail service or an email policy is observed. Public robots.txt and sitemap.xml files are expected indexing metadata, not vulnerabilities by themselves.</p>
+        <p>{html.escape(translate_key("report.methodology_body", lang, "OSINTPRO uses passive public DNS, HTTPS, certificate and well-known resources. It does not execute exploit payloads, brute force credentials or modify the target."))}</p>
+        <p>{html.escape(translate_key("report.methodology_email_note", lang, "Missing email controls are findings only when mail service or an email policy is observed. Public robots.txt and sitemap.xml files are expected indexing metadata, not vulnerabilities by themselves."))}</p>
       </div>
     </section>
   </main>
-  <footer class="report-footer">Confidential client report{contact_label} | Passive evidence requires authorized validation.</footer>
+  <footer class="report-footer">{html.escape(translate_key("report.confidential_footer", lang, "Confidential client report"))}{contact_label} | {html.escape(translate_key("report.passive_footer", lang, "Passive evidence requires authorized validation."))}</footer>
 </body>
 </html>"""
 
@@ -4563,9 +4651,12 @@ class PdfReportBuilder:
     def finish(self) -> bytes:
         total_pages = len(self.pages)
         contact = report_contact()
+        lang = clean_language(self.report.get("language"))
         for index, commands in enumerate(self.pages, start=1):
             footer = (
-                f"Confidential client report | Page {index} of {total_pages}"
+                f"{translate_key('report.confidential_footer', lang, 'Confidential client report')} | "
+                f"{translate_key('report.page', lang, 'Page')} {index} "
+                f"{translate_key('report.of', lang, 'of')} {total_pages}"
                 f"{' | ' + contact if contact else ''}"
             )
             commands.append(
@@ -4631,6 +4722,7 @@ def pdf_bytes(pages: list[list[str]]) -> bytes:
 def report_pdf(report: dict[str, object]) -> bytes:
     """Render a branded, multipage passive intelligence report."""
     builder = PdfReportBuilder(report)
+    lang = clean_language(report.get("language"))
     dns = report.get("dns", {}) if isinstance(report.get("dns"), dict) else {}
     https = report.get("https", {}) if isinstance(report.get("https"), dict) else {}
     email = (
@@ -4678,59 +4770,60 @@ def report_pdf(report: dict[str, object]) -> bytes:
         not in seen_roots
     )
 
-    builder.new_page("Executive summary")
-    builder.text("PASSIVE DOMAIN INTELLIGENCE", PDF_MARGIN, builder.y, 8, True, PDF_GREEN)
+    builder.new_page(translate_key("report.executive_summary", lang, "Executive summary"))
+    builder.text(translate_key("report.passive_domain_intel", lang, "PASSIVE DOMAIN INTELLIGENCE").upper(), PDF_MARGIN, builder.y, 8, True, PDF_GREEN)
     builder.y -= 30
     builder.text(builder.domain, PDF_MARGIN, builder.y, 28, True)
     builder.y -= 28
     builder.paragraph(report.get("summary", ""), "Executive summary", 11, PDF_MUTED)
     builder.y -= 6
     generated = str(report.get("generated_at") or "")
-    builder.text(f"Generated: {generated}", PDF_MARGIN, builder.y, 8.5, False, PDF_MUTED)
+    builder.text(f"{translate_key('report.generated', lang, 'Generated')}: {generated}", PDF_MARGIN, builder.y, 8.5, False, PDF_MUTED)
     builder.y -= 15
-    builder.text(f"Analyst: {report_analyst()}", PDF_MARGIN, builder.y, 8.5, False, PDF_MUTED)
+    builder.text(f"{translate_key('report.analyst', lang, 'Analyst')}: {report_analyst()}", PDF_MARGIN, builder.y, 8.5, False, PDF_MUTED)
     builder.y -= 36
     card_width = (PDF_PAGE_WIDTH - (2 * PDF_MARGIN) - 24) / 3
     addresses = dns.get("addresses", []) if isinstance(dns.get("addresses"), list) else []
-    email_label = f"{email.get('score', 0)}/100" if email.get("applicable") else "N/A"
-    builder.metric("Security score", f"{report.get('score', 0)}/100", PDF_MARGIN, builder.y - 62, card_width)
-    builder.metric("Resolved IPs", len(addresses), PDF_MARGIN + card_width + 12, builder.y - 62, card_width, PDF_CYAN)
-    builder.metric("Findings", len(all_findings), PDF_MARGIN + (2 * card_width) + 24, builder.y - 62, card_width, PDF_HIGH if all_findings else PDF_GREEN)
+    email_label = f"{email.get('score', 0)}/100" if email.get("applicable") else translate_key("terms.n_a", lang, "N/A")
+    builder.metric(translate_key("report.security_score", lang, "Security score"), f"{report.get('score', 0)}/100", PDF_MARGIN, builder.y - 62, card_width)
+    builder.metric(translate_key("report.resolved_ips", lang, "Resolved IPs"), len(addresses), PDF_MARGIN + card_width + 12, builder.y - 62, card_width, PDF_CYAN)
+    builder.metric(translate_key("report.findings", lang, "Findings"), len(all_findings), PDF_MARGIN + (2 * card_width) + 24, builder.y - 62, card_width, PDF_HIGH if all_findings else PDF_GREEN)
     builder.y -= 92
     if int(report.get("score") or 0) == 100 and all_findings and all(
         str(item.get("level", "")).lower() == "low" for item in all_findings
     ):
         builder.paragraph(
-            "Score reflects material risk only. Low-severity notes below do not affect scoring.",
-            "Executive summary",
+            translate_key("report.score_note", lang, "Score reflects material risk only. Low-severity notes below do not affect scoring."),
+            translate_key("report.executive_summary", lang, "Executive summary"),
             9.5,
             PDF_MUTED,
         )
         builder.y -= 4
-    builder.heading("Scope summary", "Executive summary", 15)
-    builder.bullet(f"Email posture: {email_label}. {email.get('scope_note', '')}", "Executive summary")
+    executive = translate_key("report.executive_summary", lang, "Executive summary")
+    builder.heading(translate_key("report.scope_summary", lang, "Scope summary"), executive, 15)
+    builder.bullet(f"{translate_key('report.email_posture', lang, 'Email posture')}: {email_label}. {email.get('scope_note', '')}", executive)
     builder.bullet(
-        f"HTTPS status: {https.get('status') or 'not available'}; "
-        f"certificate expires {cert.get('expires') or 'not available'}.",
-        "Executive summary",
+        f"HTTPS {translate_key('report.status', lang, 'status')}: {https.get('status') or translate_key('terms.not_available', lang, 'not available')}; "
+        f"{translate_key('report.certificate_expires', lang, 'certificate expires')} {cert.get('expires') or translate_key('terms.not_available', lang, 'not available')}.",
+        executive,
     )
     builder.bullet(
-        f"Public indexing metadata: robots.txt "
-        f"{'published' if web.get('robots_txt', {}).get('present') else 'not published'}, "
-        f"sitemap.xml {'published' if web.get('sitemap_xml', {}).get('present') else 'not published'}. "
-        "Publication is not a vulnerability by itself.",
-        "Executive summary",
+        f"{translate_key('report.public_indexing_metadata', lang, 'Public indexing metadata')}: robots.txt "
+        f"{translate_key('terms.published' if web.get('robots_txt', {}).get('present') else 'terms.not_published', lang, 'published' if web.get('robots_txt', {}).get('present') else 'not published')}, "
+        f"sitemap.xml {translate_key('terms.published' if web.get('sitemap_xml', {}).get('present') else 'terms.not_published', lang, 'published' if web.get('sitemap_xml', {}).get('present') else 'not published')}. "
+        f"{translate_key('report.publication_not_vulnerability', lang, 'Publication is not a vulnerability by itself.')}",
+        executive,
     )
-    builder.heading("Priority actions", "Executive summary", 15)
+    builder.heading(translate_key("report.priority_actions", lang, "Priority actions"), executive, 15)
     for item in recommendations(report):
-        builder.bullet(item, "Executive summary")
+        builder.bullet(translate_known_string(item, lang), executive)
 
-    builder.new_page("Findings")
-    builder.heading("Prioritized findings", "Findings")
+    findings_section = translate_key("report.findings", lang, "Findings")
+    builder.new_page(findings_section)
+    builder.heading(translate_key("report.prioritized_findings", lang, "Prioritized findings"), findings_section)
     builder.paragraph(
-        "Findings are passive observations and review hypotheses. Validate impact in an "
-        "authorized environment before presenting them as confirmed vulnerabilities.",
-        "Findings",
+        translate_key("report.findings_disclaimer", lang, "Findings are passive observations and review hypotheses. Validate impact in an authorized environment before presenting them as confirmed vulnerabilities."),
+        findings_section,
         9.5,
         PDF_MUTED,
     )
@@ -4740,7 +4833,7 @@ def report_pdf(report: dict[str, object]) -> bytes:
                 str(item["level"]),
                 str(item["title"]),
                 str(item["detail"]),
-                "Findings",
+                findings_section,
                 str(item.get("abuse_path") or ""),
                 str(item.get("business_impact") or ""),
                 str(item.get("owner_action") or ""),
@@ -4749,83 +4842,80 @@ def report_pdf(report: dict[str, object]) -> bytes:
     else:
         builder.finding(
             "info",
-            "No priority passive finding",
-            "The observed public surface did not produce a high-priority hypothesis.",
-            "Findings",
-            "No attacker path was inferred from passive evidence.",
-            "No material business impact was identified from this passive snapshot.",
-            "Keep monitoring DNS, TLS and browser security headers for drift.",
-            "Baseline DNS, TLS and header state for future drift checks.",
+            translate_key("report.no_priority_passive_finding", lang, "No priority passive finding"),
+            translate_key("report.no_priority_passive_detail", lang, "The observed public surface did not produce a high-priority hypothesis."),
+            findings_section,
+            translate_key("report.no_attacker_path", lang, "No attacker path was inferred from passive evidence."),
+            translate_key("report.no_material_impact", lang, "No material business impact was identified from this passive snapshot."),
+            translate_key("report.keep_monitoring", lang, "Keep monitoring DNS, TLS and browser security headers for drift."),
+            translate_key("report.baseline_evidence", lang, "Baseline DNS, TLS and header state for future drift checks."),
         )
 
-    builder.new_page("Evidence")
-    builder.heading("DNS and infrastructure", "Evidence")
+    evidence_section = translate_key("report.evidence", lang, "Evidence")
+    builder.new_page(evidence_section)
+    builder.heading(translate_key("report.dns_infrastructure", lang, "DNS and infrastructure"), evidence_section)
     for label, values in (
-        ("Resolved IP", addresses),
-        ("Nameserver", dns.get("ns", [])),
-        ("Mail exchange", dns.get("mx", [])),
+        (translate_key("report.resolved_ip", lang, "Resolved IP"), addresses),
+        (translate_key("report.nameserver", lang, "Nameserver"), dns.get("ns", [])),
+        (translate_key("report.mail_exchange", lang, "Mail exchange"), dns.get("mx", [])),
         ("CAA", dns.get("caa", [])),
     ):
         safe_values = values if isinstance(values, list) else []
         builder.bullet(
-            f"{label}: {', '.join(str(value) for value in safe_values[:8]) or 'not observed'}",
-            "Evidence",
+            f"{label}: {', '.join(str(value) for value in safe_values[:8]) or translate_key('terms.not_observed', lang, 'not observed')}",
+            evidence_section,
         )
-    builder.heading("TLS and browser controls", "Evidence", 15)
+    builder.heading(translate_key("report.tls_browser_controls", lang, "TLS and browser controls"), evidence_section, 15)
     builder.paragraph(
-        f"Certificate subject: {cert.get('subject') or 'not available'}. "
-        f"Expiry: {cert.get('expires') or 'not available'}.",
-        "Evidence",
+        f"{translate_key('report.certificate_subject', lang, 'Certificate subject')}: {cert.get('subject') or translate_key('terms.not_available', lang, 'not available')}. "
+        f"{translate_key('report.expiry', lang, 'Expiry')}: {cert.get('expires') or translate_key('terms.not_available', lang, 'not available')}.",
+        evidence_section,
         9.5,
     )
     for item in headers if isinstance(headers, list) else []:
         status = (
-            "NOT ASSESSED"
+            translate_key("terms.not_assessed", lang, "NOT ASSESSED")
             if item.get("assessed") is False
-            else "OK"
+            else translate_key("terms.ok", lang, "OK")
             if item.get("present")
-            else "MISSING"
+            else translate_key("terms.missing", lang, "MISSING")
         )
         evidence = item.get("value") or item.get("reason") or ""
-        builder.bullet(f"{status} - {item.get('name')}: {evidence}", "Evidence")
-    builder.heading("Email and public metadata", "Evidence", 15)
+        builder.bullet(f"{status} - {item.get('name')}: {translate_known_string(evidence, lang)}", evidence_section)
+    builder.heading(translate_key("report.email_public_metadata", lang, "Email and public metadata"), evidence_section, 15)
     builder.paragraph(
-        email.get("scope_note") or "Email scope could not be determined.",
-        "Evidence",
+        email.get("scope_note") or translate_key("report.email_scope_unknown", lang, "Email scope could not be determined."),
+        evidence_section,
         9.5,
     )
     builder.paragraph(
         web.get("indexing_note")
-        or "Public indexing files are contextual metadata, not vulnerabilities by default.",
-        "Evidence",
+        or translate_key("report.indexing_contextual", lang, "Public indexing files are contextual metadata, not vulnerabilities by default."),
+        evidence_section,
         9.5,
         PDF_MUTED,
     )
 
-    builder.new_page("Methodology")
-    builder.heading("Methodology and limitations", "Methodology")
+    methodology = translate_key("report.methodology", lang, "Methodology")
+    builder.new_page(methodology)
+    builder.heading(translate_key("report.methodology_limitations", lang, "Methodology and limitations"), methodology)
     builder.paragraph(
-        "OSINTPRO collected passive public signals from DNS, HTTPS responses, certificate "
-        "metadata, Certificate Transparency and public well-known resources. It did not "
-        "execute exploit payloads, brute force credentials, scan private address ranges or "
-        "attempt to modify the target.",
-        "Methodology",
+        translate_key("report.methodology_pdf_body", lang, "OSINTPRO collected passive public signals from DNS, HTTPS responses, certificate metadata, Certificate Transparency and public well-known resources. It did not execute exploit payloads, brute force credentials, scan private address ranges or attempt to modify the target."),
+        methodology,
     )
-    builder.heading("Interpretation rules", "Methodology", 15)
+    builder.heading(translate_key("report.interpretation_rules", lang, "Interpretation rules"), methodology, 15)
     for item in (
-        "Missing email controls are findings only when mail service or an email policy is observed.",
-        "robots.txt and sitemap.xml are expected public metadata and are not vulnerabilities by themselves.",
-        "OpenID, mobile association files and BIMI are optional unless the product claims those capabilities.",
-        "CNAME takeover signals require ownership validation; a managed-provider CNAME alone is not proof of exploitability.",
-        "Certificate Transparency is an asset-discovery and monitoring source, not a vulnerability.",
+        translate_key("report.rule_email_controls", lang, "Missing email controls are findings only when mail service or an email policy is observed."),
+        translate_key("report.rule_robots_sitemap", lang, "robots.txt and sitemap.xml are expected public metadata and are not vulnerabilities by themselves."),
+        translate_key("report.rule_optional_wellknown", lang, "OpenID, mobile association files and BIMI are optional unless the product claims those capabilities."),
+        translate_key("report.rule_cname_takeover", lang, "CNAME takeover signals require ownership validation; a managed-provider CNAME alone is not proof of exploitability."),
+        translate_key("report.rule_ct", lang, "Certificate Transparency is an asset-discovery and monitoring source, not a vulnerability."),
     ):
-        builder.bullet(item, "Methodology")
-    builder.heading("Passive boundary", "Methodology", 15)
+        builder.bullet(item, methodology)
+    builder.heading(translate_key("report.passive_boundary", lang, "Passive boundary"), methodology, 15)
     builder.paragraph(
-        "This report is evidence for defensive review, not proof of identity, compromise or "
-        "exploitability. Findings should be confirmed by the asset owner or an authorized "
-        "security professional.",
-        "Methodology",
+        translate_key("report.passive_boundary_body", lang, "This report is evidence for defensive review, not proof of identity, compromise or exploitability. Findings should be confirmed by the asset owner or an authorized security professional."),
+        methodology,
     )
     return builder.finish()
 
@@ -5061,18 +5151,23 @@ def report_findings_csv(report: dict[str, object]) -> bytes:
     )
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "source",
-        "level",
-        "title",
-        "detail",
-        *owner_headers,
-        "root_cause",
-    ])
+    base_headers = (
+        ["source", "level", "title", "detail", *owner_headers, "root_cause"]
+        if lang == DEFAULT_LANGUAGE
+        else [
+            translate_key("csv.source", lang, "source"),
+            translate_key("csv.level", lang, "level"),
+            translate_key("csv.title", lang, "title"),
+            translate_key("csv.detail", lang, "detail"),
+            *owner_headers,
+            translate_key("csv.root_cause", lang, "root_cause"),
+        ]
+    )
+    writer.writerow(base_headers)
     for item in report.get("findings", []) or []:
         writer.writerow([
-            "finding",
-            item.get("level", ""),
+            translate_key("csv.finding", lang, "finding") if lang != DEFAULT_LANGUAGE else "finding",
+            translate_static(item.get("level", ""), lang),
             item.get("title", ""),
             item.get("detail", ""),
             item.get("abuse_path", ""),
@@ -5083,8 +5178,8 @@ def report_findings_csv(report: dict[str, object]) -> bytes:
         ])
     for item in report.get("vulnerability_hypotheses", []) or []:
         writer.writerow([
-            "hypothesis",
-            item.get("severity", ""),
+            translate_key("csv.hypothesis", lang, "hypothesis") if lang != DEFAULT_LANGUAGE else "hypothesis",
+            translate_static(item.get("severity", ""), lang),
             item.get("title", ""),
             item.get("evidence", ""),
             item.get("attacker_path", ""),
