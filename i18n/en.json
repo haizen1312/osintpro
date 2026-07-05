@@ -1,0 +1,168 @@
+{
+  "ui": {
+    "language.label": "Language",
+    "language.en": "English",
+    "language.it": "Italian",
+    "language.es": "Spanish",
+    "language.fr": "French",
+    "language.de": "German",
+    "language.pt": "Portuguese",
+    "nav.dashboard": "Dashboard",
+    "nav.cases": "Cases",
+    "nav.graph": "Entity Graph",
+    "nav.domain": "Domain Intel",
+    "nav.social": "Social Intel",
+    "nav.wallet": "Wallet Trace",
+    "nav.web": "Web Audit Lab",
+    "nav.repo": "Repo Audit Lab",
+    "nav.network": "Network Lab",
+    "nav.game": "Game Security Lab",
+    "nav.history": "History",
+    "nav.monitoring": "Monitoring",
+    "nav.billing": "Billing",
+    "nav.api": "API Preview",
+    "nav.account": "Account",
+    "hero.pill": "Passive intelligence workspace",
+    "hero.title": "Map public evidence. Ship a client-ready dossier.",
+    "hero.body": "OSINTPRO connects domain, repository, username and wallet signals into a defensible investigation graph with reports, exports and monitoring built in.",
+    "hero.analyze": "Analyze domain",
+    "hero.graph": "Open graph",
+    "export.pdf": "PDF report",
+    "export.csv": "Findings CSV",
+    "toast.downloaded": "Downloaded export",
+    "finding.attacker": "How an attacker may abuse it",
+    "finding.impact": "Business impact",
+    "finding.action": "Owner action",
+    "finding.evidence": "Evidence to collect"
+  },
+  "findings": {
+    "security_header_missing": {
+      "title": "Missing security header",
+      "description": "Reduces the publicly observable browser-side security posture.",
+      "attacker_abuse": "An attacker would combine missing browser controls with another application bug, malicious embed or unsafe third-party content.",
+      "business_impact": "Customer sessions, forms, admin panels or embedded flows may be easier to abuse if another flaw exists.",
+      "owner_action": "Add the missing header with staged rollout and regression tests for critical pages.",
+      "evidence_to_collect": "Collect affected response paths, current header values, CSP/HSTS rollout status and iframe/script dependencies."
+    },
+    "spf_missing": {
+      "title": "SPF missing",
+      "description": "The domain does not publish an SPF policy in the main TXT records.",
+      "attacker_abuse": "An attacker can send mail that appears aligned with the brand and rely on weak receiving checks.",
+      "business_impact": "Invoice fraud, support impersonation, credential harvesting and brand-trust damage.",
+      "owner_action": "Publish SPF for authorized senders, remove obsolete senders and pair it with DMARC reporting.",
+      "evidence_to_collect": "Collect legitimate mail vendors, bounce domains, helpdesk workflows and spoofing complaints."
+    },
+    "dmarc_missing": {
+      "title": "DMARC missing",
+      "description": "No public anti-impersonation policy was found on _dmarc.",
+      "attacker_abuse": "An attacker can imitate the domain while receivers lack a clear handling policy for failed authentication.",
+      "business_impact": "Higher chance of executive impersonation, customer scams and vendor-payment fraud.",
+      "owner_action": "Start with DMARC p=none plus reports, validate legitimate flows and move toward quarantine/reject.",
+      "evidence_to_collect": "Collect aggregate reports, mail sources, third-party sender inventory and spoofing scenarios."
+    },
+    "dmarc_policy_none": {
+      "title": "DMARC monitoring-only policy",
+      "description": "DMARC is present, but p=none does not ask receivers to quarantine or reject failing mail.",
+      "attacker_abuse": "Attackers may still benefit from spoofed messages because many receivers only report the failure.",
+      "business_impact": "Brand abuse can continue while the organization believes DMARC has already solved spoofing risk.",
+      "owner_action": "Use aggregate reports to fix legitimate senders, then move to quarantine and reject in stages.",
+      "evidence_to_collect": "Collect rua reports, legitimate sender inventory, SPF/DKIM alignment state and exception owners."
+    },
+    "dmarc_rua_missing": {
+      "title": "DMARC aggregate reports missing",
+      "description": "DMARC does not publish an observable rua reporting destination.",
+      "attacker_abuse": "Without aggregate reports, defenders lose visibility into spoofing attempts and legitimate alignment failures.",
+      "business_impact": "Slower enforcement rollout and weaker evidence for phishing-defense decisions.",
+      "owner_action": "Add a monitored rua mailbox or reporting processor before stronger enforcement.",
+      "evidence_to_collect": "Collect reporting mailbox ownership, privacy review and expected report processor."
+    },
+    "dmarc_ruf_missing": {
+      "title": "DMARC forensic reports not configured",
+      "description": "No ruf destination was observed for forensic DMARC failure reporting.",
+      "attacker_abuse": "Defenders may have less sample-level evidence when investigating targeted spoofing campaigns.",
+      "business_impact": "Lower incident triage quality during executive impersonation or vendor fraud attempts.",
+      "owner_action": "Decide whether forensic reports are appropriate for the jurisdiction and privacy model.",
+      "evidence_to_collect": "Collect legal/privacy position, reporting mailbox owner and incident response use case."
+    },
+    "tls_rpt_missing": {
+      "title": "TLS-RPT missing",
+      "description": "No SMTP TLS reporting policy was observed at _smtp._tls.",
+      "attacker_abuse": "Mail delivery TLS failures may go unnoticed, reducing evidence during downgrade or delivery issues.",
+      "business_impact": "Harder troubleshooting of secure mail delivery and lower visibility into misconfiguration.",
+      "owner_action": "Publish TLS-RPT with a monitored reporting address after validating mail routing ownership.",
+      "evidence_to_collect": "Collect mail provider, reporting mailbox and expected report handling process."
+    },
+    "tls_expiring_soon": {
+      "title": "TLS expiring soon",
+      "description": "The TLS certificate is close to expiry.",
+      "attacker_abuse": "Attackers do not need to break TLS: outage windows can push users toward insecure workarounds or fake support links.",
+      "business_impact": "Service outage, failed checkout/login flows and increased phishing success during confusion.",
+      "owner_action": "Verify automated renewal, alert owners and rehearse renewal failure recovery.",
+      "evidence_to_collect": "Collect certificate owner, renewal automation logs, alert routing and dependency inventory."
+    },
+    "security_txt_missing": {
+      "title": "security.txt missing",
+      "description": "No standard public security disclosure channel was found.",
+      "attacker_abuse": "A researcher or customer who finds a weakness may struggle to report it, increasing disclosure risk.",
+      "business_impact": "Slower vulnerability intake, missed reports and reputational damage from unmanaged disclosure.",
+      "owner_action": "Publish security.txt with contact, policy and expiry fields routed to the right owner.",
+      "evidence_to_collect": "Collect current security contact, intake SLA, disclosure policy and escalation owner."
+    },
+    "caa_missing": {
+      "title": "CAA missing",
+      "description": "The domain does not publicly restrict which CAs can issue certificates.",
+      "attacker_abuse": "If a certificate authority or validation process is abused, there is no DNS-level policy limiting issuance.",
+      "business_impact": "Weaker certificate governance and harder incident scoping after suspicious issuance.",
+      "owner_action": "Add CAA records for approved CAs and document who can change certificate policy.",
+      "evidence_to_collect": "Collect current CAs, wildcard usage, ACME providers and certificate issuance history."
+    },
+    "dnssec_not_observed": {
+      "title": "DNSSEC not observed",
+      "description": "No public DS/DNSKEY records were found from the local resolver.",
+      "attacker_abuse": "In some DNS attack or misrouting scenarios, unsigned zones provide less cryptographic assurance.",
+      "business_impact": "Lower DNS integrity assurance for mail, web and certificate validation records.",
+      "owner_action": "Evaluate DNSSEC support with the registrar and DNS provider before enabling.",
+      "evidence_to_collect": "Collect registrar support, DNS provider support, rollback plan and operational ownership."
+    },
+    "asn_provider_unknown": {
+      "title": "Hosting provider attribution incomplete",
+      "description": "Public IP RDAP context did not clearly identify every observed address owner.",
+      "attacker_abuse": "During incident response, unclear hosting ownership slows takedown, abuse desk contact and asset accountability.",
+      "business_impact": "Longer triage windows for shadow infrastructure, forgotten deployments or third-party routing issues.",
+      "owner_action": "Map each public IP to a hosting owner, account owner and abuse contact in the asset register.",
+      "evidence_to_collect": "Collect IP RDAP data, cloud account owner, contract owner and current deployment purpose."
+    },
+    "subdomain_takeover": {
+      "title": "CNAME to managed providers",
+      "description": "Some subdomains point to SaaS/cloud platforms: verify ownership to prevent takeover.",
+      "attacker_abuse": "An attacker may look for abandoned cloud/SaaS resources referenced by DNS and try to claim the unowned resource.",
+      "business_impact": "Brand impersonation under a trusted subdomain, phishing pages, cookie exposure or customer-data capture depending on host use.",
+      "owner_action": "Verify every managed-provider CNAME is claimed by an active account and remove stale DNS records.",
+      "evidence_to_collect": "Collect DNS owner, cloud/SaaS account owner, last deployment date and proof of resource ownership."
+    },
+    "wallet_dust_pattern": {
+      "title": "Dust transaction pattern",
+      "description": "Several very small-value transactions appear in the recent window.",
+      "attacker_abuse": "An investigator should review whether the wallet is being tagged, spammed or linked through dusting activity.",
+      "business_impact": "Potential privacy loss, noisy attribution or extra review work during fraud reconstruction.",
+      "owner_action": "Preserve the transaction IDs and avoid assuming attribution until timing and counterparties are reviewed.",
+      "evidence_to_collect": "Collect transaction hashes, timestamps, counterparties and public explorer notes."
+    },
+    "wallet_mixer_proximity": {
+      "title": "Proximity to tagged mixer/privacy counterparty",
+      "description": "Recent counterparties include public labels compatible with mixer or privacy services.",
+      "attacker_abuse": "This can indicate proximity to obfuscation infrastructure, but it is not proof of control or intent.",
+      "business_impact": "Compliance, recovery and fraud teams may need extra hop analysis and documentation.",
+      "owner_action": "Expand one hop at a time, record tag source and separate proximity from attribution.",
+      "evidence_to_collect": "Collect tag source, transaction IDs, hop count and exchange/mixer label evidence."
+    },
+    "wallet_exchange_proximity": {
+      "title": "Proximity to tagged exchange/service counterparty",
+      "description": "Recent counterparties include public labels compatible with centralized services or exchanges.",
+      "attacker_abuse": "Funds may have moved through a service where preservation or legal requests are relevant.",
+      "business_impact": "Recovery or compliance workflow may depend on timely service-provider contact.",
+      "owner_action": "Record service labels, transaction IDs and escalation path before making claims.",
+      "evidence_to_collect": "Collect public labels, transaction hashes, timestamps and case notes."
+    }
+  }
+}

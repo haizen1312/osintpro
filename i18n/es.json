@@ -1,0 +1,168 @@
+{
+  "ui": {
+    "language.label": "Idioma",
+    "language.en": "Ingles",
+    "language.it": "Italiano",
+    "language.es": "Espanol",
+    "language.fr": "Frances",
+    "language.de": "Aleman",
+    "language.pt": "Portugues",
+    "nav.dashboard": "Panel",
+    "nav.cases": "Casos",
+    "nav.graph": "Grafo de entidades",
+    "nav.domain": "Intel dominio",
+    "nav.social": "Intel social",
+    "nav.wallet": "Rastreo wallet",
+    "nav.web": "Web Audit Lab",
+    "nav.repo": "Repo Audit Lab",
+    "nav.network": "Network Lab",
+    "nav.game": "Game Security Lab",
+    "nav.history": "Historial",
+    "nav.monitoring": "Monitoreo",
+    "nav.billing": "Planes",
+    "nav.api": "Vista API",
+    "nav.account": "Cuenta",
+    "hero.pill": "Workspace de inteligencia pasiva",
+    "hero.title": "Mapea evidencia publica. Entrega un dossier listo para cliente.",
+    "hero.body": "OSINTPRO conecta senales de dominio, repositorio, usuario y wallet en un grafo investigativo con reportes, exportaciones y monitoreo.",
+    "hero.analyze": "Analizar dominio",
+    "hero.graph": "Abrir grafo",
+    "export.pdf": "Reporte PDF",
+    "export.csv": "CSV findings",
+    "toast.downloaded": "Exportacion descargada",
+    "finding.attacker": "Como podria abusarlo un atacante",
+    "finding.impact": "Impacto de negocio",
+    "finding.action": "Accion del propietario",
+    "finding.evidence": "Evidencia a recopilar"
+  },
+  "findings": {
+    "security_header_missing": {
+      "title": "Cabecera de seguridad ausente",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "spf_missing": {
+      "title": "SPF ausente",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "dmarc_missing": {
+      "title": "DMARC ausente",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "dmarc_policy_none": {
+      "title": "DMARC solo monitoreo",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "dmarc_rua_missing": {
+      "title": "Informes agregados DMARC ausentes",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "dmarc_ruf_missing": {
+      "title": "Informes forenses DMARC no configurados",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "tls_rpt_missing": {
+      "title": "TLS-RPT ausente",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "tls_expiring_soon": {
+      "title": "TLS por vencer",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "security_txt_missing": {
+      "title": "security.txt ausente",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "caa_missing": {
+      "title": "CAA ausente",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "dnssec_not_observed": {
+      "title": "DNSSEC no observado",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "asn_provider_unknown": {
+      "title": "Atribucion de hosting incompleta",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "subdomain_takeover": {
+      "title": "CNAME hacia proveedores gestionados",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "wallet_dust_pattern": {
+      "title": "Patron de transacciones dust",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "wallet_mixer_proximity": {
+      "title": "Proximidad a mixer/privacidad",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    },
+    "wallet_exchange_proximity": {
+      "title": "Proximidad a exchange/servicio",
+      "description": "Senal publica que debe verificarse dentro del contexto autorizado del propietario.",
+      "attacker_abuse": "Un atacante podria combinarla con otras debilidades observables para aumentar suplantacion, abuso o confusion operativa.",
+      "business_impact": "El riesgo principal es retraso de respuesta, perdida de confianza, abuso de marca o exposicion de datos si existen otras condiciones vulnerables.",
+      "owner_action": "Asigna un responsable tecnico, valida la configuracion actual, planifica la correccion y agrega una prueba de regresion.",
+      "evidence_to_collect": "Recopila registros publicos, propietario del servicio, logs disponibles, capturas y notas de aprobacion del plan."
+    }
+  }
+}

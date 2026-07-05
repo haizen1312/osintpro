@@ -25,12 +25,16 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from email.utils import parsedate_to_datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import lru_cache
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 
 
 ROOT = Path(__file__).resolve().parent
+I18N_DIR = ROOT / "i18n"
+SUPPORTED_LANGUAGES = {"en", "it", "es", "fr", "de", "pt"}
+DEFAULT_LANGUAGE = "en"
 DATA_DIR = Path(os.getenv("OSINTPRO_DATA_DIR", str(ROOT / "data"))).expanduser()
 DB_PATH = Path(os.getenv("OSINTPRO_DB_PATH", str(DATA_DIR / "osintpro.sqlite3"))).expanduser()
 BACKUP_DIR = Path(os.getenv("OSINTPRO_BACKUP_DIR", str(DATA_DIR / "backups"))).expanduser()
@@ -258,14 +262,24 @@ TAKEOVER_CNAME_HINTS = {
     "herokudns.com": "Heroku",
     "azurewebsites.net": "Azure App Service",
     "cloudapp.net": "Azure Cloud App",
+    "trafficmanager.net": "Azure Traffic Manager",
     "cloudfront.net": "AWS CloudFront",
     "s3.amazonaws.com": "AWS S3",
+    "s3-website": "AWS S3 Website",
+    "elasticbeanstalk.com": "AWS Elastic Beanstalk",
     "netlify.app": "Netlify",
+    "netlifyglobalcdn.com": "Netlify",
     "pages.dev": "Cloudflare Pages",
+    "surge.sh": "Surge",
     "vercel-dns.com": "Vercel",
+    "vercel.app": "Vercel",
     "readme.io": "ReadMe",
     "helpscoutdocs.com": "Help Scout Docs",
     "zendesk.com": "Zendesk",
+    "statuspage.io": "Atlassian Statuspage",
+    "unbouncepages.com": "Unbounce",
+    "desk.com": "Salesforce Desk",
+    "freshdesk.com": "Freshdesk",
 }
 ADVANCED_WELL_KNOWN_PATHS = {
     "change_password": "/.well-known/change-password",
@@ -277,6 +291,118 @@ ADVANCED_WELL_KNOWN_PATHS = {
 
 def utc_now() -> str:
     return dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat()
+
+
+def clean_language(value: object) -> str:
+    lang = str(value or DEFAULT_LANGUAGE).split(",", 1)[0].strip().lower()[:2]
+    return lang if lang in SUPPORTED_LANGUAGES else DEFAULT_LANGUAGE
+
+
+def nested_get(payload: dict[str, object], dotted_key: str) -> object:
+    if dotted_key in payload:
+        return payload[dotted_key]
+    current: object = payload
+    for part in dotted_key.split("."):
+        if not isinstance(current, dict) or part not in current:
+            if isinstance(current, dict):
+                remaining = ".".join(dotted_key.split(".")[dotted_key.split(".").index(part):])
+                return current.get(remaining)
+            return None
+        current = current[part]
+    return current
+
+
+@lru_cache(maxsize=16)
+def load_locale(lang: str) -> dict[str, object]:
+    """Load translation data with English fallback for missing locale files."""
+    cleaned = clean_language(lang)
+    path = I18N_DIR / f"{cleaned}.json"
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        if cleaned != DEFAULT_LANGUAGE:
+            return load_locale(DEFAULT_LANGUAGE)
+        return {"ui": {}, "findings": {}}
+
+
+def translate_key(key: str, lang: str = DEFAULT_LANGUAGE, fallback: str | None = None) -> str:
+    locale = load_locale(lang)
+    english = load_locale(DEFAULT_LANGUAGE)
+    value = nested_get(locale, key)
+    if value is None and lang != DEFAULT_LANGUAGE:
+        value = nested_get(english, key)
+    if value is None:
+        value = fallback if fallback is not None else key
+    return str(value)
+
+
+def translate_finding_item(item: dict[str, object], lang: str) -> dict[str, object]:
+    template_id = str(item.get("template_id") or item.get("root_cause") or item.get("type") or "")
+    if not template_id:
+        return item
+    template = nested_get(load_locale(lang), f"findings.{template_id}")
+    if not isinstance(template, dict) and lang != DEFAULT_LANGUAGE:
+        template = nested_get(load_locale(DEFAULT_LANGUAGE), f"findings.{template_id}")
+    if not isinstance(template, dict):
+        return item
+    translated = dict(item)
+    for source_key, target_key in (
+        ("title", "title"),
+        ("detail", "description"),
+        ("abuse_path", "attacker_abuse"),
+        ("business_impact", "business_impact"),
+        ("owner_action", "owner_action"),
+        ("evidence_to_collect", "evidence_to_collect"),
+    ):
+        value = template.get(target_key)
+        if value:
+            translated[source_key] = str(value)
+    return translated
+
+
+def translate_hypothesis_item(item: dict[str, object], lang: str) -> dict[str, object]:
+    template_id = str(item.get("template_id") or "")
+    if not template_id:
+        return item
+    template = nested_get(load_locale(lang), f"findings.{template_id}")
+    if not isinstance(template, dict) and lang != DEFAULT_LANGUAGE:
+        template = nested_get(load_locale(DEFAULT_LANGUAGE), f"findings.{template_id}")
+    if not isinstance(template, dict):
+        return item
+    translated = dict(item)
+    mapping = {
+        "title": "title",
+        "evidence": "description",
+        "attacker_path": "attacker_abuse",
+        "likely_impact": "business_impact",
+        "next_step": "owner_action",
+        "defensive_priority": "evidence_to_collect",
+    }
+    for source_key, target_key in mapping.items():
+        value = template.get(target_key)
+        if value:
+            translated[source_key] = str(value)
+    return translated
+
+
+def translate_report(report: dict[str, object], lang: str) -> dict[str, object]:
+    """Return a translated copy of a report for API and export rendering."""
+    cleaned = clean_language(lang)
+    if cleaned == DEFAULT_LANGUAGE:
+        return report
+    translated = json.loads(json.dumps(report))
+    translated["language"] = cleaned
+    translated["findings"] = [
+        translate_finding_item(item, cleaned)
+        for item in translated.get("findings", [])
+        if isinstance(item, dict)
+    ]
+    translated["vulnerability_hypotheses"] = [
+        translate_hypothesis_item(item, cleaned)
+        for item in translated.get("vulnerability_hypotheses", [])
+        if isinstance(item, dict)
+    ]
+    return translated
 
 
 def server_secret() -> str:
@@ -1549,8 +1675,10 @@ def repo_finding(
     applicability: str = "Applies when this code path is reachable in production.",
 ) -> dict[str, object]:
     abuse_context = repository_abuse_context(category, title)
+    template_id = f"repo_{repo_rule_id(category, title).removeprefix('OSINTPRO-')}"
     return {
         "rule_id": repo_rule_id(category, title),
+        "template_id": template_id,
         "severity": severity,
         "confidence": confidence,
         "confidence_score": REPO_CONFIDENCE_SCORES.get(confidence, 0.5),
@@ -1582,6 +1710,18 @@ def repository_abuse_context(category: str, title: str) -> dict[str, str]:
             "abuse_path": "If external input can reach this code path, an attacker may try to turn data into server-side execution or unsafe object loading.",
             "business_impact": "Service takeover, data theft, ransomware staging or lateral movement from the affected runtime.",
             "owner_action": "Remove dynamic execution, enforce strict allowlists, isolate the runtime and add tests that prove untrusted input stays data-only.",
+        }
+    if "random" in key or "md5" in key or "sha1" in key or "crypto" in key:
+        return {
+            "abuse_path": "A real attacker would look for tokens, reset links or password material that can be guessed, replayed or cracked faster than intended.",
+            "business_impact": "Account takeover, weak audit evidence, broken non-repudiation or expensive incident response after credential abuse.",
+            "owner_action": "Use a cryptographically secure random source, modern password hashing and migration tests for legacy hashes.",
+        }
+    if "path traversal" in key or "file handling" in key:
+        return {
+            "abuse_path": "If user-controlled paths reach file operations, an attacker may try to read or overwrite files outside the intended directory.",
+            "business_impact": "Configuration exposure, source disclosure, data loss or unauthorized modification of generated artifacts.",
+            "owner_action": "Canonicalize paths, enforce a fixed base directory, reject traversal segments and add tests for boundary paths.",
         }
     if "database" in key or "sql" in key:
         return {
@@ -1854,6 +1994,35 @@ REPO_AUDIT_RULES = [
         "title": "YAML load without an explicit safe loader",
         "why": "Unsafe YAML loaders may instantiate attacker-controlled objects.",
         "remediation": "Use yaml.safe_load or explicitly pass SafeLoader.",
+    },
+    {
+        "pattern": re.compile(r"\b(?:Math\.random|random\.random)\s*\("),
+        "severity": "medium",
+        "confidence": "medium",
+        "category": "Cryptography",
+        "title": "Insecure randomness for security-sensitive values",
+        "why": "General-purpose pseudo-random functions are predictable enough to be unsafe for tokens, sessions, reset links or matchmaking trust decisions.",
+        "remediation": "Use secrets/token APIs, crypto.getRandomValues or a server-side CSPRNG for security-sensitive values.",
+        "applicability": "Review whether the value protects accounts, money, inventory, moderation actions or privileged workflow state.",
+    },
+    {
+        "pattern": re.compile(r"\b(?:hashlib\.)?(?:md5|sha1)\s*\(|createHash\(\s*[\"'](?:md5|sha1)[\"']", re.IGNORECASE),
+        "severity": "medium",
+        "confidence": "medium",
+        "category": "Cryptography",
+        "title": "Legacy hash function used in security context",
+        "why": "MD5 and SHA-1 are obsolete for password hashing, signatures and tamper evidence.",
+        "remediation": "Use Argon2/bcrypt/scrypt for passwords and SHA-256 or stronger HMAC/signature schemes for integrity.",
+        "applicability": "Low priority for non-security checksums; high priority for passwords, sessions, signatures or payment/inventory integrity.",
+    },
+    {
+        "pattern": re.compile(r"\b(?:open|send_file|readFile|writeFile|createReadStream)\s*\([^\n]*(?:request|params|query|req\.|input\(|argv|\.\.)", re.IGNORECASE),
+        "severity": "high",
+        "confidence": "medium",
+        "category": "File handling",
+        "title": "Possible path traversal in file handling",
+        "why": "User-influenced paths can escape intended directories when not canonicalized and allowlisted.",
+        "remediation": "Resolve paths against a fixed base directory, reject traversal segments and serve files through an allowlisted identifier.",
     },
     {
         "pattern": re.compile(r"(?:verify\s*=\s*False|CERT_NONE|check_hostname\s*=\s*False)"),
@@ -2403,6 +2572,20 @@ def wallet_counterparty_score(counterparties: list[dict[str, object]]) -> list[d
     return results[:24]
 
 
+def wallet_finding(level: str, template_id: str, title: str, detail: str) -> dict[str, str]:
+    return {
+        "template_id": template_id,
+        "level": level,
+        "title": title,
+        "detail": detail,
+        "abuse_path": "A fraud analyst should treat this as a public ledger signal, then verify timing, counterparties and attribution before taking action.",
+        "business_impact": "Business impact depends on whether the wallet is connected to customer funds, fraud losses, sanctions exposure or recovery work.",
+        "owner_action": "Preserve the transaction IDs, tag confidence, exchange/mixer proximity and case notes before expanding additional hops.",
+        "evidence_to_collect": "Collect transaction hashes, timestamps, public tags, exchange support references and investigator notes.",
+        "root_cause": template_id,
+    }
+
+
 def wallet_findings(chain: str, address_info: dict[str, object], transactions: list[dict[str, object]], counterparties: list[dict[str, object]]) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
     tx_count = int(address_info.get("tx_count") or 0)
@@ -2413,68 +2596,50 @@ def wallet_findings(chain: str, address_info: dict[str, object], transactions: l
     tags = " ".join(address_info.get("tags") or []).lower()
     mixer_terms = {"mixer", "tornado", "privacy", "coinjoin", "wasabi", "samourai", "chipmixer"}
     exchange_terms = {"exchange", "binance", "coinbase", "kraken", "okx", "bybit", "kucoin"}
+    dust_tx = [
+        tx for tx in transactions
+        if float(tx.get("value") or 0) > 0 and float(tx.get("value") or 0) <= (0.00001 if chain == "bitcoin" else 0.0001)
+    ]
+    tagged_counterparties = " ".join(
+        " ".join(item.get("labels") or [])
+        for item in counterparties
+        if isinstance(item.get("labels"), list)
+    ).lower()
 
     if tx_count >= 1000:
-        findings.append({
-            "level": "high",
-            "title": "Very high-activity wallet",
-            "detail": "The number of public transactions is very high: useful for cluster analysis, exchange deposit review or fraud reconstruction.",
-        })
+        findings.append(wallet_finding("high", "wallet_very_high_activity", "Very high-activity wallet", "The number of public transactions is very high: useful for cluster analysis, exchange deposit review or fraud reconstruction."))
     elif tx_count >= 100:
-        findings.append({
-            "level": "medium",
-            "title": "High-activity wallet",
-            "detail": "Transaction volume suggests an operational node or frequently used wallet.",
-        })
+        findings.append(wallet_finding("medium", "wallet_high_activity", "High-activity wallet", "Transaction volume suggests an operational node or frequently used wallet."))
 
     if unique_counterparties >= 20:
-        findings.append({
-            "level": "medium",
-            "title": "Many counterparties observed",
-            "detail": "The wallet interacts with many entities in the recent window; expand the graph to additional hops.",
-        })
+        findings.append(wallet_finding("medium", "wallet_many_counterparties", "Many counterparties observed", "The wallet interacts with many entities in the recent window; expand the graph to additional hops."))
 
     if high_fan_tx:
-        findings.append({
-            "level": "medium",
-            "title": "Fan-in/fan-out pattern",
-            "detail": "Some transactions have many inputs/outputs: possible consolidation, distribution or obfuscation to verify manually.",
-        })
+        findings.append(wallet_finding("medium", "wallet_fan_pattern", "Fan-in/fan-out pattern", "Some transactions have many inputs/outputs: possible consolidation, distribution or obfuscation to verify manually."))
 
     if any(term in tags for term in mixer_terms):
-        findings.append({
-            "level": "high",
-            "title": "Public tag compatible with mixer/privacy service",
-            "detail": "Public sources associate privacy/mixer tags: use as an OSINT indicator, not definitive attribution.",
-        })
+        findings.append(wallet_finding("high", "wallet_mixer_tag", "Public tag compatible with mixer/privacy service", "Public sources associate privacy/mixer tags: use as an OSINT indicator, not definitive attribution."))
+
+    if any(term in tagged_counterparties for term in mixer_terms):
+        findings.append(wallet_finding("medium", "wallet_mixer_proximity", "Proximity to tagged mixer/privacy counterparty", "Recent counterparties include public labels compatible with mixer or privacy services. Treat this as proximity evidence, not attribution."))
 
     if any(term in tags for term in exchange_terms):
-        findings.append({
-            "level": "info",
-            "title": "Possible exchange/service wallet",
-            "detail": "Public tags suggest a centralized service or exchange; useful for compliance requests or preservation letters.",
-        })
+        findings.append(wallet_finding("info", "wallet_exchange_tag", "Possible exchange/service wallet", "Public tags suggest a centralized service or exchange; useful for compliance requests or preservation letters."))
+
+    if any(term in tagged_counterparties for term in exchange_terms):
+        findings.append(wallet_finding("info", "wallet_exchange_proximity", "Proximity to tagged exchange/service counterparty", "Recent counterparties include public labels compatible with centralized services or exchanges."))
+
+    if len(dust_tx) >= 3:
+        findings.append(wallet_finding("medium", "wallet_dust_pattern", "Dust transaction pattern", "Several very small-value transactions appear in the recent window; review for dusting, tagging or spam activity."))
 
     if has_contract:
-        findings.append({
-            "level": "info",
-            "title": "Contract or smart account address",
-            "detail": "The EVM address appears to be a contract/smart account: review methods, token transfers and explorer interactions.",
-        })
+        findings.append(wallet_finding("info", "wallet_contract_address", "Contract or smart account address", "The EVM address appears to be a contract/smart account: review methods, token transfers and explorer interactions."))
 
     if balance > 0:
-        findings.append({
-            "level": "info",
-            "title": "Observable balance",
-            "detail": f"Estimated public balance: {balance} {chain.upper() if chain == 'bitcoin' else 'ETH'}.",
-        })
+        findings.append(wallet_finding("info", "wallet_observable_balance", "Observable balance", f"Estimated public balance: {balance} {chain.upper() if chain == 'bitcoin' else 'ETH'}."))
 
     if not findings:
-        findings.append({
-            "level": "low",
-            "title": "No priority pattern in the recent window",
-            "detail": "Public sources do not show strong signals; expand the time window or additional chains if needed.",
-        })
+        findings.append(wallet_finding("low", "wallet_no_priority_pattern", "No priority pattern in the recent window", "Public sources do not show strong signals; expand the time window or additional chains if needed."))
     return findings[:8]
 
 
@@ -3014,6 +3179,57 @@ def rdap_info(domain: str) -> dict[str, object]:
     }
 
 
+def ip_network_context(addresses: list[str]) -> list[dict[str, object]]:
+    """Collect passive ASN/provider context from public RDAP IP records."""
+    results: list[dict[str, object]] = []
+    for address in addresses[:4]:
+        try:
+            ip_obj = ipaddress.ip_address(address)
+        except ValueError:
+            continue
+        if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_reserved:
+            results.append({
+                "ip": address,
+                "available": False,
+                "asn": None,
+                "provider": "private/reserved address space",
+                "source": "local classifier",
+            })
+            continue
+        data = json_get(f"https://rdap.org/ip/{quote(address)}")
+        provider = None
+        if isinstance(data, dict):
+            provider = data.get("name") or data.get("handle")
+            for entity in data.get("entities", []) or []:
+                roles = entity.get("roles", [])
+                if "registrant" not in roles and "technical" not in roles:
+                    continue
+                vcard = entity.get("vcardArray", [None, []])[1]
+                for item in vcard:
+                    if item and item[0] == "fn":
+                        provider = item[3]
+                        break
+                if provider:
+                    break
+            results.append({
+                "ip": address,
+                "available": True,
+                "asn": data.get("handle"),
+                "provider": redact_text(str(provider or "not available")),
+                "country": data.get("country"),
+                "source": "rdap.org/ip",
+            })
+        else:
+            results.append({
+                "ip": address,
+                "available": False,
+                "asn": None,
+                "provider": "not available",
+                "source": "rdap.org/ip",
+            })
+    return results
+
+
 def certificate_transparency(domain: str) -> dict[str, object]:
     data = json_get(f"https://crt.sh/?q=%25.{quote(domain)}&output=json")
     if not isinstance(data, list):
@@ -3046,12 +3262,20 @@ def email_posture(domain: str, mx: list[str], txt: list[str]) -> dict[str, objec
     tls_rpt = dig(f"_smtp._tls.{domain}", "TXT")
     txt_blob = " ".join(txt).lower()
     dmarc_blob = " ".join(dmarc).lower()
+    dmarc_policy_match = re.search(r"\bp\s*=\s*(reject|quarantine|none)\b", dmarc_blob)
+    dmarc_subdomain_policy_match = re.search(r"\bsp\s*=\s*(reject|quarantine|none)\b", dmarc_blob)
+    rua_present = "rua=mailto:" in dmarc_blob
+    ruf_present = "ruf=mailto:" in dmarc_blob
     flags = {
         "mx_present": bool(mx),
         "spf_present": "v=spf1" in txt_blob,
         "dmarc_present": "v=dmarc1" in dmarc_blob,
         "dmarc_reject": "p=reject" in dmarc_blob,
         "dmarc_quarantine": "p=quarantine" in dmarc_blob,
+        "dmarc_policy": dmarc_policy_match.group(1) if dmarc_policy_match else None,
+        "dmarc_subdomain_policy": dmarc_subdomain_policy_match.group(1) if dmarc_subdomain_policy_match else None,
+        "dmarc_rua_present": rua_present,
+        "dmarc_ruf_present": ruf_present,
         "mta_sts_present": bool(mta_sts),
         "tls_rpt_present": bool(tls_rpt),
     }
@@ -3191,9 +3415,11 @@ def public_finding(
     owner_action: str,
     evidence_to_collect: str,
     root_cause: str = "general",
+    template_id: str | None = None,
 ) -> dict[str, str]:
     """Create a defensive finding with realistic owner-oriented risk context."""
     return {
+        "template_id": template_id or root_cause,
         "level": level,
         "title": title,
         "detail": detail,
@@ -3235,6 +3461,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
     email = report.get("email_security", {})
     web = report.get("web_presence", {})
     advanced = report.get("advanced_intel", {})
+    network_context = report.get("network_context", [])
     cert = https.get("certificate", {}) if isinstance(https, dict) else {}
     days = cert.get("days_remaining")
     headers = https.get("security_headers", []) if isinstance(https, dict) else []
@@ -3254,6 +3481,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
                 "Add the missing header with a staged rollout and regression tests for critical pages.",
                 "Collect affected response paths, current header values, CSP/HSTS rollout status and iframe/script dependencies.",
                 f"security_header:{item['name']}",
+                "security_header_missing",
             ))
     flags = email.get("flags", {})
     email_applicable = bool(email.get("applicable"))
@@ -3267,6 +3495,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Publish SPF for authorized senders, remove obsolete senders and pair it with DMARC reporting.",
             "Collect legitimate mail vendors, bounce domains, helpdesk workflows and recent spoofing complaints.",
             "spf",
+            "spf_missing",
         ))
     if email_applicable and not flags.get("dmarc_present"):
         findings.append(public_finding(
@@ -3278,6 +3507,53 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Start with DMARC p=none plus reports, validate legitimate flows and move toward quarantine/reject.",
             "Collect aggregate reports, mail sources, third-party sender inventory and finance/support spoofing scenarios.",
             "dmarc",
+            "dmarc_missing",
+        ))
+    if email_applicable and flags.get("dmarc_present"):
+        policy = str(flags.get("dmarc_policy") or "none")
+        if policy == "none":
+            findings.append(public_finding(
+                "medium",
+                "DMARC monitoring-only policy",
+                "DMARC is present, but p=none does not ask receivers to quarantine or reject failing mail.",
+                "Attackers may still benefit from spoofed messages that fail authentication because many receivers will only report the failure.",
+                "Brand abuse can continue while the organization believes DMARC has already solved spoofing risk.",
+                "Use aggregate reports to fix legitimate senders, then move to quarantine and reject in staged percentages.",
+                "Collect rua reports, legitimate sender inventory, SPF/DKIM alignment state and exception owners.",
+                "dmarc_policy_none",
+            ))
+        if not flags.get("dmarc_rua_present"):
+            findings.append(public_finding(
+                "low",
+                "DMARC aggregate reports missing",
+                "DMARC does not publish an observable rua reporting destination.",
+                "Without aggregate reports, defenders lose visibility into spoofing attempts and legitimate sender alignment failures.",
+                "Slower enforcement rollout and weaker evidence for phishing-defense decisions.",
+                "Add a monitored rua mailbox or reporting processor before moving to stronger enforcement.",
+                "Collect reporting mailbox ownership, privacy review and expected report processor.",
+                "dmarc_rua_missing",
+            ))
+        if not flags.get("dmarc_ruf_present"):
+            findings.append(public_finding(
+                "low",
+                "DMARC forensic reports not configured",
+                "No ruf destination was observed for forensic DMARC failure reporting.",
+                "Defenders may have less sample-level evidence when investigating targeted spoofing campaigns.",
+                "Lower incident triage quality during executive impersonation or vendor fraud attempts.",
+                "Decide whether forensic reports are appropriate for the jurisdiction and mailbox privacy model.",
+                "Collect legal/privacy position, reporting mailbox owner and incident response use case.",
+                "dmarc_ruf_missing",
+            ))
+    if email_applicable and flags.get("mx_present") and not flags.get("tls_rpt_present"):
+        findings.append(public_finding(
+            "low",
+            "TLS-RPT missing",
+            "No SMTP TLS reporting policy was observed at _smtp._tls.",
+            "Mail delivery TLS failures may go unnoticed, reducing evidence during downgrade or delivery issues.",
+            "Harder troubleshooting of secure mail delivery and lower visibility into misconfiguration.",
+            "Publish TLS-RPT with a monitored reporting address after validating mail routing ownership.",
+            "Collect mail provider, reporting mailbox and expected report handling process.",
+            "tls_rpt_missing",
         ))
     if isinstance(days, int) and days < 30:
         findings.append(public_finding(
@@ -3289,6 +3565,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Verify automated renewal, alert owners and rehearse renewal failure recovery.",
             "Collect certificate owner, renewal automation logs, alert routing and dependency inventory.",
             "tls_expiry",
+            "tls_expiring_soon",
         ))
     security_txt = web.get("security_txt", {})
     if security_txt.get("available") and not security_txt.get("present"):
@@ -3301,6 +3578,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Publish security.txt with contact, policy and expiry fields routed to the right owner.",
             "Collect current security contact, intake SLA, disclosure policy and escalation owner.",
             "security_txt",
+            "security_txt_missing",
         ))
     if not dns.get("caa"):
         findings.append(public_finding(
@@ -3312,6 +3590,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Add CAA records for approved CAs and document who can change certificate policy.",
             "Collect current CAs, wildcard usage, ACME providers and certificate issuance history.",
             "caa",
+            "caa_missing",
         ))
     signals = advanced.get("signals", {}) if isinstance(advanced, dict) else {}
     if not signals.get("dnssec_enabled"):
@@ -3324,7 +3603,26 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Evaluate DNSSEC support with the registrar and DNS provider before enabling.",
             "Collect registrar support, DNS provider support, rollback plan and operational ownership.",
             "dnssec",
+            "dnssec_not_observed",
         ))
+    if isinstance(network_context, list) and network_context:
+        unknown_provider = any(
+            isinstance(item, dict)
+            and item.get("available")
+            and str(item.get("provider") or "").lower() in {"", "not available"}
+            for item in network_context
+        )
+        if unknown_provider:
+            findings.append(public_finding(
+                "low",
+                "Hosting provider attribution incomplete",
+                "Public IP RDAP context was available but did not clearly identify an owning provider for every observed address.",
+                "During incident response, unclear hosting ownership slows takedown, abuse desk contact and asset accountability.",
+                "Longer triage windows for shadow infrastructure, forgotten deployments or third-party routing issues.",
+                "Map each public IP to a hosting owner, account owner and abuse contact in the asset register.",
+                "Collect IP RDAP data, cloud account owner, contract owner and current deployment purpose.",
+                "asn_provider_unknown",
+            ))
     if advanced.get("takeover_hints"):
         findings.append(public_finding(
             "high",
@@ -3334,6 +3632,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "Brand impersonation under a trusted subdomain, phishing pages, cookie exposure or customer-data capture depending on host use.",
             "Verify every managed-provider CNAME is claimed by an active account and remove stale DNS records.",
             "Collect DNS owner, cloud/SaaS account owner, last deployment date and proof of resource ownership.",
+            "subdomain_takeover",
             "subdomain_takeover",
         ))
     return findings[:10]
@@ -3593,6 +3892,7 @@ def analyze(raw_target: str) -> dict[str, object]:
     email = email_posture(domain, mx, txt)
     web = web_presence(domain)
     rdap = rdap_info(domain)
+    network_context = ip_network_context(addresses)
     ct = certificate_transparency(domain)
     advanced = advanced_passive_intel(domain, ct)
     tech = technology_fingerprint(https, web)
@@ -3637,6 +3937,7 @@ def analyze(raw_target: str) -> dict[str, object]:
         "email_security": email,
         "web_presence": web,
         "rdap": rdap,
+        "network_context": network_context,
         "certificate_transparency": ct,
         "advanced_intel": advanced,
         "technology": tech,
@@ -4213,13 +4514,18 @@ class PdfReportBuilder:
     ) -> None:
         title_lines = pdf_wrap(title, 62)
         detail_lines = pdf_wrap(detail, 91)
+        lang = clean_language(self.report.get("language"))
+        label_attacker = translate_key("ui.finding.attacker", lang, "How an attacker may abuse it").upper()
+        label_impact = translate_key("ui.finding.impact", lang, "Business impact").upper()
+        label_action = translate_key("ui.finding.action", lang, "Owner action").upper()
+        label_evidence = translate_key("ui.finding.evidence", lang, "Evidence to collect").upper()
         blocks = [
-            ("HOW AN ATTACKER MAY ABUSE IT", abuse_path),
-            ("BUSINESS IMPACT", business_impact),
-            ("OWNER ACTION", owner_action),
+            (label_attacker, abuse_path),
+            (label_impact, business_impact),
+            (label_action, owner_action),
         ]
         if evidence_to_collect:
-            blocks.append(("EVIDENCE TO COLLECT", evidence_to_collect))
+            blocks.append((label_evidence, evidence_to_collect))
         wrapped_blocks = [
             (label, pdf_wrap(value or "Confirm applicability with the asset owner.", 84))
             for label, value in blocks
@@ -4737,6 +5043,22 @@ def graph_format_csv(graph: dict[str, object]) -> bytes:
 
 def report_findings_csv(report: dict[str, object]) -> bytes:
     """Export owner-ready finding context for spreadsheet review."""
+    lang = clean_language(report.get("language"))
+    owner_headers = (
+        [
+            "how_attacker_may_abuse_it",
+            "business_impact",
+            "owner_action",
+            "evidence_to_collect",
+        ]
+        if lang == DEFAULT_LANGUAGE
+        else [
+            translate_key("ui.finding.attacker", lang, "how_attacker_may_abuse_it"),
+            translate_key("ui.finding.impact", lang, "business_impact"),
+            translate_key("ui.finding.action", lang, "owner_action"),
+            translate_key("ui.finding.evidence", lang, "evidence_to_collect"),
+        ]
+    )
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
@@ -4744,10 +5066,7 @@ def report_findings_csv(report: dict[str, object]) -> bytes:
         "level",
         "title",
         "detail",
-        "how_attacker_may_abuse_it",
-        "business_impact",
-        "owner_action",
-        "evidence_to_collect",
+        *owner_headers,
         "root_cause",
     ])
     for item in report.get("findings", []) or []:
@@ -5109,6 +5428,12 @@ class Handler(SimpleHTTPRequestHandler):
         if length > limit:
             raise ValueError("Request body is too large.")
         return self.rfile.read(length) if length else b""
+
+    def request_language(self, parsed: object | None = None) -> str:
+        query = dict(parse_qsl(getattr(parsed, "query", ""), keep_blank_values=True)) if parsed else {}
+        if query.get("lang"):
+            return clean_language(query.get("lang"))
+        return clean_language(self.headers.get("Accept-Language", DEFAULT_LANGUAGE))
 
     def session_id(self) -> str | None:
         cookie = self.headers.get("Cookie", "")
@@ -5946,6 +6271,10 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/i18n/"):
+            lang = clean_language(parsed.path.rsplit("/", 1)[-1])
+            self.send_json(load_locale(lang))
+            return
         if parsed.path in {"/login", "/register", "/forgot-password"}:
             if self.authenticated_user_row():
                 self.send_redirect("/")
@@ -6116,6 +6445,7 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/session":
             user, headers = self.get_or_create_user()
+            lang = self.request_language(parsed)
             self.send_json({
                 "user": public_user(user),
                 "reports": self.visible_reports_for_user(user),
@@ -6128,6 +6458,8 @@ class Handler(SimpleHTTPRequestHandler):
                     "pro": {"price": "19", "monitors": 5},
                     "agency": {"price": "79", "monitors": 25},
                 },
+                "language": lang,
+                "translations": load_locale(lang).get("ui", {}),
                 "checkout_configured": bool(os.getenv("OSINTPRO_STRIPE_PRO_URL") or os.getenv("OSINTPRO_STRIPE_AGENCY_URL")),
             }, headers=headers)
             return
@@ -6308,12 +6640,13 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/html"):
             user, headers = self.get_or_create_user()
+            lang = self.request_language(parsed)
             report_id = parsed.path.split("/")[3]
             report = self.fetch_report(str(user["_id"]), report_id)
             if not report:
                 self.send_json({"error": "Report not found"}, 404, headers)
                 return
-            self.send_html(report_document(report), headers=headers)
+            self.send_html(report_document(translate_report(report, lang)), headers=headers)
             return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/repository.json"):
             user, headers = self.get_or_create_user()
@@ -6364,12 +6697,13 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/pdf"):
             user, headers = self.get_or_create_user()
+            lang = self.request_language(parsed)
             report_id = parsed.path.split("/")[3]
             report = self.fetch_report(str(user["_id"]), report_id)
             if not report:
                 self.send_json({"error": "Report not found"}, 404, headers)
                 return
-            body = report_pdf(report)
+            body = report_pdf(translate_report(report, lang))
             self.send_download(
                 body,
                 "application/pdf",
@@ -6379,12 +6713,13 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path.startswith("/api/reports/") and parsed.path.endswith("/findings.csv"):
             user, headers = self.get_or_create_user()
+            lang = self.request_language(parsed)
             report_id = parsed.path.split("/")[3]
             report = self.fetch_report(str(user["_id"]), report_id)
             if not report:
                 self.send_json({"error": "Report not found"}, 404, headers)
                 return
-            body = report_findings_csv(report)
+            body = report_findings_csv(translate_report(report, lang))
             self.send_download(
                 body,
                 "text/csv; charset=utf-8",
@@ -6952,6 +7287,7 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 body = self.read_json()
                 target = str(body.get("target", ""))
+                lang = clean_language(body.get("lang"))
                 folder_id = clean_folder_id(body.get("folder_id"))
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
@@ -6979,7 +7315,7 @@ class Handler(SimpleHTTPRequestHandler):
                     prepare_session_report_storage(connection, user, "reports")
                     store_report(connection, str(user["_id"]), report, folder_id)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
-                self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
+                self.send_json({"report": translate_report(report, lang), "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
             except Exception:

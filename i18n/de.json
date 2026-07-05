@@ -1,0 +1,168 @@
+{
+  "ui": {
+    "language.label": "Sprache",
+    "language.en": "Englisch",
+    "language.it": "Italienisch",
+    "language.es": "Spanisch",
+    "language.fr": "Franzoesisch",
+    "language.de": "Deutsch",
+    "language.pt": "Portugiesisch",
+    "nav.dashboard": "Dashboard",
+    "nav.cases": "Faelle",
+    "nav.graph": "Entity Graph",
+    "nav.domain": "Domain Intel",
+    "nav.social": "Social Intel",
+    "nav.wallet": "Wallet Trace",
+    "nav.web": "Web Audit Lab",
+    "nav.repo": "Repo Audit Lab",
+    "nav.network": "Network Lab",
+    "nav.game": "Game Security Lab",
+    "nav.history": "Historie",
+    "nav.monitoring": "Monitoring",
+    "nav.billing": "Abrechnung",
+    "nav.api": "API Vorschau",
+    "nav.account": "Account",
+    "hero.pill": "Passive Intelligence Workspace",
+    "hero.title": "Oeffentliche Beweise abbilden. Kundentaugliches Dossier liefern.",
+    "hero.body": "OSINTPRO verbindet Domain-, Repository-, Username- und Wallet-Signale zu einem belastbaren Untersuchungsgraphen mit Reports, Exporten und Monitoring.",
+    "hero.analyze": "Domain analysieren",
+    "hero.graph": "Graph oeffnen",
+    "export.pdf": "PDF Report",
+    "export.csv": "Findings CSV",
+    "toast.downloaded": "Export heruntergeladen",
+    "finding.attacker": "Wie ein Angreifer es missbrauchen koennte",
+    "finding.impact": "Geschaeftsauswirkung",
+    "finding.action": "Massnahme fuer Betreiber",
+    "finding.evidence": "Zu sammelnde Belege"
+  },
+  "findings": {
+    "security_header_missing": {
+      "title": "Sicherheitsheader fehlt",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "spf_missing": {
+      "title": "SPF fehlt",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "dmarc_missing": {
+      "title": "DMARC fehlt",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "dmarc_policy_none": {
+      "title": "DMARC nur Monitoring",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "dmarc_rua_missing": {
+      "title": "DMARC Aggregatberichte fehlen",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "dmarc_ruf_missing": {
+      "title": "DMARC Forensikberichte nicht konfiguriert",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "tls_rpt_missing": {
+      "title": "TLS-RPT fehlt",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "tls_expiring_soon": {
+      "title": "TLS laeuft bald ab",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "security_txt_missing": {
+      "title": "security.txt fehlt",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "caa_missing": {
+      "title": "CAA fehlt",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "dnssec_not_observed": {
+      "title": "DNSSEC nicht beobachtet",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "asn_provider_unknown": {
+      "title": "Hosting-Zuordnung unvollstaendig",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "subdomain_takeover": {
+      "title": "CNAME zu verwalteten Providern",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "wallet_dust_pattern": {
+      "title": "Dust-Transaktionsmuster",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "wallet_mixer_proximity": {
+      "title": "Nahe zu Mixer/Privacy-Service",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    },
+    "wallet_exchange_proximity": {
+      "title": "Nahe zu Exchange/Service",
+      "description": "Oeffentliches Signal, das im autorisierten Kontext des Betreibers geprueft werden muss.",
+      "attacker_abuse": "Ein Angreifer koennte es mit anderen sichtbaren Schwaechen kombinieren, um Imitation, Missbrauch oder operative Verwirrung zu erhoehen.",
+      "business_impact": "Das Hauptrisiko sind langsamere Reaktion, Vertrauensverlust, Markenmissbrauch oder Datenexposition, falls weitere Schwachstellen bestehen.",
+      "owner_action": "Technischen Owner festlegen, aktuelle Konfiguration validieren, Korrektur planen und Regressionstest ergaenzen.",
+      "evidence_to_collect": "Oeffentliche Records, Service-Owner, verfuegbare Logs, Screenshots und Freigaben des Massnahmenplans sammeln."
+    }
+  }
+}

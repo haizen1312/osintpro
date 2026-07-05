@@ -1,0 +1,168 @@
+{
+  "ui": {
+    "language.label": "Lingua",
+    "language.en": "Inglese",
+    "language.it": "Italiano",
+    "language.es": "Spagnolo",
+    "language.fr": "Francese",
+    "language.de": "Tedesco",
+    "language.pt": "Portoghese",
+    "nav.dashboard": "Dashboard",
+    "nav.cases": "Casi",
+    "nav.graph": "Grafo entita",
+    "nav.domain": "Intel dominio",
+    "nav.social": "Intel social",
+    "nav.wallet": "Traccia wallet",
+    "nav.web": "Web Audit Lab",
+    "nav.repo": "Repo Audit Lab",
+    "nav.network": "Network Lab",
+    "nav.game": "Game Security Lab",
+    "nav.history": "Storico",
+    "nav.monitoring": "Monitoraggio",
+    "nav.billing": "Abbonamenti",
+    "nav.api": "Anteprima API",
+    "nav.account": "Account",
+    "hero.pill": "Workspace di intelligence passiva",
+    "hero.title": "Mappa le prove pubbliche. Consegna un dossier pronto per il cliente.",
+    "hero.body": "OSINTPRO collega segnali di dominio, repository, username e wallet in un grafo investigativo difendibile con report, export e monitoraggio.",
+    "hero.analyze": "Analizza dominio",
+    "hero.graph": "Apri grafo",
+    "export.pdf": "Report PDF",
+    "export.csv": "CSV finding",
+    "toast.downloaded": "Export scaricato",
+    "finding.attacker": "Come potrebbe abusarne un attaccante",
+    "finding.impact": "Impatto business",
+    "finding.action": "Azione per il proprietario",
+    "finding.evidence": "Evidenze da raccogliere"
+  },
+  "findings": {
+    "security_header_missing": {
+      "title": "Header di sicurezza mancante",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "spf_missing": {
+      "title": "SPF mancante",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "dmarc_missing": {
+      "title": "DMARC mancante",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "dmarc_policy_none": {
+      "title": "DMARC solo monitoraggio",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "dmarc_rua_missing": {
+      "title": "Report aggregati DMARC mancanti",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "dmarc_ruf_missing": {
+      "title": "Report forensi DMARC non configurati",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "tls_rpt_missing": {
+      "title": "TLS-RPT mancante",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "tls_expiring_soon": {
+      "title": "TLS in scadenza",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "security_txt_missing": {
+      "title": "security.txt mancante",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "caa_missing": {
+      "title": "CAA mancante",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "dnssec_not_observed": {
+      "title": "DNSSEC non osservato",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "asn_provider_unknown": {
+      "title": "Attribuzione hosting incompleta",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "subdomain_takeover": {
+      "title": "CNAME verso provider gestiti",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "wallet_dust_pattern": {
+      "title": "Pattern di transazioni dust",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "wallet_mixer_proximity": {
+      "title": "Prossimita a mixer/privacy",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    },
+    "wallet_exchange_proximity": {
+      "title": "Prossimita a exchange/servizio",
+      "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
+      "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
+      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+    }
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "ui": {
+    "language.label": "Langue",
+    "language.en": "Anglais",
+    "language.it": "Italien",
+    "language.es": "Espagnol",
+    "language.fr": "Francais",
+    "language.de": "Allemand",
+    "language.pt": "Portugais",
+    "nav.dashboard": "Tableau",
+    "nav.cases": "Dossiers",
+    "nav.graph": "Graphe entites",
+    "nav.domain": "Intel domaine",
+    "nav.social": "Intel social",
+    "nav.wallet": "Trace wallet",
+    "nav.web": "Web Audit Lab",
+    "nav.repo": "Repo Audit Lab",
+    "nav.network": "Network Lab",
+    "nav.game": "Game Security Lab",
+    "nav.history": "Historique",
+    "nav.monitoring": "Surveillance",
+    "nav.billing": "Facturation",
+    "nav.api": "Apercu API",
+    "nav.account": "Compte",
+    "hero.pill": "Espace intelligence passive",
+    "hero.title": "Cartographiez les preuves publiques. Livrez un dossier client.",
+    "hero.body": "OSINTPRO relie les signaux domaine, depot, identifiant et wallet dans un graphe defensible avec rapports, exports et surveillance.",
+    "hero.analyze": "Analyser domaine",
+    "hero.graph": "Ouvrir graphe",
+    "export.pdf": "Rapport PDF",
+    "export.csv": "CSV findings",
+    "toast.downloaded": "Export telecharge",
+    "finding.attacker": "Comment un attaquant pourrait en abuser",
+    "finding.impact": "Impact metier",
+    "finding.action": "Action proprietaire",
+    "finding.evidence": "Preuves a collecter"
+  },
+  "findings": {
+    "security_header_missing": {
+      "title": "En-tete de securite absent",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "spf_missing": {
+      "title": "SPF absent",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "dmarc_missing": {
+      "title": "DMARC absent",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "dmarc_policy_none": {
+      "title": "DMARC en surveillance seule",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "dmarc_rua_missing": {
+      "title": "Rapports agreges DMARC absents",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "dmarc_ruf_missing": {
+      "title": "Rapports forensiques DMARC non configures",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "tls_rpt_missing": {
+      "title": "TLS-RPT absent",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "tls_expiring_soon": {
+      "title": "TLS proche expiration",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "security_txt_missing": {
+      "title": "security.txt absent",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "caa_missing": {
+      "title": "CAA absent",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "dnssec_not_observed": {
+      "title": "DNSSEC non observe",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "asn_provider_unknown": {
+      "title": "Attribution hebergement incomplete",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "subdomain_takeover": {
+      "title": "CNAME vers fournisseurs geres",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "wallet_dust_pattern": {
+      "title": "Modele de transactions dust",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "wallet_mixer_proximity": {
+      "title": "Proximite mixer/confidentialite",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    },
+    "wallet_exchange_proximity": {
+      "title": "Proximite exchange/service",
+      "description": "Signal public a verifier dans le contexte autorise du proprietaire.",
+      "attacker_abuse": "Un attaquant pourrait le combiner avec autres faiblesses observables pour augmenter usurpation, abus ou confusion operationnelle.",
+      "business_impact": "Le risque principal est un retard de reponse, perte de confiance, abus de marque ou exposition de donnees si autres conditions vulnerables existent.",
+      "owner_action": "Attribuer un responsable technique, valider la configuration actuelle, planifier la correction et ajouter un test de regression.",
+      "evidence_to_collect": "Collecter enregistrements publics, proprietaire du service, journaux disponibles, captures et notes de validation du plan."
+    }
+  }
+}

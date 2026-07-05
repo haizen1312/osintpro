@@ -17,11 +17,73 @@ const state = {
   featureFlags: {},
   metrics: null,
   shownUpsells: new Set(),
-  trackedSections: new Set()
+  trackedSections: new Set(),
+  language: localStorage.getItem("osintpro-language") || "en",
+  translations: {}
 };
 
 if (localStorage.getItem("op-performance-mode") === "on") {
   document.body.classList.add("performance-mode");
+}
+
+function t(key, fallback = "") {
+  return state.translations?.[key] || fallback || key;
+}
+
+function langParam(url) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}lang=${encodeURIComponent(state.language)}`;
+}
+
+async function loadTranslations(lang = state.language) {
+  const response = await fetch(`/api/i18n/${encodeURIComponent(lang)}`);
+  if (!response.ok) return;
+  const payload = await response.json();
+  state.language = payload.ui ? lang : "en";
+  state.translations = payload.ui || {};
+  localStorage.setItem("osintpro-language", state.language);
+}
+
+function applyTranslations() {
+  const textMap = {
+    "#languageLabel": ["language.label", "Language"],
+    "[data-section='dashboard']": ["nav.dashboard", "Dashboard"],
+    "[data-section='cases']": ["nav.cases", "Cases"],
+    "[data-section='schema']": ["nav.graph", "Entity Graph"],
+    "[data-section='scan']": ["nav.domain", "Domain Intel"],
+    "[data-section='social']": ["nav.social", "Social Intel"],
+    "[data-section='wallet']": ["nav.wallet", "Wallet Trace"],
+    "[data-section='web-audit']": ["nav.web", "Web Audit Lab"],
+    "[data-section='repo-audit']": ["nav.repo", "Repo Audit Lab"],
+    "[data-section='network-lab']": ["nav.network", "Network Lab"],
+    "[data-section='game-security']": ["nav.game", "Game Security Lab"],
+    "[data-section='reports']": ["nav.history", "History"],
+    "[data-section='monitoring']": ["nav.monitoring", "Monitoring"],
+    "[data-section='billing']": ["nav.billing", "Billing"],
+    "[data-section='api-preview']": ["nav.api", "API Preview"],
+    "[data-section='account']": ["nav.account", "Account"],
+    ".hero .pill": ["hero.pill", "Passive intelligence workspace"],
+    ".hero h1": ["hero.title", "Map public evidence. Ship a client-ready dossier."],
+    ".hero-copy > p": ["hero.body", "OSINTPRO connects domain, repository, username and wallet signals into a defensible investigation graph with reports, exports and monitoring built in."],
+    "[data-section-jump='scan'].primary": ["hero.analyze", "Analyze domain"],
+    "[data-section-jump='schema'].secondary": ["hero.graph", "Open graph"]
+  };
+  Object.entries(textMap).forEach(([selector, [key, fallback]]) => {
+    const node = document.querySelector(selector);
+    if (node) node.textContent = t(key, fallback);
+  });
+  document.querySelectorAll("#languageSelect option").forEach(option => {
+    option.textContent = t(`language.${option.value}`, option.textContent);
+  });
+}
+
+async function setLanguage(lang) {
+  await loadTranslations(lang);
+  const selector = document.querySelector("#languageSelect");
+  if (selector) selector.value = state.language;
+  applyTranslations();
+  await loadSession();
+  showToast(`${t("language.label", "Language")}: ${state.language.toUpperCase()}`);
 }
 
 function startSignalCanvas() {
@@ -485,10 +547,10 @@ function renderFindings(findings = []) {
       <p>${escapeHtml(item.detail)}</p>
       ${item.abuse_path ? `
         <div class="abuse-brief">
-          <p><b>How an attacker may abuse it:</b> ${escapeHtml(item.abuse_path)}</p>
-          <p><b>Business impact:</b> ${escapeHtml(item.business_impact || "Impact depends on reachability, privilege and exposed data.")}</p>
-          <p><b>Owner action:</b> ${escapeHtml(item.owner_action || "Confirm applicability, assign an owner and track remediation.")}</p>
-          <p><b>Evidence to collect:</b> ${escapeHtml(item.evidence_to_collect || "Collect logs, ownership context and current configuration.")}</p>
+          <p><b>${escapeHtml(t("finding.attacker", "How an attacker may abuse it"))}:</b> ${escapeHtml(item.abuse_path)}</p>
+          <p><b>${escapeHtml(t("finding.impact", "Business impact"))}:</b> ${escapeHtml(item.business_impact || "Impact depends on reachability, privilege and exposed data.")}</p>
+          <p><b>${escapeHtml(t("finding.action", "Owner action"))}:</b> ${escapeHtml(item.owner_action || "Confirm applicability, assign an owner and track remediation.")}</p>
+          <p><b>${escapeHtml(t("finding.evidence", "Evidence to collect"))}:</b> ${escapeHtml(item.evidence_to_collect || "Collect logs, ownership context and current configuration.")}</p>
         </div>
       ` : ""}
     </div>
@@ -571,6 +633,21 @@ function webAuditCommands(domain) {
       title: "Certificate authority policy",
       command: `dig CAA ${safe} +short`,
       explain: "Checks whether the domain restricts which certificate authorities can issue TLS certificates."
+    },
+    {
+      title: "Sensitive page cache policy",
+      command: `curl -I https://${safe}/login | grep -i "cache-control\\|pragma"`,
+      explain: "Reads cache headers on a likely sensitive page. Owners should verify authenticated pages use no-store where appropriate."
+    },
+    {
+      title: "Cookie flags",
+      command: `curl -I https://${safe} | grep -i "set-cookie"`,
+      explain: "Checks whether cookies advertise Secure, HttpOnly and SameSite flags. It does not authenticate or collect private cookies."
+    },
+    {
+      title: "CORS preflight posture",
+      command: `curl -i -X OPTIONS https://${safe} -H "Origin: https://example.org" -H "Access-Control-Request-Method: GET"`,
+      explain: "Sends a read-only preflight request to understand cross-origin policy. Do not use it to bypass access control."
     }
   ];
 }
@@ -630,7 +707,10 @@ function networkLabFilters(domain, ips = []) {
     { filter: `ip.addr == ${firstIp}`, use: "Show packets between your device and the resolved server IP." },
     { filter: `tcp.port == 443`, use: "Focus on HTTPS transport traffic." },
     { filter: `tls.handshake.extensions_server_name == "${safe}"`, use: "Find the TLS Client Hello that contains the public SNI host name." },
-    { filter: `http.host == "${safe}"`, use: "Useful only for plain HTTP traffic. HTTPS content stays encrypted." }
+    { filter: `http.host == "${safe}"`, use: "Useful only for plain HTTP traffic. HTTPS content stays encrypted." },
+    { filter: "dns && frame.time_delta > 5", use: "Look for slow, repeated DNS lookups that may deserve review as beaconing indicators in your own traffic." },
+    { filter: "dns.qry.name.len > 50", use: "Conceptual DNS tunneling indicator: unusually long query names can be worth review in an authorized capture." },
+    { filter: "tcp.analysis.retransmission || tcp.analysis.lost_segment", use: "Find network reliability noise before blaming an application security control." }
   ];
 }
 
@@ -741,7 +821,9 @@ function renderNetworkLab(report) {
     ["TLS", "The encryption layer used by HTTPS. It protects page content and credentials."],
     ["SNI", "Server Name Indication. A TLS field that tells the server which public host name is being requested."],
     ["HTTP header", "Readable metadata sent before the page body, such as security policy and server hints."],
-    ["Display filter", "A Wireshark search expression that hides unrelated packets without changing the capture."]
+    ["Display filter", "A Wireshark search expression that hides unrelated packets without changing the capture."],
+    ["Beaconing", "Repeated outbound traffic at a rhythm. It can be normal telemetry or a command-and-control indicator, depending on owner-approved context."],
+    ["DNS tunneling", "Encoding data inside DNS queries. OSINTPRO only explains indicators; confirm with authorized packet capture and DNS logs."]
   ];
 
   document.querySelector("#networkLabResult").className = "result";
@@ -1263,6 +1345,18 @@ function renderWebAuditLab(report) {
       risk: "A third-party site may trigger state-changing actions in a logged-in browser.",
       safe: "Check SameSite cookies, CSRF tokens and whether state-changing routes require POST plus server-side validation.",
       blocked: "No cross-site proof-of-concept pages."
+    },
+    {
+      title: "Insecure Deserialization",
+      risk: "A server may treat attacker-controlled data as executable objects or trusted application state.",
+      safe: "Identify endpoints that import serialized data and require safe formats, signatures and strict schemas.",
+      blocked: "No gadget chains, serialized payloads or runtime probes."
+    },
+    {
+      title: "Path Traversal",
+      risk: "A file path controlled by a user may escape the intended folder.",
+      safe: "Document file download/upload routes and require canonical paths, fixed base directories and allowlisted IDs.",
+      blocked: "No traversal strings or attempts to read system files."
     }
   ];
   const glossary = [
@@ -1275,7 +1369,10 @@ function renderWebAuditLab(report) {
     ["HSTS", "Strict-Transport-Security. A rule telling browsers to always use HTTPS for the domain."],
     ["Repeater", "A Burp Suite feature for manually resending one request to understand how the server responds."],
     ["Scanner", "An automated testing feature. OSINTPRO does not run invasive scanner traffic; it turns passive evidence into a checklist."],
-    ["Intruder", "A Burp Suite feature often used for repeated payloads. OSINTPRO does not include this because it can become brute force."]
+    ["Intruder", "A Burp Suite feature often used for repeated payloads. OSINTPRO does not include this because it can become brute force."],
+    ["SSRF", "Server-Side Request Forgery. A server fetches a URL; the defense is strict allowlists, private-IP blocking and outbound monitoring."],
+    ["Path traversal", "A file path escapes its intended directory. Defenses include canonicalization, allowlisted IDs and fixed storage roots."],
+    ["Deserialization", "Turning stored data back into objects. Unsafe formats can execute behavior; prefer JSON plus schema validation."]
   ];
 
   document.querySelector("#webAuditResult").className = "result";
@@ -2292,7 +2389,7 @@ function trackEvent(event, { plan = null, source = "app", metadata = {} } = {}) 
 }
 
 async function loadSession() {
-  const data = await api("/api/session");
+  const data = await api(langParam("/api/session"));
   state.user = data.user;
   state.reports = data.reports;
   state.socialReports = data.social_reports;
@@ -2300,6 +2397,7 @@ async function loadSession() {
   state.monitors = data.monitors;
   state.folders = data.folders || [];
   state.playbooks = data.playbooks || [];
+  state.translations = data.translations || state.translations;
   state.checkoutConfigured = data.checkout_configured;
   await loadFeatureFlags();
   await loadMetrics();
@@ -2310,6 +2408,7 @@ async function loadSession() {
   renderWalletReports();
   renderMonitors();
   await loadWorkspace();
+  applyTranslations();
 }
 
 async function checkApi() {
@@ -2340,7 +2439,7 @@ async function analyze(target) {
   try {
     const data = await api("/api/analyze", {
       method: "POST",
-      body: JSON.stringify({ target, folder_id: activeFolderId() })
+      body: JSON.stringify({ target, folder_id: activeFolderId(), lang: state.language })
     });
 
     state.user = data.user;
@@ -2384,7 +2483,7 @@ async function buildWebAuditLab(target) {
   try {
     const data = await api("/api/analyze", {
       method: "POST",
-      body: JSON.stringify({ target, folder_id: activeFolderId() })
+      body: JSON.stringify({ target, folder_id: activeFolderId(), lang: state.language })
     });
     state.user = data.user;
     state.reports.unshift({
@@ -2427,7 +2526,7 @@ async function buildNetworkLab(target) {
   try {
     const data = await api("/api/analyze", {
       method: "POST",
-      body: JSON.stringify({ target, folder_id: activeFolderId() })
+      body: JSON.stringify({ target, folder_id: activeFolderId(), lang: state.language })
     });
     state.user = data.user;
     state.reports.unshift({
@@ -2779,7 +2878,7 @@ document.addEventListener("click", async event => {
   const download = event.target.closest("[data-download]");
   if (download) {
     event.preventDefault();
-    await downloadExport(download.href, download.getAttribute("download") || "osintpro-export");
+    await downloadExport(langParam(download.href), download.getAttribute("download") || "osintpro-export");
     return;
   }
 
@@ -2982,9 +3081,20 @@ document.querySelector("#performanceToggle").textContent = document.body.classLi
   ? "Visual mode"
   : "Eco mode";
 
+document.querySelector("#languageSelect")?.addEventListener("change", event => {
+  setLanguage(event.target.value).catch(error => showToast(error.message, true));
+});
+
 startSignalCanvas();
 checkApi();
-loadSession().catch(error => {
+loadTranslations(state.language)
+  .then(() => {
+    const selector = document.querySelector("#languageSelect");
+    if (selector) selector.value = state.language;
+    applyTranslations();
+    return loadSession();
+  })
+  .catch(error => {
   document.querySelector("#apiStatus").textContent = "offline";
   document.querySelector("#result").className = "result empty";
   document.querySelector("#result").innerHTML = `<h2 class="error">Error</h2><p>${escapeHtml(error.message)}</p>`;

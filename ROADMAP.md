@@ -10,7 +10,7 @@ Web Audit Lab, Repository Audit Lab, Network Traffic Lab, Social OSINT and Walle
 
 ## Current Focus
 
-- Keep the core app fast, readable and fully English.
+- Keep the core app fast, readable and localized without relying on machine-translation widgets.
 - Improve account-level workspace organization.
 - Expand passive wallet OSINT for fraud reconstruction.
 - Strengthen exports and case-ready reporting.
@@ -39,6 +39,17 @@ case summaries, entity graph filters, JSON-LD/DOT/CSV graph export, a cleaner
 command/evidence/labs/operations dashboard and dual-mode Network Traffic Lab
 are implemented. Auth is now split across dedicated login, register, password
 reset and security settings pages.
+
+### Internationalization
+
+- Maintain first-party translations for UI chrome and structured findings.
+- Keep English as the fallback language when a localized key is missing.
+- Make PDF/CSV exports respect the active report language.
+
+Status: English, Italian, Spanish, French, German and Portuguese translation
+files are implemented for the main UI chrome and owner-ready finding templates.
+The language switcher persists in localStorage, the backend translates reports
+by `template_id`, and exports can be generated in the active language.
 
 ### Game Security Lab
 
@@ -91,8 +102,9 @@ without exploit procedure.
 Status: the defensive static-analysis MVP is implemented with JSON/SARIF
 exports, confidence filtering, `.gitignore` support and persisted redacted
 audit reports. It now includes offline dependency advisory matching for common
-manifest files. It does not execute source code, install dependencies or retain
-uploaded source bundles.
+manifest files, insecure randomness checks, unsafe load/deserialization leads,
+legacy hash detection and path traversal review leads. It does not execute
+source code, install dependencies or retain uploaded source bundles.
 
 ### Monetization
 
@@ -147,7 +159,7 @@ documented in `POSTGRES_MIGRATION.md`.
 - Conversion analytics are first-party event counts, not a full experiment
   dashboard.
 - Standard-library trace currently covers about 59.48% of the monolithic
-  backend with 49 tests. The graph/SARIF/export/security/admin/cron/growth/API
+  backend with 59 tests. The graph/SARIF/export/security/admin/cron/growth/API
   and webhook paths are covered, but reaching 70% honestly requires more
   fixtures around monitoring, network edge cases and route handlers or a deeper
   backend extraction.

@@ -1,0 +1,168 @@
+{
+  "ui": {
+    "language.label": "Idioma",
+    "language.en": "Ingles",
+    "language.it": "Italiano",
+    "language.es": "Espanhol",
+    "language.fr": "Frances",
+    "language.de": "Alemao",
+    "language.pt": "Portugues",
+    "nav.dashboard": "Painel",
+    "nav.cases": "Casos",
+    "nav.graph": "Grafo de entidades",
+    "nav.domain": "Intel dominio",
+    "nav.social": "Intel social",
+    "nav.wallet": "Rastreio wallet",
+    "nav.web": "Web Audit Lab",
+    "nav.repo": "Repo Audit Lab",
+    "nav.network": "Network Lab",
+    "nav.game": "Game Security Lab",
+    "nav.history": "Historico",
+    "nav.monitoring": "Monitoramento",
+    "nav.billing": "Planos",
+    "nav.api": "Previa API",
+    "nav.account": "Conta",
+    "hero.pill": "Workspace de inteligencia passiva",
+    "hero.title": "Mapeie evidencias publicas. Entregue um dossie pronto para cliente.",
+    "hero.body": "OSINTPRO conecta sinais de dominio, repositorio, username e wallet em um grafo defensavel com relatorios, exports e monitoramento.",
+    "hero.analyze": "Analisar dominio",
+    "hero.graph": "Abrir grafo",
+    "export.pdf": "Relatorio PDF",
+    "export.csv": "CSV findings",
+    "toast.downloaded": "Export baixado",
+    "finding.attacker": "Como um atacante poderia abusar",
+    "finding.impact": "Impacto de negocio",
+    "finding.action": "Acao do proprietario",
+    "finding.evidence": "Evidencias a coletar"
+  },
+  "findings": {
+    "security_header_missing": {
+      "title": "Cabecalho de seguranca ausente",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "spf_missing": {
+      "title": "SPF ausente",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "dmarc_missing": {
+      "title": "DMARC ausente",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "dmarc_policy_none": {
+      "title": "DMARC apenas monitoramento",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "dmarc_rua_missing": {
+      "title": "Relatorios agregados DMARC ausentes",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "dmarc_ruf_missing": {
+      "title": "Relatorios forenses DMARC nao configurados",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "tls_rpt_missing": {
+      "title": "TLS-RPT ausente",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "tls_expiring_soon": {
+      "title": "TLS perto de expirar",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "security_txt_missing": {
+      "title": "security.txt ausente",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "caa_missing": {
+      "title": "CAA ausente",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "dnssec_not_observed": {
+      "title": "DNSSEC nao observado",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "asn_provider_unknown": {
+      "title": "Atribuicao de hospedagem incompleta",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "subdomain_takeover": {
+      "title": "CNAME para provedores gerenciados",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "wallet_dust_pattern": {
+      "title": "Padrao de transacoes dust",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "wallet_mixer_proximity": {
+      "title": "Proximidade a mixer/privacidade",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    },
+    "wallet_exchange_proximity": {
+      "title": "Proximidade a exchange/servico",
+      "description": "Sinal publico que deve ser verificado no contexto autorizado do proprietario.",
+      "attacker_abuse": "Um atacante poderia combina-lo com outras fraquezas observaveis para aumentar personificacao, abuso ou confusao operacional.",
+      "business_impact": "O risco principal e atraso de resposta, perda de confianca, abuso de marca ou exposicao de dados se existirem outras condicoes vulneraveis.",
+      "owner_action": "Atribua um responsavel tecnico, valide a configuracao atual, planeje a correcao e adicione teste de regressao.",
+      "evidence_to_collect": "Colete registros publicos, dono do servico, logs disponiveis, screenshots e notas de aprovacao do plano."
+    }
+  }
+}

@@ -47,6 +47,7 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 - Passive technology fingerprinting from headers and web signals.
 - Risk findings, vulnerability hypotheses and Red/Purple Team recommendations derived only from passive evidence.
 - Realistic abuse context for each finding: how an attacker may benefit, likely business impact, evidence to collect and owner action.
+- Six-language interface and finding/report localization: English, Italian, Spanish, French, German and Portuguese with English fallback.
 - Web Audit Lab: Burp-style beginner workflow with safe commands, evidence checklist and technical glossary.
 - Repository Audit Lab: static source review with file/line evidence, confidence, applicability and remediation without executing uploaded code.
 - Network Traffic Lab: Wireshark-style website traffic mode plus own-network mode for local authorized LAN analysis.
@@ -170,6 +171,7 @@ Current public traction as of June 23, 2026:
 - Entity graph export as JSON-LD, Graphviz DOT and CSV edge list.
 - Server-side PDF export plus CSV exports for reports, wallet history and Web Audit Lab checklists.
 - Per-report findings CSV export with attacker-abuse context, business impact and owner action columns.
+- Active-language PDF/CSV exports for translated finding content.
 - Guest exports retain only the latest session report and show browser download feedback.
 - Report comparison for repeated domain reports.
 - Saved Web Audit Lab playbooks for repeatable beginner-safe reviews.
