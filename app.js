@@ -18,10 +18,14 @@ const state = {
   metrics: null,
   shownUpsells: new Set(),
   trackedSections: new Set(),
+  translationRequestId: 0,
   language: localStorage.getItem("osintpro-language") || "en",
   translations: {},
   staticTranslations: {}
 };
+
+const originalTextNodes = new WeakMap();
+const originalAttrValues = new WeakMap();
 
 if (localStorage.getItem("op-performance-mode") === "on") {
   document.body.classList.add("performance-mode");
@@ -37,13 +41,34 @@ function langParam(url) {
 }
 
 async function loadTranslations(lang = state.language) {
-  const response = await fetch(`/api/i18n/${encodeURIComponent(lang)}`);
-  if (!response.ok) return;
-  const payload = await response.json();
-  state.language = payload.ui ? lang : "en";
-  state.translations = payload.ui || {};
-  state.staticTranslations = payload.static || {};
+  const requestedLanguage = String(lang || "en").slice(0, 2).toLowerCase();
+  const requestId = state.translationRequestId + 1;
+  state.translationRequestId = requestId;
+
+  const englishResponse = await fetch("/api/i18n/en");
+  const targetResponse = requestedLanguage === "en"
+    ? englishResponse
+    : await fetch(`/api/i18n/${encodeURIComponent(requestedLanguage)}`);
+  if (!englishResponse.ok || !targetResponse.ok) return false;
+
+  const englishPayload = await englishResponse.json();
+  const targetPayload = requestedLanguage === "en"
+    ? englishPayload
+    : await targetResponse.json();
+  if (requestId !== state.translationRequestId) return false;
+
+  const activeLanguage = targetPayload.ui ? requestedLanguage : "en";
+  state.language = activeLanguage;
+  state.translations = {
+    ...(englishPayload.ui || {}),
+    ...(activeLanguage === "en" ? {} : targetPayload.ui || {})
+  };
+  state.staticTranslations = {
+    ...(englishPayload.static || {}),
+    ...(activeLanguage === "en" ? {} : targetPayload.static || {})
+  };
   localStorage.setItem("osintpro-language", state.language);
+  return true;
 }
 
 function translateExactText(value) {
@@ -62,6 +87,7 @@ function applyStaticTranslations(root = document.body) {
     acceptNode(node) {
       const parent = node.parentElement;
       if (!parent || skip.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
+      if (parent.closest?.("[data-i18n]")) return NodeFilter.FILTER_REJECT;
       if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     }
@@ -69,14 +95,22 @@ function applyStaticTranslations(root = document.body) {
   const nodes = [];
   while (walker.nextNode()) nodes.push(walker.currentNode);
   nodes.forEach(node => {
-    const next = translateExactText(node.nodeValue);
+    if (!originalTextNodes.has(node)) originalTextNodes.set(node, node.nodeValue);
+    const original = originalTextNodes.get(node);
+    const next = translateExactText(original);
     if (next !== node.nodeValue) node.nodeValue = next;
   });
   root.querySelectorAll?.("[placeholder], [title], [aria-label]").forEach(node => {
     ["placeholder", "title", "aria-label"].forEach(name => {
       const value = node.getAttribute(name);
       if (!value) return;
-      const next = translateExactText(value);
+      let originals = originalAttrValues.get(node);
+      if (!originals) {
+        originals = {};
+        originalAttrValues.set(node, originals);
+      }
+      if (!Object.prototype.hasOwnProperty.call(originals, name)) originals[name] = value;
+      const next = translateExactText(originals[name]);
       if (next !== value) node.setAttribute(name, next);
     });
   });
@@ -122,7 +156,8 @@ function applyTranslations(root = document.body) {
 }
 
 async function setLanguage(lang) {
-  await loadTranslations(lang);
+  const loaded = await loadTranslations(lang);
+  if (!loaded) return;
   const selector = document.querySelector("#languageSelect");
   if (selector) selector.value = state.language;
   applyTranslations();

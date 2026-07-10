@@ -46,7 +46,16 @@
     "hero.proof.delivery_detail": "PDF reports + webhooks",
     "domain.boundary.title": "Product boundary",
     "domain.boundary.body": "Passive collection only: DNS, TLS certificate, public web posture and security headers. No aggressive scanning, exploit execution, credential attacks or brute force.",
-    "scan.run_intel": "Run intel"
+    "scan.run_intel": "Run intel",
+    "positioning.card1.badge": "Position",
+    "positioning.card1.title": "Evidence package, not raw noise",
+    "positioning.card1.body": "OSINTPRO normalizes public signals into graph nodes, findings, notes and exports that a client can actually read.",
+    "positioning.card2.badge": "Core",
+    "positioning.card2.title": "Investigation graph first",
+    "positioning.card2.body": "Domain, social, wallet, web audit and network views all feed the same case workspace instead of becoming disconnected tools.",
+    "positioning.card3.badge": "Boundary",
+    "positioning.card3.title": "Passive and sellable",
+    "positioning.card3.body": "No aggressive scanner positioning: useful for consultants, agencies and fraud analysts who need defensible public-source evidence."
   },
   "findings": {
     "security_header_missing": {

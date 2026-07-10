@@ -46,7 +46,16 @@
     "hero.proof.delivery_detail": "reportes PDF + webhooks",
     "domain.boundary.title": "Límite del producto",
     "domain.boundary.body": "Solo recolección pasiva: DNS, certificado TLS, postura web pública y cabeceras de seguridad. Sin escaneo agresivo, ejecución de exploits, ataques a credenciales ni fuerza bruta.",
-    "scan.run_intel": "Ejecutar inteligencia"
+    "scan.run_intel": "Ejecutar inteligencia",
+    "positioning.card1.badge": "Posición",
+    "positioning.card1.title": "Paquete de evidencia, no ruido sin procesar",
+    "positioning.card1.body": "OSINTPRO normaliza señales públicas en nodos de grafo, hallazgos, notas y exportaciones que un cliente puede leer de verdad.",
+    "positioning.card2.badge": "Núcleo",
+    "positioning.card2.title": "Primero el grafo de investigación",
+    "positioning.card2.body": "Las vistas de dominio, social, wallet, web audit y red alimentan el mismo workspace de caso en lugar de convertirse en herramientas desconectadas.",
+    "positioning.card3.badge": "Límite",
+    "positioning.card3.title": "Pasivo y vendible",
+    "positioning.card3.body": "Sin posicionamiento de scanner agresivo: útil para consultores, agencias y analistas de fraude que necesitan evidencia defendible de fuentes públicas."
   },
   "findings": {
     "security_header_missing": {

@@ -9,7 +9,7 @@
     "language.pt": "Portoghese",
     "nav.dashboard": "Dashboard",
     "nav.cases": "Casi",
-    "nav.graph": "Grafo entita",
+    "nav.graph": "Grafo entità",
     "nav.domain": "Intel dominio",
     "nav.social": "Intel social",
     "nav.wallet": "Traccia wallet",
@@ -46,7 +46,16 @@
     "hero.proof.delivery_detail": "report PDF + webhook",
     "domain.boundary.title": "Confine prodotto",
     "domain.boundary.body": "Raccolta solo passiva: DNS, certificato TLS, postura web pubblica e header di sicurezza. Nessuna scansione aggressiva, esecuzione di exploit, attacco alle credenziali o brute force.",
-    "scan.run_intel": "Esegui intelligence"
+    "scan.run_intel": "Esegui intelligence",
+    "positioning.card1.badge": "Posizionamento",
+    "positioning.card1.title": "Pacchetto evidenze, non rumore grezzo",
+    "positioning.card1.body": "OSINTPRO normalizza i segnali pubblici in nodi di grafo, riscontri, note ed export che un cliente può leggere davvero.",
+    "positioning.card2.badge": "Core",
+    "positioning.card2.title": "Prima il grafo investigativo",
+    "positioning.card2.body": "Dominio, social, wallet, web audit e viste di rete alimentano lo stesso workspace del caso invece di diventare strumenti scollegati.",
+    "positioning.card3.badge": "Limite",
+    "positioning.card3.title": "Passivo e vendibile",
+    "positioning.card3.body": "Nessun posizionamento da scanner aggressivo: utile per consulenti, agenzie e analisti frodi che hanno bisogno di evidenze da fonti pubbliche difendibili."
   },
   "findings": {
     "security_header_missing": {
