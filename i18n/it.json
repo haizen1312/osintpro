@@ -19,7 +19,7 @@
     "nav.game": "Game Security Lab",
     "nav.history": "Storico",
     "nav.monitoring": "Monitoraggio",
-    "nav.billing": "Abbonamenti",
+    "nav.billing": "Fatturazione",
     "nav.api": "Anteprima API",
     "nav.account": "Account",
     "hero.pill": "Workspace di intelligence passiva",
@@ -45,7 +45,8 @@
     "hero.proof.delivery": "Consegna",
     "hero.proof.delivery_detail": "report PDF + webhook",
     "domain.boundary.title": "Confine prodotto",
-    "domain.boundary.body": "Raccolta solo passiva: DNS, certificato TLS, postura web pubblica e header di sicurezza. Nessuna scansione aggressiva, esecuzione di exploit, attacco alle credenziali o brute force."
+    "domain.boundary.body": "Raccolta solo passiva: DNS, certificato TLS, postura web pubblica e header di sicurezza. Nessuna scansione aggressiva, esecuzione di exploit, attacco alle credenziali o brute force.",
+    "scan.run_intel": "Esegui intelligence"
   },
   "findings": {
     "security_header_missing": {

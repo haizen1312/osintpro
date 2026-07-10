@@ -18,7 +18,7 @@
     "nav.network": "Network Lab",
     "nav.game": "Game Security Lab",
     "nav.history": "Historie",
-    "nav.monitoring": "Monitoring",
+    "nav.monitoring": "Überwachung",
     "nav.billing": "Abrechnung",
     "nav.api": "API Vorschau",
     "nav.account": "Konto",
@@ -45,7 +45,8 @@
     "hero.proof.delivery": "Lieferung",
     "hero.proof.delivery_detail": "PDF-Berichte + Webhooks",
     "domain.boundary.title": "Produktgrenze",
-    "domain.boundary.body": "Nur passive Erhebung: DNS, TLS-Zertifikat, öffentliche Web-Posture und Security-Header. Kein aggressives Scanning, keine Exploit-Ausführung, keine Credential-Angriffe und kein Brute Force."
+    "domain.boundary.body": "Nur passive Erhebung: DNS, TLS-Zertifikat, öffentliche Web-Posture und Security-Header. Kein aggressives Scanning, keine Exploit-Ausführung, keine Credential-Angriffe und kein Brute Force.",
+    "scan.run_intel": "Intel ausführen"
   },
   "findings": {
     "security_header_missing": {

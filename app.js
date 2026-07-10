@@ -2504,7 +2504,7 @@ async function analyze(target) {
     document.querySelector("#result").innerHTML = `<h2 class="error">Error</h2><p>${escapeHtml(error.message)}</p>`;
   } finally {
     button.disabled = false;
-    button.textContent = "Run intel";
+    button.textContent = t("scan.run_intel", "Run intel");
     setLiveSignal("passive sensors idle");
   }
 }

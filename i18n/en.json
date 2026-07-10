@@ -45,7 +45,8 @@
     "hero.proof.delivery": "Delivery",
     "hero.proof.delivery_detail": "PDF reports + webhooks",
     "domain.boundary.title": "Product boundary",
-    "domain.boundary.body": "Passive collection only: DNS, TLS certificate, public web posture and security headers. No aggressive scanning, exploit execution, credential attacks or brute force."
+    "domain.boundary.body": "Passive collection only: DNS, TLS certificate, public web posture and security headers. No aggressive scanning, exploit execution, credential attacks or brute force.",
+    "scan.run_intel": "Run intel"
   },
   "findings": {
     "security_header_missing": {
