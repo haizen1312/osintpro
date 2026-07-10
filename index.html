@@ -8,7 +8,7 @@
   <meta name="keywords" content="passive OSINT, domain intelligence, web audit, brand monitoring, wallet OSINT, blockchain tracing, threat intelligence">
   <title>OSINTPRO Intelligence Workspace</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=20260705b">
+  <link rel="stylesheet" href="styles.css?v=20260705d">
 </head>
 <body>
   <canvas id="signalCanvas" aria-hidden="true"></canvas>
@@ -38,20 +38,20 @@
       </button>
 
       <nav class="nav" id="primaryNavigation" aria-label="Primary navigation">
-        <span class="nav-label">Command</span>
+        <span class="nav-label" data-i18n="nav.group.command" data-i18n-fallback="Command">Command</span>
         <button class="nav-btn active" data-section="dashboard">Dashboard</button>
         <button class="nav-btn" data-section="cases">Cases</button>
         <button class="nav-btn" data-section="schema">Entity Graph</button>
-        <span class="nav-label">Evidence</span>
+        <span class="nav-label" data-i18n="nav.group.evidence" data-i18n-fallback="Evidence">Evidence</span>
         <button class="nav-btn" data-section="scan">Domain Intel</button>
         <button class="nav-btn" data-section="social">Social Intel</button>
         <button class="nav-btn" data-section="wallet">Wallet Trace</button>
-        <span class="nav-label">Defensive Labs</span>
+        <span class="nav-label" data-i18n="nav.group.defensive_labs" data-i18n-fallback="Defensive Labs">Defensive Labs</span>
         <button class="nav-btn" data-section="web-audit">Web Audit Lab</button>
         <button class="nav-btn" data-section="repo-audit">Repo Audit Lab</button>
         <button class="nav-btn" data-section="network-lab">Network Lab</button>
         <button class="nav-btn" data-section="game-security">Game Security Lab</button>
-        <span class="nav-label">Operations</span>
+        <span class="nav-label" data-i18n="nav.group.operations" data-i18n-fallback="Operations">Operations</span>
         <button class="nav-btn" data-section="reports">History</button>
         <button class="nav-btn" data-section="monitoring">Monitoring</button>
         <button class="nav-btn" data-section="billing">Billing</button>
@@ -95,9 +95,9 @@
             <button class="secondary" type="button" data-section-jump="schema">Open graph</button>
           </div>
           <div class="hero-proof" aria-label="Product capabilities">
-            <span><strong>Passive only</strong> no exploits</span>
-            <span><strong>Graph-first</strong> JSON-LD, DOT, CSV</span>
-            <span><strong>Delivery</strong> PDF reports + webhooks</span>
+            <span><strong data-i18n="hero.proof.passive" data-i18n-fallback="Passive only">Passive only</strong> <span data-i18n="hero.proof.no_exploits" data-i18n-fallback="no exploits">no exploits</span></span>
+            <span><strong data-i18n="hero.proof.graph" data-i18n-fallback="Graph-first">Graph-first</strong> <span data-i18n="hero.proof.graph_formats" data-i18n-fallback="JSON-LD, DOT, CSV">JSON-LD, DOT, CSV</span></span>
+            <span><strong data-i18n="hero.proof.delivery" data-i18n-fallback="Delivery">Delivery</strong> <span data-i18n="hero.proof.delivery_detail" data-i18n-fallback="PDF reports + webhooks">PDF reports + webhooks</span></span>
           </div>
         </div>
         <div class="status-card">
@@ -291,8 +291,8 @@
         </form>
 
         <div class="notice">
-          <strong>Product boundary</strong>
-          <span>Passive collection only: DNS, TLS certificate, public web posture and security headers. No aggressive scanning, exploit execution, credential attacks or brute force.</span>
+          <strong data-i18n="domain.boundary.title" data-i18n-fallback="Product boundary">Product boundary</strong>
+          <span data-i18n="domain.boundary.body" data-i18n-fallback="Passive collection only: DNS, TLS certificate, public web posture and security headers. No aggressive scanning, exploit execution, credential attacks or brute force.">Passive collection only: DNS, TLS certificate, public web posture and security headers. No aggressive scanning, exploit execution, credential attacks or brute force.</span>
         </div>
 
         <div id="result" class="result empty">
@@ -742,6 +742,6 @@
     </main>
   </div>
 
-  <script src="app.js?v=20260705b"></script>
+  <script src="app.js?v=20260705d"></script>
 </body>
 </html>

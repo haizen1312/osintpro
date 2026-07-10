@@ -1,9 +1,156 @@
 import unittest
+from pathlib import Path
 
 import server
 
 
 class I18nCompletenessCycle15Tests(unittest.TestCase):
+    technical_i18n_passthrough = {
+        "OSINTPRO",
+        "DNS",
+        "TLS",
+        "SPF",
+        "DMARC",
+        "BIMI",
+        "MTA-STS",
+        "TLS-RPT",
+        "CAA",
+        "RDAP",
+        "HTTPS",
+        "HTTP",
+        "JSON-LD",
+        "JSON-LD, DOT, CSV",
+        "DOT",
+        "CSV",
+        "SARIF",
+        "API",
+        "PDF",
+        "Web Audit Lab",
+        "Network Lab",
+        "Game Security Lab",
+        "Burp Suite",
+        "XSS",
+        "SQL injection",
+        "SSRF",
+        "CSRF",
+        "CSP",
+        "CT",
+        "GitHub",
+        "Stripe",
+        "Pro",
+        "Agency",
+        "Free",
+        "Wallet",
+        "Bitcoin",
+        "Ethereum",
+        "Backend",
+        "Registrar",
+        "Nameserver",
+        "Repo Audit Lab",
+        "Repository Audit Lab",
+        "Network Traffic Lab",
+        "Blockchain OSINT",
+        "Entity graph",
+        "Graph",
+        "Core",
+        "Position",
+        "Boundary",
+        "All",
+        "Plan",
+        "Monitor",
+        "Monitors",
+        "info",
+        "N/D",
+        "n/d",
+        "OK",
+        "report",
+        "Dashboard",
+        "Account",
+        "Logout",
+        "Checkout",
+        "Monetization",
+        "API Preview",
+        "Passive API boundary",
+        "Public metadata endpoint",
+        "API key management",
+        "API key name",
+        "Create API key",
+        "Current API surface",
+        "Identity",
+        "Guest",
+        "Language",
+        "Scope",
+        "Mail exchange",
+        "Workspace Free",
+        "Intel social",
+        "Analista",
+        "Motivo",
+        "alta",
+        "media",
+        "fonte",
+        "Metodologia",
+        "Grafo",
+        "Comando",
+        "pronto",
+    }
+
+    italian_leak_markers = [
+        "punteggio sicurezza",
+        "sicurezza email",
+        "finding prioritari",
+        "nessun",
+        "nessuna",
+        "il dominio",
+        "giornaliera",
+        "domini monitorati",
+        "modalita",
+        "cartella cliente",
+        "apri casi",
+        "raccogli evidenze",
+        "pacchetto evidenze",
+        "rumore grezzo",
+        "solo engineering",
+        "controlli sicurezza",
+        "priorita difensiva",
+        "controllo...",
+        "workflow di revisione",
+        "rivedi i lab",
+        "nessuno rilevato",
+        "regola rilevata",
+        "repository auditato",
+        "wallet analizzato",
+        "ricostruzione frode",
+        "storico wallet",
+        "indirizzi tracciati",
+        "report generati",
+        "cancella",
+        "dominio da monitorare",
+        "cosa sbloccano",
+        "crea account",
+        "accedi",
+        "elimina account",
+        "revisione statica",
+        "postura codice",
+        "contesto rilevato",
+        "soglia confidenza",
+        "perche",
+        "si applica",
+        "percorso probabile attaccante",
+        "impatto probabile",
+        "export fallito",
+    ]
+
+    def flatten_locale(self, value, prefix=""):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                path = f"{prefix}.{key}" if prefix else key
+                yield from self.flatten_locale(child, path)
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                yield from self.flatten_locale(child, f"{prefix}[{index}]")
+        elif isinstance(value, str):
+            yield prefix, value
+
     def sample_report(self):
         return {
             "id": "i18n-complete",
@@ -144,3 +291,87 @@ class I18nCompletenessCycle15Tests(unittest.TestCase):
                 visible_output = "\n".join([html, pdf_text, csv_text])
                 leaked = [item for item in forbidden if item in visible_output]
                 self.assertEqual([], leaked)
+
+    def test_round2_exact_strings_are_wired_and_translated(self):
+        required_static = [
+            "Passive only",
+            "no exploits",
+            "Graph-first",
+            "Delivery",
+            "Passive collection only: DNS, TLS certificate, public web posture and security headers. No aggressive scanning, exploit execution, credential attacks or brute force.",
+            "Certificate Transparency",
+            "no data",
+            "Not declared",
+            "no priority SaaS/cloud CNAME observed",
+            "Findings",
+            "Possible Vulnerabilities",
+            "Red Team Paths",
+            "Purple Team Controls",
+            "Burp Suite map",
+            "What each Burp-style feature means",
+            "Exploit concepts",
+            "Vulnerability classes explained safely",
+            "Builds a site map and scope. In OSINTPRO this becomes a clear list of authorized domains and public evidence.",
+            "Untrusted input can run script in a user's browser.",
+            "No password guessing, credential stuffing or token theft.",
+        ]
+        for lang in ("it", "es", "fr", "de", "pt"):
+            with self.subTest(lang=lang):
+                locale = server.load_locale(lang)
+                static = locale.get("static", {})
+                missing = [item for item in required_static if static.get(item) in {None, item}]
+                self.assertEqual([], missing)
+
+    def test_non_italian_locales_do_not_keep_italian_or_copied_values(self):
+        italian = dict(self.flatten_locale(server.load_locale("it")))
+        ignored_paths = {
+            "ui.language.it",
+            "ui.hero.proof.graph_formats",
+        }
+        for lang in ("es", "fr", "de", "pt"):
+            with self.subTest(lang=lang):
+                locale = server.load_locale(lang)
+                flat_locale = dict(self.flatten_locale(locale))
+                italian_leaks = []
+                copied_values = []
+                for path, value in flat_locale.items():
+                    lower_value = value.lower()
+                    if any(marker in lower_value for marker in self.italian_leak_markers):
+                        italian_leaks.append((path, value))
+                    if path in ignored_paths:
+                        continue
+                    if italian.get(path) == value and value not in self.technical_i18n_passthrough:
+                        copied_values.append((path, value))
+
+                self.assertEqual([], italian_leaks)
+                self.assertEqual([], copied_values)
+
+    def test_sidebar_and_web_audit_use_runtime_i18n_hooks(self):
+        index_html = Path("index.html").read_text()
+        app_js = Path("app.js").read_text()
+        for key in (
+            "nav.group.command",
+            "nav.group.evidence",
+            "nav.group.defensive_labs",
+            "nav.group.operations",
+        ):
+            self.assertIn(f'data-i18n="{key}"', index_html)
+        self.assertIn('root.querySelectorAll?.("[data-i18n]")', app_js)
+        for phrase in (
+            'translateExactText("What each Burp-style feature means")',
+            'translateExactText("Vulnerability classes explained safely")',
+            'translateExactText(item.title)',
+            'translateExactText(item.risk)',
+            'translateExactText(item.safe)',
+            'translateExactText(item.blocked)',
+            'translateExactText("no priority SaaS/cloud CNAME observed")',
+            'translateExactText("Possible Vulnerabilities")',
+        ):
+            self.assertIn(phrase, app_js)
+
+    def test_italian_pdf_keeps_latin_accents(self):
+        report = server.translate_report(self.sample_report(), "it")
+        pdf = server.report_pdf(report)
+        self.assertIn("Il dominio è raggiungibile".encode("latin-1"), pdf)
+        self.assertIn("vulnerabilità".encode("latin-1"), pdf)
+        self.assertIn(b"/Encoding /WinAnsiEncoding", pdf)

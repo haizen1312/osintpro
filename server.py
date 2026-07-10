@@ -4679,9 +4679,9 @@ def pdf_bytes(pages: list[list[str]]) -> bytes:
             f"<< /Type /Pages /Kids [{' '.join(f'{item} 0 R' for item in page_ids)}] "
             f"/Count {len(pages)} >>"
         ).encode("ascii"),
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>",
     ]
     for index, commands in enumerate(pages):
         page_id = page_ids[index]

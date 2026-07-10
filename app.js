@@ -110,6 +110,11 @@ function applyTranslations(root = document.body) {
     const node = document.querySelector(selector);
     if (node) node.textContent = t(key, fallback);
   });
+  root.querySelectorAll?.("[data-i18n]").forEach(node => {
+    const key = node.getAttribute("data-i18n");
+    const fallback = node.getAttribute("data-i18n-fallback") || node.textContent;
+    node.textContent = t(key, fallback);
+  });
   document.querySelectorAll("#languageSelect option").forEach(option => {
     option.textContent = t(`language.${option.value}`, option.textContent);
   });
@@ -602,17 +607,17 @@ function renderVulnerabilities(items = []) {
   }
   return items.map(item => `
     <div class="ops-row ${escapeHtml(item.severity)}">
-      <span class="tag ${item.severity === "high" ? "missing" : ""}">${escapeHtml(item.severity)}</span>
-      <strong>${escapeHtml(item.title)}</strong>
-      <p>${escapeHtml(item.evidence)}</p>
+      <span class="tag ${item.severity === "high" ? "missing" : ""}">${escapeHtml(translateExactText(item.severity))}</span>
+      <strong>${escapeHtml(translateExactText(item.title))}</strong>
+      <p>${escapeHtml(translateExactText(item.evidence))}</p>
       ${item.attacker_path ? `
         <div class="abuse-brief">
-          <p><b>Likely attacker path:</b> ${escapeHtml(item.attacker_path)}</p>
-          <p><b>Likely impact:</b> ${escapeHtml(item.likely_impact || "Impact depends on asset exposure and authenticated surface.")}</p>
-          <p><b>Defensive priority:</b> ${escapeHtml(item.defensive_priority || "Validate safely, then assign an owner and deadline.")}</p>
+          <p><b>${escapeHtml(translateExactText("Likely attacker path"))}:</b> ${escapeHtml(translateExactText(item.attacker_path))}</p>
+          <p><b>${escapeHtml(translateExactText("Likely impact"))}:</b> ${escapeHtml(translateExactText(item.likely_impact || "Impact depends on asset exposure and authenticated surface."))}</p>
+          <p><b>${escapeHtml(translateExactText("Defensive priority"))}:</b> ${escapeHtml(translateExactText(item.defensive_priority || "Validate safely, then assign an owner and deadline."))}</p>
         </div>
       ` : ""}
-      <small>${escapeHtml(item.next_step)}</small>
+      <small>${escapeHtml(translateExactText(item.next_step))}</small>
     </div>
   `).join("");
 }
@@ -620,9 +625,9 @@ function renderVulnerabilities(items = []) {
 function renderOpsRows(items = [], titleKey, bodyKey, metaKey) {
   return items.map(item => `
     <div class="ops-row">
-      <strong>${escapeHtml(item[titleKey])}</strong>
-      <p>${escapeHtml(item[bodyKey])}</p>
-      <small>${escapeHtml(item[metaKey])}</small>
+      <strong>${escapeHtml(translateExactText(item[titleKey]))}</strong>
+      <p>${escapeHtml(translateExactText(item[bodyKey]))}</p>
+      <small>${escapeHtml(translateExactText(item[metaKey]))}</small>
     </div>
   `).join("");
 }
@@ -1465,14 +1470,14 @@ function renderWebAuditLab(report) {
 
     <section class="lab-panel">
       <div class="mini-head">
-        <span class="pill">Burp Suite map</span>
-        <h3>What each Burp-style feature means</h3>
+        <span class="pill">${escapeHtml(translateExactText("Burp Suite map"))}</span>
+        <h3>${escapeHtml(translateExactText("What each Burp-style feature means"))}</h3>
       </div>
       <div class="feature-grid">
         ${burpFeatures.map(([name, detail]) => `
           <article class="feature-card">
-            <strong>${escapeHtml(name)}</strong>
-            <p>${escapeHtml(detail)}</p>
+            <strong>${escapeHtml(translateExactText(name))}</strong>
+            <p>${escapeHtml(translateExactText(detail))}</p>
           </article>
         `).join("")}
       </div>
@@ -1480,16 +1485,16 @@ function renderWebAuditLab(report) {
 
     <section class="lab-panel">
       <div class="mini-head">
-        <span class="pill">Exploit concepts</span>
-        <h3>Vulnerability classes explained safely</h3>
+        <span class="pill">${escapeHtml(translateExactText("Exploit concepts"))}</span>
+        <h3>${escapeHtml(translateExactText("Vulnerability classes explained safely"))}</h3>
       </div>
       <div class="concept-grid">
         ${exploitConcepts.map(item => `
           <article class="concept-card">
-            <strong>${escapeHtml(item.title)}</strong>
-            <p><b>Risk:</b> ${escapeHtml(item.risk)}</p>
-            <p><b>Beginner-safe review:</b> ${escapeHtml(item.safe)}</p>
-            <p><b>Not automated here:</b> ${escapeHtml(item.blocked)}</p>
+            <strong>${escapeHtml(translateExactText(item.title))}</strong>
+            <p><b>${escapeHtml(translateExactText("Risk"))}:</b> ${escapeHtml(translateExactText(item.risk))}</p>
+            <p><b>${escapeHtml(translateExactText("Beginner-safe review"))}:</b> ${escapeHtml(translateExactText(item.safe))}</p>
+            <p><b>${escapeHtml(translateExactText("Not automated here"))}:</b> ${escapeHtml(translateExactText(item.blocked))}</p>
           </article>
         `).join("")}
       </div>
@@ -1829,26 +1834,26 @@ function renderReport(report) {
           <span>${optionalFlag(wellKnown.assetlinks?.present)} Android assetlinks <em>${escapeHtml(probeLabel(wellKnown.assetlinks))}</em></span>
           <span>${optionalFlag(wellKnown.apple_app_site_association?.present)} Apple app association <em>${escapeHtml(probeLabel(wellKnown.apple_app_site_association))}</em></span>
         </div>
-        ${takeoverHints.length ? renderOpsRows(takeoverHints, "provider", "subdomain", "cname") : `<span class="mono">no priority SaaS/cloud CNAME observed</span>`}
+        ${takeoverHints.length ? renderOpsRows(takeoverHints, "provider", "subdomain", "cname") : `<span class="mono">${escapeHtml(translateExactText("no priority SaaS/cloud CNAME observed"))}</span>`}
       </article>
 
       <article class="intel-card">
-        <div><span class="pill">Findings</span><strong>${(report.findings || []).length}</strong></div>
+        <div><span class="pill">${escapeHtml(translateExactText("Findings"))}</span><strong>${(report.findings || []).length}</strong></div>
         <div class="findings">${renderFindings(report.findings)}</div>
       </article>
     </div>
 
     <div class="ops-grid">
       <article class="ops-card priority">
-        <div><span class="pill">Possible Vulnerabilities</span><strong>${vulns.length}</strong></div>
+        <div><span class="pill">${escapeHtml(translateExactText("Possible Vulnerabilities"))}</span><strong>${vulns.length}</strong></div>
         ${renderVulnerabilities(vulns)}
       </article>
       <article class="ops-card">
-        <div><span class="pill">Red Team Paths</span><strong>${redPaths.length}</strong></div>
+        <div><span class="pill">${escapeHtml(translateExactText("Red Team Paths"))}</span><strong>${redPaths.length}</strong></div>
         ${renderOpsRows(redPaths, "name", "objective", "signal")}
       </article>
       <article class="ops-card">
-        <div><span class="pill">Purple Team Controls</span><strong>${purpleControls.length}</strong></div>
+        <div><span class="pill">${escapeHtml(translateExactText("Purple Team Controls"))}</span><strong>${purpleControls.length}</strong></div>
         ${renderOpsRows(purpleControls, "control", "why", "cadence")}
       </article>
     </div>
