@@ -12,7 +12,7 @@
     "nav.graph": "Graphe d’entités",
     "nav.domain": "Intel domaine",
     "nav.social": "Intel social",
-    "nav.wallet": "Trace wallet",
+    "nav.wallet": "Tracer le wallet",
     "nav.web": "Web Audit Lab",
     "nav.repo": "Repo Audit Lab",
     "nav.network": "Network Lab",
@@ -55,7 +55,13 @@
     "positioning.card2.body": "Les vues domaine, social, wallet, web audit et réseau alimentent le même workspace de dossier au lieu de devenir des outils déconnectés.",
     "positioning.card3.badge": "Cadre",
     "positioning.card3.title": "Passif et commercialisable",
-    "positioning.card3.body": "Pas de positionnement scanner agressif : utile aux consultants, agences et analystes fraude qui ont besoin de preuves défendables issues de sources publiques."
+    "positioning.card3.body": "Pas de positionnement scanner agressif : utile aux consultants, agences et analystes fraude qui ont besoin de preuves défendables issues de sources publiques.",
+    "dashboard.credits.available_one": "{count} crédit disponible",
+    "dashboard.credits.available_many": "{count} crédits disponibles",
+    "dashboard.credits.unlimited": "Rapports illimités",
+    "dashboard.graph.count": "{nodes} nœuds / {edges} liens",
+    "dashboard.graph.description": "Domaines, profils, wallets et contreparties.",
+    "dashboard.monitors.description": "Domaines enregistrés vérifiés dans le temps."
   },
   "findings": {
     "security_header_missing": {

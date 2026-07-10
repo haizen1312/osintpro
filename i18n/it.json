@@ -55,7 +55,13 @@
     "positioning.card2.body": "Dominio, social, wallet, web audit e viste di rete alimentano lo stesso workspace del caso invece di diventare strumenti scollegati.",
     "positioning.card3.badge": "Limite",
     "positioning.card3.title": "Passivo e vendibile",
-    "positioning.card3.body": "Nessun posizionamento da scanner aggressivo: utile per consulenti, agenzie e analisti frodi che hanno bisogno di evidenze da fonti pubbliche difendibili."
+    "positioning.card3.body": "Nessun posizionamento da scanner aggressivo: utile per consulenti, agenzie e analisti frodi che hanno bisogno di evidenze da fonti pubbliche difendibili.",
+    "dashboard.credits.available_one": "{count} credito disponibile",
+    "dashboard.credits.available_many": "{count} crediti disponibili",
+    "dashboard.credits.unlimited": "Report illimitati",
+    "dashboard.graph.count": "{nodes} nodi / {edges} archi",
+    "dashboard.graph.description": "Domini, profili, wallet e controparti.",
+    "dashboard.monitors.description": "Domini salvati controllati nel tempo."
   },
   "findings": {
     "security_header_missing": {

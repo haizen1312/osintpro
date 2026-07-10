@@ -55,7 +55,13 @@
     "positioning.card2.body": "Domain-, Social-, Wallet-, Web-Audit- und Netzwerkansichten fließen in denselben Fall-Workspace, statt getrennte Werkzeuge zu werden.",
     "positioning.card3.badge": "Grenze",
     "positioning.card3.title": "Passiv und verkaufbar",
-    "positioning.card3.body": "Keine Positionierung als aggressiver Scanner: nützlich für Consultants, Agenturen und Fraud-Analysten, die belastbare Nachweise aus öffentlichen Quellen brauchen."
+    "positioning.card3.body": "Keine Positionierung als aggressiver Scanner: nützlich für Consultants, Agenturen und Fraud-Analysten, die belastbare Nachweise aus öffentlichen Quellen brauchen.",
+    "dashboard.credits.available_one": "{count} Credit verfügbar",
+    "dashboard.credits.available_many": "{count} Credits verfügbar",
+    "dashboard.credits.unlimited": "Unbegrenzte Reports",
+    "dashboard.graph.count": "{nodes} Knoten / {edges} Kanten",
+    "dashboard.graph.description": "Domains, Profile, Wallets und Gegenparteien.",
+    "dashboard.monitors.description": "Gespeicherte Domains werden im Zeitverlauf geprüft."
   },
   "findings": {
     "security_header_missing": {

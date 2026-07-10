@@ -55,7 +55,13 @@
     "positioning.card2.body": "Las vistas de dominio, social, wallet, web audit y red alimentan el mismo workspace de caso en lugar de convertirse en herramientas desconectadas.",
     "positioning.card3.badge": "Límite",
     "positioning.card3.title": "Pasivo y vendible",
-    "positioning.card3.body": "Sin posicionamiento de scanner agresivo: útil para consultores, agencias y analistas de fraude que necesitan evidencia defendible de fuentes públicas."
+    "positioning.card3.body": "Sin posicionamiento de scanner agresivo: útil para consultores, agencias y analistas de fraude que necesitan evidencia defendible de fuentes públicas.",
+    "dashboard.credits.available_one": "{count} crédito disponible",
+    "dashboard.credits.available_many": "{count} créditos disponibles",
+    "dashboard.credits.unlimited": "Informes ilimitados",
+    "dashboard.graph.count": "{nodes} nodos / {edges} aristas",
+    "dashboard.graph.description": "Dominios, perfiles, wallets y contrapartes.",
+    "dashboard.monitors.description": "Dominios guardados revisados con el tiempo."
   },
   "findings": {
     "security_header_missing": {

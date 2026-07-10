@@ -55,7 +55,13 @@
     "positioning.card2.body": "Domain, social, wallet, web audit and network views all feed the same case workspace instead of becoming disconnected tools.",
     "positioning.card3.badge": "Boundary",
     "positioning.card3.title": "Passive and sellable",
-    "positioning.card3.body": "No aggressive scanner positioning: useful for consultants, agencies and fraud analysts who need defensible public-source evidence."
+    "positioning.card3.body": "No aggressive scanner positioning: useful for consultants, agencies and fraud analysts who need defensible public-source evidence.",
+    "dashboard.credits.available_one": "{count} credit available",
+    "dashboard.credits.available_many": "{count} credits available",
+    "dashboard.credits.unlimited": "Unlimited reports",
+    "dashboard.graph.count": "{nodes} nodes / {edges} edges",
+    "dashboard.graph.description": "Domains, profiles, wallets and counterparties.",
+    "dashboard.monitors.description": "Saved domains checked over time."
   },
   "findings": {
     "security_header_missing": {

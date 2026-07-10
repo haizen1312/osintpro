@@ -35,6 +35,10 @@ function t(key, fallback = "") {
   return state.translations?.[key] || fallback || key;
 }
 
+function ti(key, values = {}, fallback = "") {
+  return t(key, fallback).replace(/\{(\w+)\}/g, (_, name) => values[name] ?? "");
+}
+
 function langParam(url) {
   const separator = url.includes("?") ? "&" : "?";
   return `${url}${separator}lang=${encodeURIComponent(state.language)}`;
@@ -1620,14 +1624,25 @@ function updateAccount() {
 }
 
 function updateDashboard() {
-  const creditLabel = state.user.plan === "Free" && !freeReportsUnlimited() ? `${state.user.credits} credits available` : "Unlimited reports";
+  const credits = state.user.credits || 0;
+  const creditLabel = state.user.plan === "Free" && !freeReportsUnlimited()
+    ? ti(
+      credits === 1 ? "dashboard.credits.available_one" : "dashboard.credits.available_many",
+      { count: credits },
+      credits === 1 ? "{count} credit available" : "{count} credits available"
+    )
+    : t("dashboard.credits.unlimited", "Unlimited reports");
   const nodes = state.workspace?.nodes?.length || 0;
   const edges = state.workspace?.edges?.length || 0;
   const dashPlan = document.querySelector("#dashPlan");
   if (!dashPlan) return;
   dashPlan.textContent = state.user.plan || "Free";
   document.querySelector("#dashCredits").textContent = creditLabel;
-  document.querySelector("#dashGraph").textContent = `${nodes} nodes / ${edges} edges`;
+  document.querySelector("#dashGraph").textContent = ti(
+    "dashboard.graph.count",
+    { nodes, edges },
+    "{nodes} nodes / {edges} edges"
+  );
   document.querySelector("#dashMonitors").textContent = `${state.monitors.length}/${state.user.monitor_limit}`;
 }
 
