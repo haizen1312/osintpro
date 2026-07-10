@@ -2,6 +2,10 @@
 
 This is the free traffic plan for OSINTPRO.
 
+Real distribution actions are tracked in
+[`docs/DISTRIBUTION_ACTION_LOG.md`](DISTRIBUTION_ACTION_LOG.md). Use that file
+to separate completed work from planned outreach.
+
 ## Goal
 
 Make the repository easy to discover, easy to understand and easy to share.

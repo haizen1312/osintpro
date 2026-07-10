@@ -56,7 +56,7 @@ h3,
 }
 
 .mark,
-.user-chip span {
+.user-chip #userAvatar {
   border-radius: var(--radius-sharp);
   background: var(--color-accent);
   color: var(--color-paper);
@@ -606,10 +606,17 @@ body.nav-open .mobile-menu-button span:last-child {
 .chip-language {
   display: grid;
   gap: 6px;
-  min-width: 108px;
+  min-width: 132px;
+  max-width: 184px;
 }
 
 .chip-language span {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--muted);
   font-family: var(--font-display);
   font-size: 11px;
@@ -619,6 +626,7 @@ body.nav-open .mobile-menu-button span:last-child {
 }
 
 .chip-language select {
+  width: 100%;
   min-height: 34px;
   padding: 0 8px;
   border-color: var(--line);
@@ -655,8 +663,8 @@ body.nav-open .mobile-menu-button span:last-child {
 }
 
 .user-chip {
-  position: sticky;
-  top: 14px;
+  position: relative;
+  top: auto;
   z-index: 5;
   display: flex;
   width: max-content;
@@ -672,8 +680,9 @@ body.nav-open .mobile-menu-button span:last-child {
   box-shadow: none;
 }
 
-.user-chip span {
+.user-chip #userAvatar {
   display: grid;
+  flex: 0 0 34px;
   width: 34px;
   height: 34px;
   place-items: center;
@@ -2704,7 +2713,7 @@ body {
 }
 
 .mark,
-.user-chip span {
+.user-chip #userAvatar {
   border-radius: var(--radius-sharp);
   background: var(--color-accent);
   color: var(--color-paper);
@@ -2885,6 +2894,11 @@ textarea:focus {
     margin: 0 0 12px;
     justify-content: space-between;
     background: var(--panel-strong);
+  }
+
+  .chip-language {
+    min-width: min(148px, 48vw);
+    max-width: 52vw;
   }
 
   .hero,
