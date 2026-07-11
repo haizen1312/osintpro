@@ -14,6 +14,19 @@ paid engagement, fake accounts, inflated metrics or unconfirmed outreach.
 - Kept the public safety positioning intact: passive OSINT, no exploits, no brute force.
 - Preserved Product Hunt screenshot assets for social previews.
 
+## Completed External Distribution Actions
+
+- Product Hunt product page is live:
+  - https://www.producthunt.com/products/osintpro
+  - Verified on 2026-07-11 with website and GitHub links present.
+- Published a Product Hunt product forum update from Leo's existing logged-in
+  account:
+  - https://www.producthunt.com/p/osintpro/osintpro-update-cleaner-mobile-ui-and-multilingual-polish
+  - Angle: mobile UI cleanup, multilingual polish, language selector fix,
+    share metadata and passive-only positioning.
+  - Screenshot archive:
+    `assets/ph-launch/live-producthunt/forum-update-2026-07-11.png`
+
 ## Self-Serve Submissions To Do
 
 These are allowed when the form is public and does not require creating a new
@@ -21,7 +34,7 @@ personal account for Leo.
 
 | Surface | Fit | Suggested angle | Status |
 | --- | --- | --- | --- |
-| Product Hunt | Strong | Passive OSINT workspace for consultants | Prepared; submit only from Leo's existing account/session |
+| Product Hunt | Strong | Passive OSINT workspace for consultants | Live product page + forum update published |
 | GitHub repository profile | Strong | Passive OSINT, investigation graph, client-ready reports | Active |
 | Open-source directories | Medium | Security tool with passive-only boundary | Needs manual fit check per directory |
 | Startup/demo directories | Medium | Freemium security SaaS for consultants and investigators | Needs form-by-form review |
