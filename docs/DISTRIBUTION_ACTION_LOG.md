@@ -26,6 +26,14 @@ paid engagement, fake accounts, inflated metrics or unconfirmed outreach.
     share metadata and passive-only positioning.
   - Screenshot archive:
     `assets/ph-launch/live-producthunt/forum-update-2026-07-11.png`
+- Opened GitHub PRs to relevant awesome lists:
+  - `jivoi/awesome-osint`: https://github.com/jivoi/awesome-osint/pull/1042
+    - Fit: general OSINT tools; added one neutral entry under Other Tools.
+  - `mickygough/Awesome-Security-Tools`: https://github.com/mickygough/Awesome-Security-Tools/pull/2
+    - Fit: Passive Recon section; added URL and repository link.
+  - `hslatman/awesome-threat-intelligence`: https://github.com/hslatman/awesome-threat-intelligence/pull/402
+    - Fit: Tools section includes OSINT artifact collection/enrichment tools.
+  - Each PR includes disclosure that Leo is related to OSINTPRO.
 
 ## Self-Serve Submissions To Do
 
@@ -36,7 +44,7 @@ personal account for Leo.
 | --- | --- | --- | --- |
 | Product Hunt | Strong | Passive OSINT workspace for consultants | Live product page + forum update published |
 | GitHub repository profile | Strong | Passive OSINT, investigation graph, client-ready reports | Active |
-| Open-source directories | Medium | Security tool with passive-only boundary | Needs manual fit check per directory |
+| Open-source directories | Medium | Security tool with passive-only boundary | Three GitHub awesome-list PRs opened |
 | Startup/demo directories | Medium | Freemium security SaaS for consultants and investigators | Needs form-by-form review |
 
 ## GitHub PR Targets To Research
@@ -46,9 +54,9 @@ does not read as spam.
 
 | Candidate list type | Fit criteria | Entry copy |
 | --- | --- | --- |
-| awesome-osint | Accepts passive OSINT tools and SaaS/web apps | `OSINTPRO - Passive OSINT workspace for domain, username, repository and wallet evidence graphs.` |
-| awesome-security-tools | Accepts defensive web/security review tools | `OSINTPRO - Passive public-source intelligence workspace with client-ready reports and graph exports.` |
-| awesome-threat-intelligence | Accepts domain/posture/intel tools | `OSINTPRO - Passive domain and brand intelligence with monitoring, reports and graph exports.` |
+| awesome-osint | Accepts passive OSINT tools and SaaS/web apps | PR opened: https://github.com/jivoi/awesome-osint/pull/1042 |
+| awesome-security-tools | Accepts defensive web/security review tools | PR opened: https://github.com/mickygough/Awesome-Security-Tools/pull/2 |
+| awesome-threat-intelligence | Accepts domain/posture/intel tools | PR opened: https://github.com/hslatman/awesome-threat-intelligence/pull/402 |
 
 ## Ready Copy
 
