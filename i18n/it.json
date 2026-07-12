@@ -61,136 +61,244 @@
     "dashboard.credits.unlimited": "Report illimitati",
     "dashboard.graph.count": "{nodes} nodi / {edges} archi",
     "dashboard.graph.description": "Domini, profili, wallet e controparti.",
-    "dashboard.monitors.description": "Domini salvati controllati nel tempo."
+    "dashboard.monitors.description": "Domini salvati controllati nel tempo.",
+    "account.guest": "Ospite",
+    "scan.loading.button": "Analisi in corso...",
+    "scan.loading.title": "Analisi in corso",
+    "scan.loading.body": "Interrogo fonti passive dal backend."
   },
   "findings": {
     "security_header_missing": {
       "title": "Header di sicurezza mancante",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "spf_missing": {
       "title": "SPF mancante",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "dmarc_missing": {
       "title": "DMARC mancante",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "dmarc_policy_none": {
       "title": "DMARC solo monitoraggio",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "dmarc_rua_missing": {
       "title": "Report aggregati DMARC mancanti",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "dmarc_ruf_missing": {
       "title": "Report forensi DMARC non configurati",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "tls_rpt_missing": {
       "title": "TLS-RPT mancante",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "tls_expiring_soon": {
       "title": "TLS in scadenza",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "security_txt_missing": {
       "title": "security.txt mancante",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "caa_missing": {
       "title": "CAA mancante",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "dnssec_not_observed": {
       "title": "DNSSEC non osservato",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "asn_provider_unknown": {
       "title": "Attribuzione hosting incompleta",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "subdomain_takeover": {
       "title": "CNAME verso provider gestiti",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "wallet_dust_pattern": {
       "title": "Pattern di transazioni dust",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "wallet_mixer_proximity": {
       "title": "Prossimita a mixer/privacy",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
     },
     "wallet_exchange_proximity": {
       "title": "Prossimita a exchange/servizio",
       "description": "Segnale pubblico da verificare nel contesto autorizzato del proprietario.",
       "attacker_abuse": "Un attaccante potrebbe combinarlo con altre debolezze osservabili per aumentare impersonificazione, abuso o confusione operativa.",
-      "business_impact": "Il rischio principale e ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
-      "owner_action": "Assegna un owner tecnico, valida la configurazione corrente, pianifica la correzione e aggiungi un controllo di regressione.",
-      "evidence_to_collect": "Raccogli record pubblici, owner del servizio, log disponibili, screenshot e note di approvazione del remediation plan."
+      "business_impact": "Il rischio principale è ritardo di risposta, perdita di fiducia, abuso del brand o esposizione di dati se esistono altre condizioni vulnerabili.",
+      "owner_action": "Assegna un responsabile tecnico, valida la configurazione attuale, pianifica la correzione e aggiungi un test di regressione.",
+      "evidence_to_collect": "Raccogli record pubblici, proprietario del servizio, log disponibili, screenshot e note di approvazione del piano."
+    },
+    "social_username_reuse": {
+      "title": "Username riutilizzato su molte piattaforme",
+      "description": "Il riutilizzo consente correlazione dell identita, mappatura del grafo sociale e controlli anti-impersonificazione del brand.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "social_uncertain_results": {
+      "title": "Risultati incerti",
+      "description": "Alcune piattaforme limitano le richieste pubbliche; serve verifica manuale.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "social_developer_footprint": {
+      "title": "Impronta tecnica osservabile",
+      "description": "I profili tecnici pubblici possono supportare attribuzione, revisione supply-chain e controllo esposizione.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "social_monetizable_handle": {
+      "title": "Handle social potenzialmente monetizzabile",
+      "description": "Utile per monitoraggio brand, due diligence creator o pacchetti anti-impersonificazione.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "wallet_very_high_activity": {
+      "title": "Wallet ad altissima attivita",
+      "description": "Il numero di transazioni pubbliche e molto alto: utile per analisi cluster, review depositi exchange o ricostruzione frodi.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "wallet_high_activity": {
+      "title": "Wallet ad alta attivita",
+      "description": "Il volume transazionale suggerisce un nodo operativo o un wallet usato di frequente.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "wallet_many_counterparties": {
+      "title": "Molte controparti osservate",
+      "description": "Il wallet interagisce con molte entita nella finestra recente; espandi il grafo di un hop alla volta.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "wallet_fan_pattern": {
+      "title": "Pattern fan-in/fan-out",
+      "description": "Alcune transazioni hanno molti input/output: possibile consolidamento, distribuzione o offuscamento da verificare manualmente.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "wallet_mixer_tag": {
+      "title": "Tag pubblico compatibile con mixer/privacy service",
+      "description": "Fonti pubbliche associano tag privacy/mixer: usalo come indicatore OSINT, non come attribuzione definitiva.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "wallet_exchange_tag": {
+      "title": "Possibile wallet exchange/servizio",
+      "description": "I tag pubblici suggeriscono servizio centralizzato o exchange; utile per richieste compliance o preservazione.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "wallet_contract_address": {
+      "title": "Indirizzo contratto o smart account",
+      "description": "L indirizzo EVM sembra un contratto/smart account: rivedi metodi, token transfer e interazioni explorer.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "wallet_observable_balance": {
+      "title": "Saldo osservabile",
+      "description": "Il saldo pubblico stimato e visibile dai dati pubblici on-chain.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
+    },
+    "wallet_no_priority_pattern": {
+      "title": "Nessun pattern prioritario nella finestra recente",
+      "description": "Le fonti pubbliche non mostrano segnali forti; espandi finestra temporale o chain aggiuntive se necessario.",
+      "attacker_abuse": "Un revisore deve validare questo segnale pubblico nel contesto autorizzato prima di agire.",
+      "business_impact": "L’impatto business dipende da proprietà degli account, rischio brand, esposizione a frodi e contesto operativo.",
+      "owner_action": "Conserva evidenze, documenta la confidenza e assegna un responsabile per il follow-up.",
+      "evidence_to_collect": "Raccogli URL, timestamp, screenshot, tag pubblici e note dell’analista."
     }
   },
   "terms": {
@@ -299,7 +407,14 @@
   "phrases": {
     "summary_missing_headers": "Il dominio è raggiungibile. Mancano {count} header di sicurezza osservabili.",
     "recommendation_missing_headers": "Aggiungi o rivedi gli header di sicurezza mancanti: {headers}.",
-    "certificate_expires_days": "Il certificato scade tra {days} giorni."
+    "certificate_expires_days": "Il certificato scade tra {days} giorni.",
+    "domain_summary_no_ips": "Il dominio non risolve indirizzi IP dal backend locale.",
+    "social_summary_profiles": "Trovati {found} profili probabili e {uncertain} risultati incerti per @{username}.",
+    "bitcoin_wallet_summary": "Wallet Bitcoin con {tx_count} transazioni pubbliche e saldo stimato di {balance} BTC.",
+    "ethereum_wallet_summary": "Wallet Ethereum/EVM con saldo stimato di {balance} ETH e {tx_count} transazioni recenti raccolte.",
+    "wallet_public_balance_detail": "Saldo pubblico stimato: {balance} {asset}.",
+    "social_likely_profiles_signal": "{count} profili probabili.",
+    "social_handles_not_observed_signal": "{count} handle non osservati."
   },
   "csv": {
     "source": "fonte",
@@ -311,9 +426,9 @@
     "hypothesis": "ipotesi"
   },
   "static": {
-    "Domain is reachable, but the HTTPS header assessment was unavailable.": "Il dominio è raggiungibile, ma la valutazione degli header HTTPS non era disponibile.",
-    "Domain is reachable, but the public email posture needs attention.": "Il dominio è raggiungibile, ma la postura email pubblica richiede attenzione.",
-    "Domain is reachable with the main security headers present.": "Il dominio è raggiungibile con i principali header di sicurezza presenti.",
+    "Domain is reachable, but the HTTPS header assessment was unavailable.": "Il dominio e raggiungibile, ma la valutazione degli header HTTPS non era disponibile.",
+    "Domain is reachable, but the public email posture needs attention.": "Il dominio e raggiungibile, ma la postura email pubblica richiede attenzione.",
+    "Domain is reachable with the main security headers present.": "Il dominio e raggiungibile con i principali header di sicurezza presenti.",
     "Mail service or email authentication records were observed.": "Sono stati osservati servizio mail o record di autenticazione email.",
     "Header not found in the HTTPS response": "Header non trovato nella risposta HTTPS",
     "Potentially broader XSS surface": "Superficie XSS potenzialmente più ampia",
@@ -338,25 +453,25 @@
     "Eco mode": "Modalita eco",
     "Visual mode": "Modalita visuale",
     "Authorized passive intelligence": "Intelligence passiva autorizzata",
-    "Use OSINTPRO only on assets, brands, public profiles and wallets you own, manage, investigate with permission or review for legitimate public-interest defense.": "Use OSINTPRO only on assets, brands, public profiles and wallets you own, manage, investigate with permission or review for legitimate public-interest defense.",
+    "Use OSINTPRO only on assets, brands, public profiles and wallets you own, manage, investigate with permission or review for legitimate public-interest defense.": "Usa OSINTPRO solo su asset, brand, profili pubblici e wallet che possiedi, gestisci, analizzi con permesso o revisioni per difesa legittima di interesse pubblico.",
     "Active client folder": "Cartella cliente attiva",
     "No client folder": "Nessuna cartella cliente",
     "Manage cases": "Gestisci casi",
     "Start with the investigation workspace": "Inizia dal workspace investigativo",
-    "Pick one evidence source, then move everything into cases, graphs, monitoring and exports.": "Pick one evidence source, then move everything into cases, graphs, monitoring and exports.",
+    "Pick one evidence source, then move everything into cases, graphs, monitoring and exports.": "Scegli una fonte di evidenza e porta tutto in casi, grafi, monitoraggio ed export.",
     "Open cases": "Apri casi",
     "Collect public evidence": "Raccogli evidenze pubbliche",
-    "Domain, social, wallet and repository signals.": "Domain, social, wallet and repository signals.",
+    "Domain, social, wallet and repository signals.": "Segnali di dominio, social, wallet e repository.",
     "Review defensive labs": "Rivedi i lab difensivi",
-    "Web, repo, network and game security workflows.": "Web, repo, network and game security workflows.",
+    "Web, repo, network and game security workflows.": "Workflow per sicurezza web, repository, rete e giochi.",
     "Deliver and monitor": "Consegna e monitora",
-    "Reports, graph exports, alerts and webhooks.": "Reports, graph exports, alerts and webhooks.",
+    "Reports, graph exports, alerts and webhooks.": "Report, export del grafo, alert e webhook.",
     "Public-source collection": "Raccolta da fonti pubbliche",
     "Defensive review workflows": "Workflow di revisione difensiva",
     "Case output": "Output del caso",
     "Workspace state": "Stato workspace",
     "Private account workspace": "Workspace account privato",
-    "Reports, monitors and graph nodes stay scoped to the active account and client folder.": "Reports, monitors and graph nodes stay scoped to the active account and client folder.",
+    "Reports, monitors and graph nodes stay scoped to the active account and client folder.": "Report, monitor e nodi del grafo restano limitati all’account attivo e alla cartella cliente.",
     "Plan": "Piano",
     "Graph": "Grafo",
     "Monitors": "Monitor",
@@ -371,7 +486,7 @@
     "Social username": "Username social",
     "Run social OSINT": "Esegui OSINT social",
     "No social report yet": "Nessun report social",
-    "Domain": "Domain",
+    "Domain": "Dominio",
     "Run intel": "Esegui intelligence",
     "Product boundary": "Confine prodotto",
     "No domain report yet": "Nessun report dominio",
@@ -458,10 +573,10 @@
     "Security settings": "Impostazioni sicurezza",
     "Reset password": "Reset password",
     "Delete account": "Elimina account",
-    "Guest": "Guest",
+    "Guest": "Ospite",
     "Language": "Language",
     "Analyze domain": "Analyze domain",
-    "Open graph": "Open graph",
+    "Open graph": "Apri grafo",
     "Static repository review": "Revisione statica repository",
     "Code posture": "Postura codice",
     "critical": "critical",
@@ -672,6 +787,79 @@
     "New MX, NS, CAA or TXT records can indicate infrastructure changes or operational takeover risk.": "Nuovi record MX, NS, CAA o TXT possono indicare cambi infrastrutturali o rischio di takeover operativo.",
     "No MX, SPF or DMARC signal was observed. Email controls are treated as optional brand-protection guidance, not an active mail-system failure.": "Nessun segnale MX, SPF o DMARC osservato. I controlli email sono trattati come guida opzionale di protezione del brand, non come errore attivo del sistema mail.",
     "robots.txt and sitemap.xml are expected public indexing metadata. Their presence is not a vulnerability unless sensitive paths are disclosed.": "robots.txt e sitemap.xml sono metadati pubblici di indicizzazione attesi. La loro presenza non è una vulnerabilità salvo esposizione di percorsi sensibili.",
-    "Publication is not a vulnerability by itself.": "La pubblicazione non è una vulnerabilità di per sé."
+    "Publication is not a vulnerability by itself.": "La pubblicazione non è una vulnerabilità di per sé.",
+    "Manually verify high-confidence profiles before contacting or attributing.": "Verifica manualmente i profili ad alta confidenza prima di contattare o attribuire.",
+    "Monitor platforms where the username is available if it belongs to a brand.": "Monitora le piattaforme dove lo username e disponibile se appartiene a un brand.",
+    "For creators/brands, reserve critical handles on major platforms.": "Per creator/brand, riserva gli handle critici sulle piattaforme principali.",
+    "Handle correlation": "Correlazione handle",
+    "Correlate public presence for authorized attribution.": "Correla la presenza pubblica per attribuzione autorizzata.",
+    "Impersonation gap": "Gap di impersonificazione",
+    "Identify platforms where a brand should reserve the username.": "Identifica le piattaforme dove un brand dovrebbe riservare lo username.",
+    "Username watchlist": "Watchlist username",
+    "New profiles with similar handles can indicate impersonation.": "Nuovi profili con handle simili possono indicare impersonificazione.",
+    "Brand handle coverage": "Copertura handle brand",
+    "Reduces fake-account opportunities on high-visibility platforms.": "Riduce opportunita di account falsi su piattaforme ad alta visibilita.",
+    "Expand counterparties with the highest transaction count or value first.": "Espandi prima le controparti con conteggio o valore transazionale piu alto.",
+    "Manually tag exchanges, mixers, victim wallets and hot wallets when identified.": "Tagga manualmente exchange, mixer, wallet vittima e hot wallet quando identificati.",
+    "Fan-in/fan-out and repeated splits are indicators to verify with external context.": "Fan-in/fan-out e split ripetuti sono indicatori da verificare con contesto esterno.",
+    "Check token transfers and internal transactions in the explorer when direct ETH value is low.": "Controlla token transfer e transazioni interne nell explorer quando il valore ETH diretto e basso.",
+    "If contracts/smart accounts appear, verify method and destination before attribution.": "Se compaiono contract/smart account, verifica metodo e destinazione prima dell attribuzione.",
+    "Public tags and ENS are OSINT indicators, not definitive identity proof.": "Tag pubblici ed ENS sono indicatori OSINT, non prove definitive di identita.",
+    "Static review only: OSINTPRO does not execute uploaded code, install dependencies or run build scripts.": "Solo revisione statica: OSINTPRO non esegue codice caricato, non installa dipendenze e non avvia build script.",
+    "A finding is a review lead, not proof of exploitability. Confirm reachability, trust boundaries and deployment configuration.": "Un finding e una pista di revisione, non prova di sfruttabilita. Conferma raggiungibilita, trust boundary e configurazione deploy.",
+    "Files larger than 180 KB, binaries and ignored dependency/build folders are skipped.": "File oltre 180 KB, binari e cartelle dipendenze/build ignorate vengono saltati.",
+    "Select a repository folder with readable text files.": "Seleziona una cartella repository con file di testo leggibili.",
+    "No readable source files were included.": "Nessun file sorgente leggibile incluso.",
+    "Secrets": "Segreti",
+    "Command execution": "Esecuzione comandi",
+    "Code execution": "Esecuzione codice",
+    "Deserialization": "Deserializzazione",
+    "Cryptography": "Crittografia",
+    "File handling": "Gestione file",
+    "Transport security": "Sicurezza trasporto",
+    "Browser security": "Sicurezza browser",
+    "Configuration": "Configurazione",
+    "Database": "Database",
+    "Frontend": "Frontend",
+    "Dependencies": "Dipendenze",
+    "Private key material committed": "Materiale di chiave privata committato",
+    "Possible AWS access key": "Possibile chiave di accesso AWS",
+    "Live service credential pattern": "Pattern di credenziale servizio live",
+    "Hard-coded secret-like value": "Valore simile a segreto hardcoded",
+    "User-influenced shell execution": "Esecuzione shell influenzata dall utente",
+    "Dynamic code execution": "Esecuzione dinamica di codice",
+    "Unsafe pickle deserialization": "Deserializzazione pickle non sicura",
+    "YAML load without an explicit safe loader": "Caricamento YAML senza safe loader esplicito",
+    "Insecure randomness for security-sensitive values": "Randomness insicura per valori sensibili",
+    "Legacy hash function used in security context": "Hash legacy usato in contesto di sicurezza",
+    "Possible path traversal in file handling": "Possibile path traversal nella gestione file",
+    "TLS certificate verification disabled": "Verifica certificato TLS disabilitata",
+    "Broad cross-origin access": "Accesso cross-origin troppo ampio",
+    "Debug mode enabled": "Modalita debug abilitata",
+    "SQL built with string interpolation": "SQL costruito con interpolazione stringhe",
+    "Dynamic innerHTML assignment": "Assegnazione dinamica innerHTML",
+    "Environment file included in repository": "File ambiente incluso nel repository",
+    "JavaScript dependency lockfile not included": "Lockfile dipendenze JavaScript non incluso",
+    "Email authentication guardrail": "Controllo autenticazione email",
+    "SPF/DMARC/MTA-STS reduce brand abuse for the observed mail or brand-protection scope.": "SPF/DMARC/MTA-STS riducono l abuso del brand per l ambito email o protezione brand osservato.",
+    "Try a public domain such as": "Prova un dominio pubblico come",
+    "Anonymous session: create a nickname account to keep credits, reports and purchases.": "Sessione anonima: crea un account con nickname per conservare crediti, report e acquisti.",
+    "Modalita eco": "Modalità eco",
+    "DMARC present but not enforced": "DMARC presente ma non applicato",
+    "DMARC was found, but no observable quarantine/reject policy is active.": "DMARC è presente, ma non è visibile una policy quarantine/reject attiva.",
+    "Analyze aggregate reports and plan gradual enforcement.": "Analizza i report aggregati e pianifica l’applicazione graduale.",
+    "Attackers may still benefit from brand spoofing because failed messages are monitored but not strongly rejected.": "Gli attaccanti possono ancora sfruttare lo spoofing del brand perché i messaggi falliti vengono monitorati ma non respinti con forza.",
+    "Continued phishing exposure despite partial email-security investment.": "Esposizione phishing residua nonostante un investimento parziale nella sicurezza email.",
+    "Use DMARC reports to close legitimate gaps, then move to quarantine and reject with change management.": "Usa i report DMARC per chiudere i gap legittimi, poi passa a quarantine e reject con change management.",
+    "Brand impersonation drill": "Esercitazione di impersonificazione brand",
+    "Measure exposure to authorized spoofing and phishing simulation.": "Misura l’esposizione con simulazioni autorizzate di spoofing e phishing.",
+    "DMARC is not enforced with reject.": "DMARC non è applicato con reject.",
+    "Content discovery": "Scoperta dei contenuti",
+    "Review publicly indexed or declared paths.": "Rivedi i percorsi pubblicamente indicizzati o dichiarati.",
+    "robots.txt/sitemap.xml available.": "robots.txt/sitemap.xml disponibili.",
+    "Potential subdomain takeover to verify": "Potenziale takeover di sottodominio da verificare",
+    "Public CNAMEs to managed providers were observed in Certificate Transparency subdomains.": "Sono stati osservati CNAME pubblici verso provider gestiti nei sottodomini Certificate Transparency.",
+    "Verify ownership of cloud/SaaS resources before any technical testing.": "Verifica la proprietà delle risorse cloud/SaaS prima di qualsiasi test tecnico.",
+    "How an attacker may abuse it": "Come potrebbe abusarne un attaccante"
   }
 }

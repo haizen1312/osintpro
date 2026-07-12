@@ -573,7 +573,7 @@ async function buildRepoAudit(files, repository) {
   }
   const data = await api("/api/repository/audit", {
     method: "POST",
-    body: JSON.stringify({ repository, files: payloadFiles })
+    body: JSON.stringify({ repository, files: payloadFiles, lang: state.language })
   });
   state.user = data.user;
   updateAccount();
@@ -1598,7 +1598,8 @@ function renderWebAuditLab(report) {
 function updateAccount() {
   const isPaid = state.user.plan !== "Free";
   const isAuthenticated = Boolean(state.user.authenticated);
-  const nickname = state.user.nickname || "Guest";
+  const guestLabel = t("account.guest", "Guest");
+  const nickname = state.user.nickname || guestLabel;
   const maxCredits = state.user.free_credits || 5;
   const label = isPaid || freeReportsUnlimited() ? "∞" : state.user.credits;
   const width = isPaid || freeReportsUnlimited() ? 100 : Math.max(0, Math.min(100, (state.user.credits / maxCredits) * 100));
@@ -1608,13 +1609,13 @@ function updateAccount() {
   document.querySelector("#workspacePlan").textContent = `${state.user.plan} workspace`;
   document.querySelector("#monitorUsage").textContent = `${state.monitors.length}/${state.user.monitor_limit}`;
   document.querySelector("#userAvatar").textContent = isAuthenticated ? nicknameInitials(nickname) : "?";
-  document.querySelector("#userNickname").textContent = isAuthenticated ? `@${nickname}` : "Guest";
+  document.querySelector("#userNickname").textContent = isAuthenticated ? `@${nickname}` : guestLabel;
   document.querySelector("#userChip").classList.toggle("guest", !isAuthenticated);
   document.querySelector("#logoutButton").hidden = !isAuthenticated;
   document.querySelector("#deleteAccountButton").disabled = !isAuthenticated || state.user.plan === "Admin";
   document.querySelector("#accountState").textContent = state.user.authenticated
     ? `Signed in as @${state.user.nickname}`
-    : "Anonymous session: create a nickname account to keep credits, reports and purchases.";
+    : translateExactText("Anonymous session: create a nickname account to keep credits, reports and purchases.");
   document.querySelector("#accountMeta").textContent = `Plan ${state.user.plan} · Credits ${label} · Monitor ${state.monitors.length}/${state.user.monitor_limit}`;
   const historyNotice = document.querySelector("#historyNotice");
   if (historyNotice) {
@@ -2525,10 +2526,10 @@ async function analyze(target) {
 
   const button = document.querySelector("#scanButton");
   button.disabled = true;
-  button.textContent = "Analyzing...";
+  button.textContent = t("scan.loading.button", "Analyzing...");
   setLiveSignal(`collecting passive intel for ${target}`);
   document.querySelector("#result").className = "result empty";
-  document.querySelector("#result").innerHTML = `<h2>Analysis in progress</h2><p>Querying passive sources from the backend.</p>`;
+  document.querySelector("#result").innerHTML = `<h2>${escapeHtml(t("scan.loading.title", "Analysis in progress"))}</h2><p>${escapeHtml(t("scan.loading.body", "Querying passive sources from the backend."))}</p>`;
 
   try {
     const data = await api("/api/analyze", {
@@ -2681,7 +2682,7 @@ async function analyzeSocial(username) {
   try {
     const data = await api("/api/social/analyze", {
       method: "POST",
-      body: JSON.stringify({ username, folder_id: activeFolderId() })
+      body: JSON.stringify({ username, folder_id: activeFolderId(), lang: state.language })
     });
     state.user = data.user;
     state.socialReports.unshift({
@@ -2722,7 +2723,7 @@ async function analyzeWallet(address) {
   try {
     const data = await api("/api/wallet/analyze", {
       method: "POST",
-      body: JSON.stringify({ address, folder_id: activeFolderId() })
+      body: JSON.stringify({ address, folder_id: activeFolderId(), lang: state.language })
     });
     state.user = data.user;
     state.walletReports.unshift({

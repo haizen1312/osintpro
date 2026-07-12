@@ -369,6 +369,12 @@ def translate_known_string(value: object, lang: str = DEFAULT_LANGUAGE) -> str:
     exact = translate_static(text, cleaned)
     if exact != text:
         return exact
+    if text == "The domain does not resolve IP addresses from the local backend.":
+        return translate_phrase(
+            "domain_summary_no_ips",
+            cleaned,
+            "The domain does not resolve IP addresses from the local backend.",
+        )
     if text.startswith("Domain is reachable. Missing ") and " observable security headers." in text:
         count = text.removeprefix("Domain is reachable. Missing ").split(" observable", 1)[0]
         return translate_phrase(
@@ -384,6 +390,67 @@ def translate_known_string(value: object, lang: str = DEFAULT_LANGUAGE) -> str:
             cleaned,
             "Add or review missing security headers: {headers}.",
             headers=headers,
+        )
+    if text.startswith("Found ") and " likely profiles and " in text and " uncertain results for @" in text:
+        match = re.match(r"Found (\d+) likely profiles and (\d+) uncertain results for @(.+)\.", text)
+        if match:
+            found, uncertain, username = match.groups()
+            return translate_phrase(
+                "social_summary_profiles",
+                cleaned,
+                "Found {found} likely profiles and {uncertain} uncertain results for @{username}.",
+                found=found,
+                uncertain=uncertain,
+                username=username,
+            )
+    if text.startswith("Bitcoin wallet with ") and " public transactions and estimated balance " in text:
+        match = re.match(r"Bitcoin wallet with (.+) public transactions and estimated balance (.+) BTC\.", text)
+        if match:
+            tx_count, balance = match.groups()
+            return translate_phrase(
+                "bitcoin_wallet_summary",
+                cleaned,
+                "Bitcoin wallet with {tx_count} public transactions and estimated balance {balance} BTC.",
+                tx_count=tx_count,
+                balance=balance,
+            )
+    if text.startswith("Ethereum/EVM wallet with estimated balance ") and " recent transactions collected." in text:
+        match = re.match(r"Ethereum/EVM wallet with estimated balance (.+) ETH and (.+) recent transactions collected\.", text)
+        if match:
+            balance, tx_count = match.groups()
+            return translate_phrase(
+                "ethereum_wallet_summary",
+                cleaned,
+                "Ethereum/EVM wallet with estimated balance {balance} ETH and {tx_count} recent transactions collected.",
+                balance=balance,
+                tx_count=tx_count,
+            )
+    if text.startswith("Estimated public balance: ") and text.endswith("."):
+        match = re.match(r"Estimated public balance: (.+) ([A-Z]+)\.", text)
+        if match:
+            balance, asset = match.groups()
+            return translate_phrase(
+                "wallet_public_balance_detail",
+                cleaned,
+                "Estimated public balance: {balance} {asset}.",
+                balance=balance,
+                asset=asset,
+            )
+    if text.endswith(" likely profiles."):
+        count = text.removesuffix(" likely profiles.")
+        return translate_phrase(
+            "social_likely_profiles_signal",
+            cleaned,
+            "{count} likely profiles.",
+            count=count,
+        )
+    if text.endswith(" handles not observed."):
+        count = text.removesuffix(" handles not observed.")
+        return translate_phrase(
+            "social_handles_not_observed_signal",
+            cleaned,
+            "{count} handles not observed.",
+            count=count,
         )
     if text.startswith("The certificate expires in ") and text.endswith(" days."):
         days = text.removeprefix("The certificate expires in ").removesuffix(" days.")
@@ -481,6 +548,27 @@ def translate_report(report: dict[str, object], lang: str) -> dict[str, object]:
         for item in translated.get("vulnerability_hypotheses", [])
         if isinstance(item, dict)
     ]
+    return translated
+
+
+def translate_summary_rows(rows: list[dict[str, object]], lang: str) -> list[dict[str, object]]:
+    """Translate stored history summaries at response time, not in the database.
+
+    Reports are stored in English as canonical evidence. This keeps history
+    stable while allowing each browser session to render the same report list in
+    the selected language.
+    """
+    cleaned = clean_language(lang)
+    if cleaned == DEFAULT_LANGUAGE:
+        return rows
+    translated: list[dict[str, object]] = []
+    for row in rows:
+        item = dict(row)
+        if "summary" in item:
+            item["summary"] = translate_known_string(item.get("summary"), cleaned)
+        if "last_summary" in item:
+            item["last_summary"] = translate_known_string(item.get("last_summary"), cleaned)
+        translated.append(item)
     return translated
 
 
@@ -2989,24 +3077,32 @@ def social_findings(username: str, profiles: list[dict[str, object]]) -> list[di
     findings: list[dict[str, str]] = []
     if len(found) >= 5:
         findings.append({
+            "template_id": "social_username_reuse",
+            "root_cause": "social_username_reuse",
             "level": "medium",
             "title": "Username reused across many platforms",
             "detail": "Reuse enables identity correlation, social graph mapping and brand impersonation checks.",
         })
     if len(found) == 0 and uncertain:
         findings.append({
+            "template_id": "social_uncertain_results",
+            "root_cause": "social_uncertain_results",
             "level": "low",
             "title": "Uncertain results",
             "detail": "Some platforms limit public requests; manual verification is required.",
         })
     if any(item["platform"] in {"GitHub", "GitLab", "Keybase"} and item["present"] is True for item in profiles):
         findings.append({
+            "template_id": "social_developer_footprint",
+            "root_cause": "social_developer_footprint",
             "level": "info",
             "title": "Observable developer footprint",
             "detail": "Public technical profiles can support attribution, supply-chain review and exposure review.",
         })
     if any(item["platform"] in {"Telegram", "X", "Instagram", "TikTok"} and item["present"] is True for item in profiles):
         findings.append({
+            "template_id": "social_monetizable_handle",
+            "root_cause": "social_monetizable_handle",
             "level": "info",
             "title": "Potentially monetizable social handle",
             "detail": "Useful for brand monitoring, creator due diligence or anti-impersonation packages.",
@@ -6543,10 +6639,10 @@ class Handler(SimpleHTTPRequestHandler):
             lang = self.request_language(parsed)
             self.send_json({
                 "user": public_user(user),
-                "reports": self.visible_reports_for_user(user),
-                "social_reports": self.visible_social_reports_for_user(user),
-                "wallet_reports": self.visible_wallet_reports_for_user(user),
-                "monitors": self.visible_monitors_for_user(user),
+                "reports": translate_summary_rows(self.visible_reports_for_user(user), lang),
+                "social_reports": translate_summary_rows(self.visible_social_reports_for_user(user), lang),
+                "wallet_reports": translate_summary_rows(self.visible_wallet_reports_for_user(user), lang),
+                "monitors": translate_summary_rows(self.visible_monitors_for_user(user), lang),
                 "folders": self.folders_for_user(str(user["_id"])) if user.get("authenticated") else [],
                 "playbooks": self.playbooks_for_user(str(user["_id"])) if user.get("authenticated") else [],
                 "pricing": {
@@ -6560,11 +6656,13 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/social/reports":
             user, headers = self.get_or_create_user()
-            self.send_json({"social_reports": self.visible_social_reports_for_user(user)}, headers=headers)
+            lang = self.request_language(parsed)
+            self.send_json({"social_reports": translate_summary_rows(self.visible_social_reports_for_user(user), lang)}, headers=headers)
             return
         if parsed.path == "/api/wallet/reports":
             user, headers = self.get_or_create_user()
-            self.send_json({"wallet_reports": self.visible_wallet_reports_for_user(user)}, headers=headers)
+            lang = self.request_language(parsed)
+            self.send_json({"wallet_reports": translate_summary_rows(self.visible_wallet_reports_for_user(user), lang)}, headers=headers)
             return
         if parsed.path == "/api/client-folders":
             user, headers = self.get_or_create_user()
@@ -6582,7 +6680,8 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/reports":
             user, headers = self.get_or_create_user()
-            self.send_json({"reports": self.visible_reports_for_user(user)}, headers=headers)
+            lang = self.request_language(parsed)
+            self.send_json({"reports": translate_summary_rows(self.visible_reports_for_user(user), lang)}, headers=headers)
             return
         if parsed.path == "/api/reports/compare":
             user, headers = self.get_or_create_user()
@@ -6843,7 +6942,8 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/reports.csv":
             user, headers = self.get_or_create_user()
-            reports = self.reports_for_user(str(user["_id"]))
+            lang = self.request_language(parsed)
+            reports = translate_summary_rows(self.reports_for_user(str(user["_id"])), lang)
             lines = ["domain,score,generated_at,summary"]
             for item in reports:
                 values = [item["domain"], item["score"], item["generated_at"], item["summary"]]
@@ -6853,7 +6953,8 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/wallet/reports.csv":
             user, headers = self.get_or_create_user()
-            reports = self.wallet_reports_for_user(str(user["_id"]))
+            lang = self.request_language(parsed)
+            reports = translate_summary_rows(self.wallet_reports_for_user(str(user["_id"])), lang)
             lines = ["chain,address,risk_score,generated_at,summary"]
             for item in reports:
                 values = [item["chain"], item["address"], item["risk_score"], item["generated_at"], item["summary"]]
@@ -7336,6 +7437,7 @@ class Handler(SimpleHTTPRequestHandler):
             user, headers = self.get_or_create_user()
             try:
                 body = self.read_json(MAX_REPO_AUDIT_BYTES + 262144)
+                lang = clean_language(body.get("lang"))
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
                     if not has_report_access(row):
@@ -7370,7 +7472,7 @@ class Handler(SimpleHTTPRequestHandler):
                         },
                     )
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
-                self.send_json({"audit": audit, "user": row_to_user(updated)}, headers=headers)
+                self.send_json({"audit": translate_report(audit, lang), "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
             except Exception:
@@ -7422,6 +7524,7 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 body = self.read_json()
                 target = str(body.get("username", ""))
+                lang = clean_language(body.get("lang"))
                 folder_id = clean_folder_id(body.get("folder_id"))
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
@@ -7449,7 +7552,7 @@ class Handler(SimpleHTTPRequestHandler):
                     prepare_session_report_storage(connection, user, "social_reports")
                     store_social_report(connection, str(user["_id"]), report, folder_id)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
-                self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
+                self.send_json({"report": translate_report(report, lang), "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
             except Exception:
@@ -7461,6 +7564,7 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 body = self.read_json()
                 address = str(body.get("address", ""))
+                lang = clean_language(body.get("lang"))
                 folder_id = clean_folder_id(body.get("folder_id"))
                 with db() as connection:
                     row = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
@@ -7488,7 +7592,7 @@ class Handler(SimpleHTTPRequestHandler):
                     prepare_session_report_storage(connection, user, "wallet_reports")
                     store_wallet_report(connection, str(user["_id"]), report, folder_id)
                     updated = connection.execute("SELECT * FROM users WHERE id = ?", (user["_id"],)).fetchone()
-                self.send_json({"report": report, "user": row_to_user(updated)}, headers=headers)
+                self.send_json({"report": translate_report(report, lang), "user": row_to_user(updated)}, headers=headers)
             except ValueError as exc:
                 self.send_json({"error": str(exc)}, 400, headers)
             except Exception:

@@ -61,7 +61,11 @@
     "dashboard.credits.unlimited": "Unlimited reports",
     "dashboard.graph.count": "{nodes} nodes / {edges} edges",
     "dashboard.graph.description": "Domains, profiles, wallets and counterparties.",
-    "dashboard.monitors.description": "Saved domains checked over time."
+    "dashboard.monitors.description": "Saved domains checked over time.",
+    "account.guest": "Guest",
+    "scan.loading.button": "Analyzing...",
+    "scan.loading.title": "Analysis in progress",
+    "scan.loading.body": "Querying passive sources from the backend."
   },
   "findings": {
     "security_header_missing": {
@@ -191,6 +195,110 @@
       "business_impact": "Recovery or compliance workflow may depend on timely service-provider contact.",
       "owner_action": "Record service labels, transaction IDs and escalation path before making claims.",
       "evidence_to_collect": "Collect public labels, transaction hashes, timestamps and case notes."
+    },
+    "social_username_reuse": {
+      "title": "Username reused across many platforms",
+      "description": "Reuse enables identity correlation, social graph mapping and brand impersonation checks.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "social_uncertain_results": {
+      "title": "Uncertain results",
+      "description": "Some platforms limit public requests; manual verification is required.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "social_developer_footprint": {
+      "title": "Observable developer footprint",
+      "description": "Public technical profiles can support attribution, supply-chain review and exposure review.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "social_monetizable_handle": {
+      "title": "Potentially monetizable social handle",
+      "description": "Useful for brand monitoring, creator due diligence or anti-impersonation packages.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "wallet_very_high_activity": {
+      "title": "Very high-activity wallet",
+      "description": "The number of public transactions is very high: useful for cluster analysis, exchange deposit review or fraud reconstruction.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "wallet_high_activity": {
+      "title": "High-activity wallet",
+      "description": "Transaction volume suggests an operational node or frequently used wallet.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "wallet_many_counterparties": {
+      "title": "Many counterparties observed",
+      "description": "The wallet interacts with many entities in the recent window; expand the graph to additional hops.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "wallet_fan_pattern": {
+      "title": "Fan-in/fan-out pattern",
+      "description": "Some transactions have many inputs/outputs: possible consolidation, distribution or obfuscation to verify manually.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "wallet_mixer_tag": {
+      "title": "Public tag compatible with mixer/privacy service",
+      "description": "Public sources associate privacy/mixer tags: use as an OSINT indicator, not definitive attribution.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "wallet_exchange_tag": {
+      "title": "Possible exchange/service wallet",
+      "description": "Public tags suggest a centralized service or exchange; useful for compliance requests or preservation letters.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "wallet_contract_address": {
+      "title": "Contract or smart account address",
+      "description": "The EVM address appears to be a contract/smart account: review methods, token transfers and explorer interactions.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "wallet_observable_balance": {
+      "title": "Observable balance",
+      "description": "Estimated public balance is visible from public chain data.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
+    },
+    "wallet_no_priority_pattern": {
+      "title": "No priority pattern in the recent window",
+      "description": "Public sources do not show strong signals; expand the time window or additional chains if needed.",
+      "attacker_abuse": "A reviewer should validate this public signal with authorized context before taking action.",
+      "business_impact": "Possible business impact depends on account ownership, brand risk, fraud exposure and operational context.",
+      "owner_action": "Preserve evidence, document confidence, and assign an owner for follow-up.",
+      "evidence_to_collect": "Collect URLs, timestamps, screenshots, public tags and analyst notes."
     }
   },
   "terms": {
@@ -299,7 +407,14 @@
   "phrases": {
     "summary_missing_headers": "Domain is reachable. Missing {count} observable security headers.",
     "recommendation_missing_headers": "Add or review missing security headers: {headers}.",
-    "certificate_expires_days": "The certificate expires in {days} days."
+    "certificate_expires_days": "The certificate expires in {days} days.",
+    "domain_summary_no_ips": "The domain does not resolve IP addresses from the local backend.",
+    "social_summary_profiles": "Found {found} likely profiles and {uncertain} uncertain results for @{username}.",
+    "bitcoin_wallet_summary": "Bitcoin wallet with {tx_count} public transactions and estimated balance {balance} BTC.",
+    "ethereum_wallet_summary": "Ethereum/EVM wallet with estimated balance {balance} ETH and {tx_count} recent transactions collected.",
+    "wallet_public_balance_detail": "Estimated public balance: {balance} {asset}.",
+    "social_likely_profiles_signal": "{count} likely profiles.",
+    "social_handles_not_observed_signal": "{count} handles not observed."
   },
   "csv": {
     "source": "source",
@@ -672,6 +787,79 @@
     "Deploy a report-only CSP first, fix violations, then enforce for authenticated and payment/admin surfaces.": "Deploy a report-only CSP first, fix violations, then enforce for authenticated and payment/admin surfaces.",
     "No MX, SPF or DMARC signal was observed. Email controls are treated as optional brand-protection guidance, not an active mail-system failure.": "No MX, SPF or DMARC signal was observed. Email controls are treated as optional brand-protection guidance, not an active mail-system failure.",
     "robots.txt and sitemap.xml are expected public indexing metadata. Their presence is not a vulnerability unless sensitive paths are disclosed.": "robots.txt and sitemap.xml are expected public indexing metadata. Their presence is not a vulnerability unless sensitive paths are disclosed.",
-    "Publication is not a vulnerability by itself.": "Publication is not a vulnerability by itself."
+    "Publication is not a vulnerability by itself.": "Publication is not a vulnerability by itself.",
+    "Secrets": "Secrets",
+    "Command execution": "Command execution",
+    "Code execution": "Code execution",
+    "Deserialization": "Deserialization",
+    "Cryptography": "Cryptography",
+    "File handling": "File handling",
+    "Transport security": "Transport security",
+    "Browser security": "Browser security",
+    "Configuration": "Configuration",
+    "Database": "Database",
+    "Frontend": "Frontend",
+    "Dependencies": "Dependencies",
+    "Private key material committed": "Private key material committed",
+    "Possible AWS access key": "Possible AWS access key",
+    "Live service credential pattern": "Live service credential pattern",
+    "Hard-coded secret-like value": "Hard-coded secret-like value",
+    "User-influenced shell execution": "User-influenced shell execution",
+    "Dynamic code execution": "Dynamic code execution",
+    "Unsafe pickle deserialization": "Unsafe pickle deserialization",
+    "YAML load without an explicit safe loader": "YAML load without an explicit safe loader",
+    "Insecure randomness for security-sensitive values": "Insecure randomness for security-sensitive values",
+    "Legacy hash function used in security context": "Legacy hash function used in security context",
+    "Possible path traversal in file handling": "Possible path traversal in file handling",
+    "TLS certificate verification disabled": "TLS certificate verification disabled",
+    "Broad cross-origin access": "Broad cross-origin access",
+    "Debug mode enabled": "Debug mode enabled",
+    "SQL built with string interpolation": "SQL built with string interpolation",
+    "Dynamic innerHTML assignment": "Dynamic innerHTML assignment",
+    "Environment file included in repository": "Environment file included in repository",
+    "JavaScript dependency lockfile not included": "JavaScript dependency lockfile not included",
+    "Manually verify high-confidence profiles before contacting or attributing.": "Manually verify high-confidence profiles before contacting or attributing.",
+    "Monitor platforms where the username is available if it belongs to a brand.": "Monitor platforms where the username is available if it belongs to a brand.",
+    "For creators/brands, reserve critical handles on major platforms.": "For creators/brands, reserve critical handles on major platforms.",
+    "Handle correlation": "Handle correlation",
+    "Correlate public presence for authorized attribution.": "Correlate public presence for authorized attribution.",
+    "Impersonation gap": "Impersonation gap",
+    "Identify platforms where a brand should reserve the username.": "Identify platforms where a brand should reserve the username.",
+    "Username watchlist": "Username watchlist",
+    "New profiles with similar handles can indicate impersonation.": "New profiles with similar handles can indicate impersonation.",
+    "Brand handle coverage": "Brand handle coverage",
+    "Reduces fake-account opportunities on high-visibility platforms.": "Reduces fake-account opportunities on high-visibility platforms.",
+    "Expand counterparties with the highest transaction count or value first.": "Expand counterparties with the highest transaction count or value first.",
+    "Manually tag exchanges, mixers, victim wallets and hot wallets when identified.": "Manually tag exchanges, mixers, victim wallets and hot wallets when identified.",
+    "Fan-in/fan-out and repeated splits are indicators to verify with external context.": "Fan-in/fan-out and repeated splits are indicators to verify with external context.",
+    "Check token transfers and internal transactions in the explorer when direct ETH value is low.": "Check token transfers and internal transactions in the explorer when direct ETH value is low.",
+    "If contracts/smart accounts appear, verify method and destination before attribution.": "If contracts/smart accounts appear, verify method and destination before attribution.",
+    "Public tags and ENS are OSINT indicators, not definitive identity proof.": "Public tags and ENS are OSINT indicators, not definitive identity proof.",
+    "Static review only: OSINTPRO does not execute uploaded code, install dependencies or run build scripts.": "Static review only: OSINTPRO does not execute uploaded code, install dependencies or run build scripts.",
+    "A finding is a review lead, not proof of exploitability. Confirm reachability, trust boundaries and deployment configuration.": "A finding is a review lead, not proof of exploitability. Confirm reachability, trust boundaries and deployment configuration.",
+    "Files larger than 180 KB, binaries and ignored dependency/build folders are skipped.": "Files larger than 180 KB, binaries and ignored dependency/build folders are skipped.",
+    "Select a repository folder with readable text files.": "Select a repository folder with readable text files.",
+    "No readable source files were included.": "No readable source files were included.",
+    "Email authentication guardrail": "Email authentication guardrail",
+    "SPF/DMARC/MTA-STS reduce brand abuse for the observed mail or brand-protection scope.": "SPF/DMARC/MTA-STS reduce brand abuse for the observed mail or brand-protection scope.",
+    "Try a public domain such as": "Try a public domain such as",
+    "Anonymous session: create a nickname account to keep credits, reports and purchases.": "Anonymous session: create a nickname account to keep credits, reports and purchases.",
+    "DMARC present but not enforced": "DMARC present but not enforced",
+    "DMARC was found, but no observable quarantine/reject policy is active.": "DMARC was found, but no observable quarantine/reject policy is active.",
+    "Analyze aggregate reports and plan gradual enforcement.": "Analyze aggregate reports and plan gradual enforcement.",
+    "Attackers may still benefit from brand spoofing because failed messages are monitored but not strongly rejected.": "Attackers may still benefit from brand spoofing because failed messages are monitored but not strongly rejected.",
+    "Continued phishing exposure despite partial email-security investment.": "Continued phishing exposure despite partial email-security investment.",
+    "Use DMARC reports to close legitimate gaps, then move to quarantine and reject with change management.": "Use DMARC reports to close legitimate gaps, then move to quarantine and reject with change management.",
+    "Brand impersonation drill": "Brand impersonation drill",
+    "Measure exposure to authorized spoofing and phishing simulation.": "Measure exposure to authorized spoofing and phishing simulation.",
+    "DMARC is not enforced with reject.": "DMARC is not enforced with reject.",
+    "Content discovery": "Content discovery",
+    "Review publicly indexed or declared paths.": "Review publicly indexed or declared paths.",
+    "robots.txt/sitemap.xml available.": "robots.txt/sitemap.xml available.",
+    "Potential subdomain takeover to verify": "Potential subdomain takeover to verify",
+    "Public CNAMEs to managed providers were observed in Certificate Transparency subdomains.": "Public CNAMEs to managed providers were observed in Certificate Transparency subdomains.",
+    "Verify ownership of cloud/SaaS resources before any technical testing.": "Verify ownership of cloud/SaaS resources before any technical testing.",
+    "Modalita eco": "Eco mode",
+    "How an attacker may abuse it": "How an attacker may abuse it"
   }
 }
