@@ -425,7 +425,7 @@ function renderRepoAudit(audit) {
       <div>
         <span class="pill">Static repository review</span>
         <h2>${escapeHtml(audit.repository)}</h2>
-        <p>${escapeHtml(audit.files_scanned)} text files reviewed without executing code. ${escapeHtml(audit.ignored_files || 0)} files ignored by dependency/build/.gitignore rules.</p>
+        <p>${escapeHtml(ti("repo.result.summary", { files: audit.files_scanned, ignored: audit.ignored_files || 0 }, "{files} text files reviewed without executing code. {ignored} files ignored by dependency/build/.gitignore rules."))}</p>
       </div>
       <div class="score">
         <div><span>Code posture</span><strong>${escapeHtml(audit.score)}</strong></div>
@@ -467,12 +467,12 @@ function renderRepoAudit(audit) {
       ${findings.length ? findings.map(item => `
         <article class="repo-finding ${repoSeverityTone(item.severity)}" data-repo-finding data-confidence="${escapeHtml(repoConfidenceValue(item))}">
           <div class="repo-finding-head">
-            <span class="severity ${repoSeverityTone(item.severity)}">${escapeHtml(item.severity)}</span>
+            <span class="severity ${repoSeverityTone(item.severity)}">${escapeHtml(translateExactText(item.severity))}</span>
             <strong>${escapeHtml(item.title)}</strong>
-            <span class="tag">${escapeHtml(item.confidence)} · ${escapeHtml(repoConfidenceValue(item).toFixed(2))}</span>
+            <span class="tag">${escapeHtml(translateExactText(item.confidence))} · ${escapeHtml(repoConfidenceValue(item).toFixed(2))}</span>
           </div>
           <code>${escapeHtml(item.path)}:${escapeHtml(item.line)}</code>
-          <pre>${escapeHtml(item.evidence || "Evidence redacted")}</pre>
+          <pre>${escapeHtml(item.evidence || translateExactText("Evidence redacted"))}</pre>
           <p><strong>Why:</strong> ${escapeHtml(item.why)}</p>
           ${item.abuse_path ? `
             <div class="abuse-brief">
@@ -496,7 +496,7 @@ function renderRepoAudit(audit) {
           ${dependencyAdvisories.map(item => `
             <article class="repo-finding ${repoSeverityTone(item.severity)}">
               <div class="repo-finding-head">
-                <span class="severity ${repoSeverityTone(item.severity)}">${escapeHtml(item.severity)}</span>
+                <span class="severity ${repoSeverityTone(item.severity)}">${escapeHtml(translateExactText(item.severity))}</span>
                 <strong>${escapeHtml(item.ecosystem)} · ${escapeHtml(item.package)}</strong>
                 <span class="tag">fix &gt;= ${escapeHtml(item.fixed_version)}</span>
               </div>
@@ -544,6 +544,7 @@ function renderRepoAudit(audit) {
     });
   }
   updateRepoConfidenceFilter();
+  applyStaticTranslations(holder);
 }
 
 async function buildRepoAudit(files, repository) {
@@ -1964,8 +1965,9 @@ function renderSocialReport(report) {
   const found = report.profiles.filter(item => item.present === true);
   const uncertain = report.profiles.filter(item => item.present === null);
   const absent = report.profiles.filter(item => item.present === false);
-  document.querySelector("#socialResult").className = "result";
-  document.querySelector("#socialResult").innerHTML = `
+  const socialResult = document.querySelector("#socialResult");
+  socialResult.className = "result";
+  socialResult.innerHTML = `
     <div class="report-top">
       <div>
         <span class="pill">Nickname intelligence</span>
@@ -2008,6 +2010,7 @@ function renderSocialReport(report) {
       </article>
     </div>
   `;
+  applyStaticTranslations(socialResult);
 }
 
 function renderWalletReports() {
@@ -2036,8 +2039,9 @@ function renderWalletReport(report) {
   const transactions = report.transactions || [];
   const findings = report.findings || [];
   state.currentWallet = { chain: report.chain, address: report.address };
-  document.querySelector("#walletResult").className = "result";
-  document.querySelector("#walletResult").innerHTML = `
+  const walletResult = document.querySelector("#walletResult");
+  walletResult.className = "result";
+  walletResult.innerHTML = `
     <div class="report-top">
       <div>
         <span class="pill">Blockchain report</span>
@@ -2069,7 +2073,7 @@ function renderWalletReport(report) {
         ${counterparties.map(item => `
           <div class="ops-row">
             <strong>${escapeHtml(item.short || item.address)}</strong>
-            <p>${escapeHtml(item.direction)} · ${escapeHtml(item.tx_count)} tx · ${escapeHtml(item.total_value)} ${escapeHtml(report.asset || "")}</p>
+            <p>${escapeHtml(translateExactText(item.direction))} · ${escapeHtml(item.tx_count)} tx · ${escapeHtml(item.total_value)} ${escapeHtml(report.asset || "")}</p>
             <small>${escapeHtml((item.labels || []).join(", ") || item.address)}</small>
             <button class="secondary small" type="button" data-expand-wallet="${escapeHtml(item.address)}">Expand</button>
           </div>
@@ -2101,11 +2105,12 @@ function renderWalletReport(report) {
       ${transactions.map(tx => `
         <a class="check wallet-tx" href="${escapeHtml(tx.url)}" target="_blank" rel="noreferrer">
           <span class="tag ${tx.direction === "outgoing" ? "missing" : ""}">${escapeHtml(tx.direction)}</span>
-          <span><strong>${escapeHtml(tx.short || tx.hash)}</strong><br><span class="mono">${escapeHtml(tx.value)} ${escapeHtml(report.asset || "")} · fee ${escapeHtml(tx.fee ?? "n/a")} · ${escapeHtml(formatDate(tx.timestamp))}</span></span>
+          <span><strong>${escapeHtml(tx.short || tx.hash)}</strong><br><span class="mono">${escapeHtml(tx.value)} ${escapeHtml(report.asset || "")} · ${escapeHtml(translateExactText("fee"))} ${escapeHtml(tx.fee ?? "n/a")} · ${escapeHtml(formatDate(tx.timestamp))}</span></span>
         </a>
       `).join("") || `<div class="check"><span class="tag">n/a</span><span>No recent transactions from the public source.</span></div>`}
     </div>
   `;
+  applyStaticTranslations(walletResult);
 }
 
 function renderMonitors() {

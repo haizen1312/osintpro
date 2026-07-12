@@ -65,7 +65,8 @@
     "account.guest": "Invitado",
     "scan.loading.button": "Analizando...",
     "scan.loading.title": "Análisis en curso",
-    "scan.loading.body": "Consultando fuentes pasivas desde el backend."
+    "scan.loading.body": "Consultando fuentes pasivas desde el backend.",
+    "repo.result.summary": "{files} archivos de texto revisados sin ejecutar código. {ignored} archivos ignorados por reglas de dependencias, build y .gitignore."
   },
   "findings": {
     "security_header_missing": {
@@ -197,36 +198,36 @@
       "evidence_to_collect": "Recopila registros públicos, propietario del servicio, logs disponibles, capturas y notas de aprobación del plan."
     },
     "social_username_reuse": {
-      "title": "Username reutilizado en muchas plataformas",
-      "description": "La reutilizacion permite correlacion de identidad, mapeo del grafo social y controles de suplantacion de marca.",
-      "attacker_abuse": "Un revisor debe validar esta señal pública con contexto autorizado antes de actuar.",
-      "business_impact": "El impacto de negocio depende de la propiedad de cuentas, riesgo de marca, exposición a fraude y contexto operativo.",
-      "owner_action": "Preserva evidencia, documenta la confianza y asigna un responsable de seguimiento.",
-      "evidence_to_collect": "Recopila URLs, timestamps, capturas, etiquetas públicas y notas del analista."
+      "title": "Usuario reutilizado en muchas plataformas",
+      "description": "La reutilización permite correlación de identidad, mapeo del grafo social y comprobaciones de suplantación de marca.",
+      "attacker_abuse": "Un analista debe validar esta señal pública con contexto autorizado antes de actuar.",
+      "business_impact": "El impacto de negocio depende de la propiedad de la cuenta, el riesgo de marca, la exposición a fraude y el contexto operativo.",
+      "owner_action": "Conserva evidencias, documenta la confianza y asigna un responsable de seguimiento.",
+      "evidence_to_collect": "Recopila URLs, marcas de tiempo, capturas, etiquetas públicas y notas del analista."
     },
     "social_uncertain_results": {
       "title": "Resultados inciertos",
-      "description": "Algunas plataformas limitan solicitudes publicas; se requiere verificacion manual.",
-      "attacker_abuse": "Un revisor debe validar esta señal pública con contexto autorizado antes de actuar.",
-      "business_impact": "El impacto de negocio depende de la propiedad de cuentas, riesgo de marca, exposición a fraude y contexto operativo.",
-      "owner_action": "Preserva evidencia, documenta la confianza y asigna un responsable de seguimiento.",
-      "evidence_to_collect": "Recopila URLs, timestamps, capturas, etiquetas públicas y notas del analista."
+      "description": "Algunas plataformas limitan las solicitudes públicas; se requiere verificación manual.",
+      "attacker_abuse": "Un analista debe validar esta señal pública con contexto autorizado antes de actuar.",
+      "business_impact": "El impacto de negocio depende de la propiedad de la cuenta, el riesgo de marca, la exposición a fraude y el contexto operativo.",
+      "owner_action": "Conserva evidencias, documenta la confianza y asigna un responsable de seguimiento.",
+      "evidence_to_collect": "Recopila URLs, marcas de tiempo, capturas, etiquetas públicas y notas del analista."
     },
     "social_developer_footprint": {
-      "title": "Huella tecnica observable",
-      "description": "Los perfiles tecnicos publicos pueden apoyar atribucion, revision de cadena de suministro y revision de exposicion.",
-      "attacker_abuse": "Un revisor debe validar esta señal pública con contexto autorizado antes de actuar.",
-      "business_impact": "El impacto de negocio depende de la propiedad de cuentas, riesgo de marca, exposición a fraude y contexto operativo.",
-      "owner_action": "Preserva evidencia, documenta la confianza y asigna un responsable de seguimiento.",
-      "evidence_to_collect": "Recopila URLs, timestamps, capturas, etiquetas públicas y notas del analista."
+      "title": "Huella de desarrollo observable",
+      "description": "Los perfiles técnicos públicos pueden apoyar atribución, revisión de supply-chain y revisión de exposición.",
+      "attacker_abuse": "Un analista debe validar esta señal pública con contexto autorizado antes de actuar.",
+      "business_impact": "El impacto de negocio depende de la propiedad de la cuenta, el riesgo de marca, la exposición a fraude y el contexto operativo.",
+      "owner_action": "Conserva evidencias, documenta la confianza y asigna un responsable de seguimiento.",
+      "evidence_to_collect": "Recopila URLs, marcas de tiempo, capturas, etiquetas públicas y notas del analista."
     },
     "social_monetizable_handle": {
-      "title": "Handle social potencialmente monetizable",
-      "description": "Util para monitoreo de marca, due diligence de creadores o paquetes anti-suplantacion.",
-      "attacker_abuse": "Un revisor debe validar esta señal pública con contexto autorizado antes de actuar.",
-      "business_impact": "El impacto de negocio depende de la propiedad de cuentas, riesgo de marca, exposición a fraude y contexto operativo.",
-      "owner_action": "Preserva evidencia, documenta la confianza y asigna un responsable de seguimiento.",
-      "evidence_to_collect": "Recopila URLs, timestamps, capturas, etiquetas públicas y notas del analista."
+      "title": "Identificador social potencialmente monetizable",
+      "description": "Útil para monitorización de marca, due diligence de creadores o paquetes anti-suplantación.",
+      "attacker_abuse": "Un analista debe validar esta señal pública con contexto autorizado antes de actuar.",
+      "business_impact": "El impacto de negocio depende de la propiedad de la cuenta, el riesgo de marca, la exposición a fraude y el contexto operativo.",
+      "owner_action": "Conserva evidencias, documenta la confianza y asigna un responsable de seguimiento.",
+      "evidence_to_collect": "Recopila URLs, marcas de tiempo, capturas, etiquetas públicas y notas del analista."
     },
     "wallet_very_high_activity": {
       "title": "Wallet de actividad muy alta",
@@ -277,8 +278,8 @@
       "evidence_to_collect": "Recopila URLs, timestamps, capturas, etiquetas públicas y notas del analista."
     },
     "wallet_contract_address": {
-      "title": "Direccion de contrato o smart account",
-      "description": "La direccion EVM parece contrato/smart account: revisa metodos, transferencias de tokens e interacciones del explorer.",
+      "title": "Contrato o smart account",
+      "description": "La dirección EVM parece ser un contrato/smart account: revisa métodos, transferencias de tokens e interacciones del explorador.",
       "attacker_abuse": "Un revisor debe validar esta señal pública con contexto autorizado antes de actuar.",
       "business_impact": "El impacto de negocio depende de la propiedad de cuentas, riesgo de marca, exposición a fraude y contexto operativo.",
       "owner_action": "Preserva evidencia, documenta la confianza y asigna un responsable de seguimiento.",
@@ -299,6 +300,28 @@
       "business_impact": "El impacto de negocio depende de la propiedad de cuentas, riesgo de marca, exposición a fraude y contexto operativo.",
       "owner_action": "Preserva evidencia, documenta la confianza y asigna un responsable de seguimiento.",
       "evidence_to_collect": "Recopila URLs, timestamps, capturas, etiquetas públicas y notas del analista."
+    },
+    "repo_dependencies-javascript-dependency-lockfile-not-included": {
+      "category": "Dependencias",
+      "title": "Lockfile de dependencias JavaScript no incluido",
+      "why": "La resolución de dependencias sin fijar hace que las compilaciones sean menos reproducibles y puede introducir versiones inesperadas.",
+      "abuse_path": "Un atacante real primero confirmaría si esta ruta de código es alcanzable y después buscaría errores de límites de confianza alrededor de los datos afectados.",
+      "business_impact": "El riesgo operativo depende de alcanzabilidad, privilegios y sensibilidad de los datos.",
+      "owner_action": "Confirma la aplicabilidad con el ingeniero responsable, añade una prueba de regresión y documenta el riesgo aceptado o la corrección.",
+      "applicability": "Aplica a aplicaciones desplegables; las librerías reutilizables pueden admitir intencionalmente rangos de dependencias más amplios.",
+      "remediation": "Incluye en el repositorio el lockfile generado por el gestor de paquetes usado en CI y producción.",
+      "attacker_abuse": "Un atacante real primero confirmaría si esta ruta de código es alcanzable y después buscaría errores de límites de confianza alrededor de los datos afectados."
+    },
+    "repo_dependencies-known-vulnerable-npm-dependency-lodash": {
+      "category": "Dependencias",
+      "title": "Dependencia NPM vulnerable conocida: lodash",
+      "why": "Los avisos de contaminación de prototipos e inyección de comandos afectan a versiones antiguas de lodash.",
+      "abuse_path": "Un atacante real primero confirmaría si esta ruta de código es alcanzable y después buscaría errores de límites de confianza alrededor de los datos afectados.",
+      "business_impact": "El riesgo operativo depende de alcanzabilidad, privilegios y sensibilidad de los datos.",
+      "owner_action": "Confirma la aplicabilidad con el ingeniero responsable, añade una prueba de regresión y documenta el riesgo aceptado o la corrección.",
+      "applicability": "Aplica cuando lodash está instalado en producción o CI. Actualiza a >= 4.17.21 y vuelve a ejecutar las pruebas.",
+      "remediation": "Actualiza lodash a >= 4.17.21 y regenera el lockfile.",
+      "attacker_abuse": "Un atacante real primero confirmaría si esta ruta de código es alcanzable y después buscaría errores de límites de confianza alrededor de los datos afectados."
     }
   },
   "terms": {
@@ -410,11 +433,11 @@
     "certificate_expires_days": "El certificado vence en {days} dias.",
     "domain_summary_no_ips": "El dominio no resuelve direcciones IP desde el backend local.",
     "social_summary_profiles": "Se encontraron {found} perfiles probables y {uncertain} resultados inciertos para @{username}.",
-    "bitcoin_wallet_summary": "Wallet Bitcoin con {tx_count} transacciones publicas y saldo estimado de {balance} BTC.",
+    "bitcoin_wallet_summary": "Wallet Bitcoin con {tx_count} transacciones públicas y saldo estimado de {balance} BTC.",
     "ethereum_wallet_summary": "Wallet Ethereum/EVM con saldo estimado de {balance} ETH y {tx_count} transacciones recientes recopiladas.",
-    "wallet_public_balance_detail": "Saldo publico estimado: {balance} {asset}.",
+    "wallet_public_balance_detail": "Saldo público estimado: {balance} {asset}.",
     "social_likely_profiles_signal": "{count} perfiles probables.",
-    "social_handles_not_observed_signal": "{count} handles no observados."
+    "social_handles_not_observed_signal": "{count} identificadores no observados."
   },
   "csv": {
     "source": "fuente",
@@ -678,7 +701,7 @@
     "Evidence: save headers, status codes and screenshots for the client report.": "Evidencia: guarda cabeceras, códigos de estado y capturas para el reporte.",
     "prioritize missing headers, disclosure files, TLS expiry and email spoofing posture.": "prioriza cabeceras faltantes, archivos disclosure, vencimiento TLS y postura anti-spoofing.",
     "HEADER POSTURE": "POSTURA CABECERAS",
-    "missing": "faltantes",
+    "missing": "ausente",
     "Review the prioritized issues below before touching any tooling.": "Revisa los problemas prioritarios de abajo antes de usar herramientas.",
     "AUTHORIZED USE ONLY": "SOLO USO AUTORIZADO",
     "Legal and safety boundary": "Limite legal y de seguridad",
@@ -791,13 +814,13 @@
     "Manually verify high-confidence profiles before contacting or attributing.": "Verifica manualmente los perfiles de alta confianza antes de contactar o atribuir.",
     "Monitor platforms where the username is available if it belongs to a brand.": "Monitorea plataformas donde el username esta disponible si pertenece a una marca.",
     "For creators/brands, reserve critical handles on major platforms.": "Para creadores/marcas, reserva handles criticos en plataformas principales.",
-    "Handle correlation": "Correlacion de handles",
-    "Correlate public presence for authorized attribution.": "Correlaciona presencia publica para atribucion autorizada.",
-    "Impersonation gap": "Brecha de suplantacion",
-    "Identify platforms where a brand should reserve the username.": "Identifica plataformas donde una marca deberia reservar el username.",
-    "Username watchlist": "Watchlist de username",
-    "New profiles with similar handles can indicate impersonation.": "Nuevos perfiles con handles similares pueden indicar suplantacion.",
-    "Brand handle coverage": "Cobertura de handles de marca",
+    "Handle correlation": "Correlación de identificadores",
+    "Correlate public presence for authorized attribution.": "Correlaciona presencia pública para atribución autorizada.",
+    "Impersonation gap": "Brecha de suplantación",
+    "Identify platforms where a brand should reserve the username.": "Identifica plataformas donde una marca debería reservar el usuario.",
+    "Username watchlist": "Lista de vigilancia de usuario",
+    "New profiles with similar handles can indicate impersonation.": "Nuevos perfiles con identificadores similares pueden indicar suplantación.",
+    "Brand handle coverage": "Cobertura de identificadores de marca",
     "Reduces fake-account opportunities on high-visibility platforms.": "Reduce oportunidades de cuentas falsas en plataformas de alta visibilidad.",
     "Expand counterparties with the highest transaction count or value first.": "Expande primero las contrapartes con mayor conteo o valor transaccional.",
     "Manually tag exchanges, mixers, victim wallets and hot wallets when identified.": "Etiqueta manualmente exchanges, mixers, wallets victima y hot wallets cuando se identifiquen.",
@@ -860,6 +883,52 @@
     "Potential subdomain takeover to verify": "Potencial takeover de subdominio por verificar",
     "Public CNAMEs to managed providers were observed in Certificate Transparency subdomains.": "Se observaron CNAME públicos hacia proveedores gestionados en subdominios de Certificate Transparency.",
     "Verify ownership of cloud/SaaS resources before any technical testing.": "Verifica propiedad de recursos cloud/SaaS antes de cualquier prueba técnica.",
-    "Modalita eco": "Modo eco"
+    "Modalita eco": "Modo eco",
+    "Passively checks public handles across social and developer platforms for brand monitoring, impersonation and due diligence. Do not use it for harassment, stalking or unauthorized profiling.": "Comprueba de forma pasiva identificadores públicos en plataformas sociales y de desarrollo para monitorización de marca, suplantación y diligencia debida. No lo uses para acoso, stalking o perfilado no autorizado.",
+    "Try a public username. No passwords or private data are required.": "Introduce un nombre de usuario público. No se requieren contraseñas ni datos privados.",
+    "Nickname intelligence": "Inteligencia de alias",
+    "Presence": "Presencia",
+    "likely profiles": "perfiles probables",
+    "uncertain": "incierto",
+    "found": "encontrado",
+    "Social Findings": "Hallazgos sociales",
+    "Purple Controls": "Controles purple team",
+    "Collects balance, recent movements, counterparties and fan-in/fan-out patterns from public blockchain sources for authorized investigations. No wallet movement, deanonymization guarantee or evasion guidance.": "Recoge saldo, movimientos recientes, contrapartes y patrones fan-in/fan-out desde fuentes blockchain públicas para investigaciones autorizadas. Sin movimiento de wallet, garantía de desanonimización ni guía de evasión.",
+    "Private wallet history": "Historial privado de wallets",
+    "Login is required to save reconstructions and wallet history.": "Debes iniciar sesión para guardar reconstrucciones e historial de wallets.",
+    "Sign in to save and view wallet history": "Inicia sesión para guardar y ver el historial de wallets",
+    "Blockchain report": "Informe blockchain",
+    "Open explorer": "Abrir explorador",
+    "View in graph": "Ver en el grafo",
+    "observed tx": "tx observadas",
+    "counterparties": "contrapartes",
+    "Top counterparties": "Contrapartes principales",
+    "No counterparties": "Sin contrapartes",
+    "No relationship in the recent window.": "Sin relación en la ventana reciente.",
+    "Expand": "Expandir",
+    "Reconstruction": "Reconstrucción",
+    "Next step": "Siguiente paso",
+    "Case notes": "Notas del caso",
+    "Manual tags and notes": "Etiquetas y notas manuales",
+    "Tags": "Etiquetas",
+    "Notes": "Notas",
+    "Save wallet notes": "Guardar notas del wallet",
+    "exchange, victim, scam, bridge, mixer, service": "exchange, víctima, estafa, bridge, mixer, servicio",
+    "Case notes, evidence links, hypothesis and next passive checks": "Notas del caso, enlaces de evidencia, hipótesis y próximos controles pasivos",
+    "incoming": "entrante",
+    "outgoing": "saliente",
+    "from": "desde",
+    "to": "hacia",
+    "fee": "comisión",
+    "No recent transactions from the public source.": "No hay transacciones recientes desde la fuente pública.",
+    "Minimum confidence": "Confianza mínima",
+    "Why": "Por qué",
+    "Business impact": "Impacto de negocio",
+    "Owner action": "Acción del propietario",
+    "Applies when": "Aplica cuando",
+    "Impact depends on reachability and privilege.": "El impacto depende de la alcanzabilidad y los privilegios.",
+    "Confirm applicability and assign remediation ownership.": "Confirma la aplicabilidad y asigna la responsabilidad de corrección.",
+    "Impact depends on whether the dependency is reachable.": "El impacto depende de si la dependencia es alcanzable.",
+    "Upgrade, redeploy and verify the package is not loaded from stale artifacts.": "Actualiza, despliega de nuevo y verifica que el paquete no se cargue desde artefactos obsoletos."
   }
 }

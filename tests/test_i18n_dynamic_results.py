@@ -97,7 +97,7 @@ class DynamicI18nEndpointTests(unittest.TestCase):
                 "/api/wallet/analyze",
                 {"address": "0x0000000000000000000000000000000000000000", "lang": "de"},
             )
-        self.assertIn("geschaetztem Saldo", wallet["report"]["summary"])
+        self.assertIn("geschätztem Saldo", wallet["report"]["summary"])
         self.assertNotIn("estimated balance", wallet["report"]["summary"])
         self.assertNotIn("Contract or smart account", wallet["report"]["findings"][0]["title"])
 

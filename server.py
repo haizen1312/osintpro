@@ -346,8 +346,8 @@ def translate_static(value: object, lang: str = DEFAULT_LANGUAGE) -> str:
     static = locale.get("static", {})
     if isinstance(static, dict) and text in static:
         return str(static[text])
-    if text.lower() in {"high", "medium", "low", "info", "critical"}:
-        return translate_key(f"terms.{text.lower()}", cleaned, text)
+    if text in {"high", "medium", "low", "info", "critical"}:
+        return translate_key(f"terms.{text}", cleaned, text)
     return text
 
 
@@ -499,6 +499,10 @@ def translate_finding_item(item: dict[str, object], lang: str) -> dict[str, obje
         ("business_impact", "business_impact"),
         ("owner_action", "owner_action"),
         ("evidence_to_collect", "evidence_to_collect"),
+        ("why", "why"),
+        ("applicability", "applicability"),
+        ("remediation", "remediation"),
+        ("category", "category"),
     ):
         value = template.get(target_key)
         if value:
