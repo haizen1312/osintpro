@@ -57,6 +57,35 @@ paid engagement, fake accounts, inflated metrics or unconfirmed outreach.
     one GitHub link only, no pricing, no live-demo call to action, explicit
     affiliation disclosure and `Discussion` flair.
   - Numeric claims used: none.
+- Reddit r/osinttools comment engagement on 2026-07-19:
+  - Replied in Italian to feedback from `SilverSquirrel6` about DNS/WHOIS
+    passiveness, weak same-A-record correlations and urlscan history.
+  - Replied in Italian to feedback from `Socio-culturual-yoda` about passive
+    enrichment, crt.sh, dnstwist, Shodan/Censys, CVE, CISA KEV, EPSS and graph
+    risk paths.
+  - Tone adjustment after Leo feedback: human, conversational Italian, no
+    mechanical catalog-style replies.
+  - Numeric claims observed: Reddit displayed 429 post views during the session.
+    Do not reuse this number in public copy unless reverified.
+- GitHub issue created from Reddit community feedback on 2026-07-19:
+  - URL: https://github.com/haizen1312/osintpro/issues/7
+  - Title: `Add passive enrichment paths with confidence labels`
+  - Purpose: turn public feedback into a visible roadmap item for passive
+    enrichment, evidence confidence labels and owner-safe risk paths.
+  - Numeric claims used: none.
+- GitHub Discussion created from the same community feedback on 2026-07-19:
+  - URL: https://github.com/haizen1312/osintpro/discussions/8
+  - Title: `Feedback wanted: passive enrichment without overstating risk`
+  - Purpose: create a public feedback surface on the repository itself, linked
+    to issue #7.
+  - Numeric claims used: none.
+- Product Hunt forum thread published on 2026-07-19:
+  - URL: https://www.producthunt.com/p/osintpro/community-feedback-is-shaping-the-next-osintpro-risk-graph-work
+  - Title: `Community feedback is shaping the next OSINTPRO risk graph work`
+  - Angle: public product update explaining that community feedback became a
+    roadmap issue around passive enrichment, confidence labels and honest graph
+    risk paths.
+  - Numeric claims used: none.
 - Reddit r/github self-promotion megathread comment submitted on 2026-07-19
   from the existing logged-in account `u/Wooden_Durian7470`:
   - URL: https://www.reddit.com/r/github/comments/1jy8rea/comment/oyjhe0m/
