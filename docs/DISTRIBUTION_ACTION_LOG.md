@@ -48,6 +48,15 @@ paid engagement, fake accounts, inflated metrics or unconfirmed outreach.
   - Angle: passive-only OSINT workspace, request for community feedback on safe
     risk explanations.
   - Numeric claims used: none.
+- Reddit r/osinttools post submitted on 2026-07-19 from the existing logged-in
+  account `u/Wooden_Durian7470`:
+  - URL: https://www.reddit.com/r/osinttools/comments/1v10827/passive_osint_workspace_looking_for_feedback_on/
+  - Status: visible immediately after posting.
+  - Angle: discussion-first request for feedback on defensive risk explanations.
+  - Changes from the removed r/OSINT post: used a more specific tool subreddit,
+    one GitHub link only, no pricing, no live-demo call to action, explicit
+    affiliation disclosure and `Discussion` flair.
+  - Numeric claims used: none.
 
 ## External Channel Status Checks
 
@@ -73,6 +82,17 @@ paid engagement, fake accounts, inflated metrics or unconfirmed outreach.
   - Hacker News `/submit` is not logged in and shows login/create account fields.
   - Indie Hackers is not logged in and shows a Join flow.
   - No HN or Indie Hackers account was created.
+- Hacker News Show HN submission attempt on 2026-07-19:
+  - Account state: logged in by Leo before the attempt.
+  - Submitted title: `Show HN: OSINTPRO - passive OSINT workspace for client-ready reports`
+  - Submitted URL: https://osintpro-48j4.onrender.com/
+  - Status: not posted. HN returned its temporary Show HN restriction message
+    for accounts that are not yet familiar with the site/community.
+  - Numeric claims used: none.
+- Indie Hackers sign-up check on 2026-07-19:
+  - Status: blocked by required Twitter/X handle.
+  - Leo reported he does not currently have a Twitter/X handle.
+  - No account was created.
 
 ## Self-Serve Submissions To Do
 
