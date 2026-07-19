@@ -57,6 +57,28 @@ paid engagement, fake accounts, inflated metrics or unconfirmed outreach.
     one GitHub link only, no pricing, no live-demo call to action, explicit
     affiliation disclosure and `Discussion` flair.
   - Numeric claims used: none.
+- Reddit r/github self-promotion megathread comment submitted on 2026-07-19
+  from the existing logged-in account `u/Wooden_Durian7470`:
+  - URL: https://www.reddit.com/r/github/comments/1jy8rea/comment/oyjhe0m/
+  - Status: comment published successfully in the official self-promotion
+    megathread.
+  - Angle: neutral GitHub project listing with short description, repository,
+    live demo, stack and passive-only boundary.
+  - Numeric claims used: none.
+- Reddit r/SideProject post attempted on 2026-07-19 from the existing logged-in
+  account `u/Wooden_Durian7470`:
+  - Status: submitted, then removed by Reddit filters immediately.
+  - Angle: side-project story about passive OSINT positioning and safe risk
+    explanation.
+  - Numeric claims used: none.
+  - Follow-up decision: stop further Reddit posting for the day to avoid account
+    quality damage from repeated promotional attempts.
+- GitHub release published on 2026-07-19:
+  - URL: https://github.com/haizen1312/osintpro/releases/tag/v0.1.0-public-preview
+  - Title: `OSINTPRO public preview`
+  - Angle: public preview release with real feature list and passive-only safety
+    boundary.
+  - Numeric claims used: none.
 
 ## External Channel Status Checks
 
@@ -93,6 +115,13 @@ paid engagement, fake accounts, inflated metrics or unconfirmed outreach.
   - Status: blocked by required Twitter/X handle.
   - Leo reported he does not currently have a Twitter/X handle.
   - No account was created.
+- LinkedIn posting attempt on 2026-07-19:
+  - Status: not published. The logged-in feed was available, but the LinkedIn
+    composer did not reliably accept text input through the available browser
+    automation surface during this session.
+  - Follow-up decision: do not force a partial or malformed post. Keep LinkedIn
+    cadence capped at two posts per week and retry from a stable composer state
+    in a later session.
 
 ## Self-Serve Submissions To Do
 
