@@ -86,12 +86,12 @@ Stars are useful, but paid intent is more important.
 
 ## Public Traction
 
-Snapshot as of June 23, 2026:
+Snapshot as of July 19, 2026:
 
 - Live demo is deployed.
 - GitHub stars: 2.
 - GitHub forks: 0.
-- Open public roadmap issues: 1.
+- Open public roadmap issues: 2.
 - Stripe checkout is configured.
 - GitHub repository has English docs, topics, issues and discussions enabled.
 - First-party conversion signals are tracked in the private admin panel.

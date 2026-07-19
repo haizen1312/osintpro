@@ -117,12 +117,12 @@ First 6-month plan:
 | Month 5-6 | Reddit cybersecurity, OSINT and crypto safety communities | Build repeat visibility with educational workflows. |
 | Ongoing | GitHub issues, docs SEO, sanitized examples | Keep searchable product activity alive. |
 
-Current public traction as of June 23, 2026:
+Current public traction as of July 19, 2026:
 
 - Live demo is online.
 - GitHub stars: 2.
 - GitHub forks: 0.
-- Open public roadmap issues: 1.
+- Open public roadmap issues: 2.
 - Stripe Payment Links are configured.
 - First-party conversion signals are tracked in the private admin panel.
 - Agency/Admin API key MVP is available for controlled workflow integrations.
