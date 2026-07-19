@@ -203,6 +203,46 @@ OSINTPRO is passive-only. It uses public signals and defensive review workflows.
 It does not automate exploitation, credential attacks, bypasses or brute force.
 ```
 
+## 2026-07-19: Technical Article Distribution
+
+Published a technical, non-hype article about OSINTPRO's passive evidence and
+risk-labeling model.
+
+Article source committed in:
+
+```text
+docs/growth/passive-osint-risk-graph-article.md
+```
+
+Published:
+
+- DEV Community:
+  https://dev.to/haizen1312/building-a-passive-osint-workspace-without-overstating-risk-33ic
+  - Account created with Leo's authorized Google login.
+  - Username used: `haizen1312`.
+  - Tags: `python`, `opensource`, `security`, `blockchain`.
+  - Numeric claims: none.
+- Hashnode:
+  https://osintpro.hashnode.dev/building-a-passive-osint-workspace-without-overstating-risk
+  - Account and OSINTPRO publication created with Leo's authorized Google login.
+  - Username used: `haizen1312`.
+  - Publication: `OSINTPRO` on `osintpro.hashnode.dev`.
+  - Canonical URL points to the DEV article.
+  - Tags visible after publish: `python`, `blockchain`.
+  - Numeric claims: none.
+
+Channel checks:
+
+- SaaSHub submission was not attempted because its public submission guidelines
+  state that products using free subdomains are rejected. OSINTPRO currently
+  uses the Render free subdomain `osintpro-48j4.onrender.com`, so this should be
+  revisited after a custom domain is active.
+- AlternativeTo submission was not attempted because the login flow presented a
+  broad advertising/geolocation consent prompt. Do not accept it on Leo's behalf
+  without explicit privacy approval.
+- StackShare was inspected, but the visible flow was comparison-oriented rather
+  than a clean product-directory submission flow. No forced link drop was made.
+
 ## Requires Leo Confirmation
 
 These actions must not be performed without explicit approval at action time:

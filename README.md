@@ -12,6 +12,20 @@ It is built for consultants, small agencies, fraud analysts, security-minded fou
 
 If this project is useful, star the repository and share the live demo. That helps the project reach more builders, investigators and defenders.
 
+## Community And Articles
+
+Public build notes and discussion threads:
+
+- Product Hunt: https://www.producthunt.com/p/osintpro
+- DEV Community: https://dev.to/haizen1312/building-a-passive-osint-workspace-without-overstating-risk-33ic
+- Hashnode: https://osintpro.hashnode.dev/building-a-passive-osint-workspace-without-overstating-risk
+- GitHub Discussion: https://github.com/haizen1312/osintpro/discussions/8
+- Public preview release: https://github.com/haizen1312/osintpro/releases/tag/v0.1.0-public-preview
+
+These links are intentionally technical and feedback-oriented. OSINTPRO is still
+early, so public posts focus on product boundaries, evidence quality and what
+should be improved next instead of inflated traction claims.
+
 ## Try It
 
 Live app:
