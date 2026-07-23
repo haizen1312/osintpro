@@ -672,6 +672,47 @@ function renderOpsRows(items = [], titleKey, bodyKey, metaKey) {
   `).join("");
 }
 
+function renderPassivePivots(items = []) {
+  if (!items.length) {
+    return `<div class="ops-row"><strong>${escapeHtml(translateExactText("No passive pivot yet"))}</strong><p>${escapeHtml(translateExactText("Run a domain report to prepare external research pivots."))}</p></div>`;
+  }
+  return items.map(item => `
+    <div class="ops-row">
+      <strong>${escapeHtml(translateExactText(item.name))}</strong>
+      <p>${escapeHtml(translateExactText(item.use))}</p>
+      <small>${escapeHtml(translateExactText("Confidence"))}: ${escapeHtml(translateExactText(item.confidence || "medium"))}</small>
+      ${item.url ? `<a class="inline-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(translateExactText("Open passive source"))}</a>` : ""}
+    </div>
+  `).join("");
+}
+
+function renderTypoCandidates(items = []) {
+  if (!items.length) {
+    return `<span class="mono">${escapeHtml(translateExactText("no typo-domain candidate generated"))}</span>`;
+  }
+  return items.slice(0, 8).map(item => `
+    <span>${escapeHtml(item.domain)} <em>${escapeHtml(translateExactText(item.confidence || "low"))}</em></span>
+  `).join("");
+}
+
+function renderCveWatch(items = []) {
+  if (!items.length) {
+    return `<div class="ops-row"><strong>${escapeHtml(translateExactText("No CVE watch pivot"))}</strong><p>${escapeHtml(translateExactText("No versioned technology was confirmed from passive evidence."))}</p></div>`;
+  }
+  return items.map(item => `
+    <div class="ops-row">
+      <strong>${escapeHtml(item.technology)}</strong>
+      <p>${escapeHtml(translateExactText(item.note))}</p>
+      <small>${escapeHtml(translateExactText("Confidence"))}: ${escapeHtml(translateExactText(item.confidence || "low"))}</small>
+      <div class="mini-actions">
+        <a class="inline-link" href="${escapeHtml(item.nvd_url)}" target="_blank" rel="noreferrer">NVD</a>
+        <a class="inline-link" href="${escapeHtml(item.cisa_kev_url)}" target="_blank" rel="noreferrer">CISA KEV</a>
+        <a class="inline-link" href="${escapeHtml(item.epss_url)}" target="_blank" rel="noreferrer">EPSS</a>
+      </div>
+    </div>
+  `).join("");
+}
+
 function shellCommand(command) {
   return `<pre class="command-block"><code>${escapeHtml(command)}</code></pre>`;
 }
@@ -1773,6 +1814,10 @@ function renderReport(report) {
   const vulns = report.vulnerability_hypotheses || [];
   const redPaths = report.red_team_paths || [];
   const purpleControls = report.purple_team_controls || [];
+  const enrichment = report.passive_enrichment || {};
+  const externalPivots = enrichment.external_pivots || [];
+  const typoCandidates = enrichment.typo_candidates || [];
+  const cveWatch = enrichment.cve_watch || [];
 
   document.querySelector("#result").className = "result";
   document.querySelector("#result").innerHTML = `
@@ -1890,6 +1935,19 @@ function renderReport(report) {
       </article>
 
       <article class="intel-card">
+        <div><span class="pill">${escapeHtml(translateExactText("Passive Enrichment"))}</span><strong>${externalPivots.length}</strong></div>
+        <p>${escapeHtml(translateExactText(enrichment.boundary || "These enrichment paths are passive research aids."))}</p>
+        <div class="flag-grid">
+          <span>${escapeHtml(translateExactText("urlscan history"))} <em>${externalPivots.some(item => item.name === "urlscan history") ? "ready" : "n/a"}</em></span>
+          <span>${escapeHtml(translateExactText("same-IP caution"))} <em>${escapeHtml(translateExactText("weak lead"))}</em></span>
+          <span>${escapeHtml(translateExactText("typo-domain leads"))} <em>${typoCandidates.length}</em></span>
+          <span>${escapeHtml(translateExactText("CVE watch pivots"))} <em>${cveWatch.length}</em></span>
+        </div>
+        <p class="mono">${escapeHtml(translateExactText(enrichment.same_ip_note || ""))}</p>
+        <div class="mini-list">${renderTypoCandidates(typoCandidates)}</div>
+      </article>
+
+      <article class="intel-card">
         <div><span class="pill">${escapeHtml(translateExactText("Findings"))}</span><strong>${(report.findings || []).length}</strong></div>
         <div class="findings">${renderFindings(report.findings)}</div>
       </article>
@@ -1907,6 +1965,14 @@ function renderReport(report) {
       <article class="ops-card">
         <div><span class="pill">${escapeHtml(translateExactText("Purple Team Controls"))}</span><strong>${purpleControls.length}</strong></div>
         ${renderOpsRows(purpleControls, "control", "why", "cadence")}
+      </article>
+      <article class="ops-card">
+        <div><span class="pill">${escapeHtml(translateExactText("Passive Research Pivots"))}</span><strong>${externalPivots.length}</strong></div>
+        ${renderPassivePivots(externalPivots)}
+      </article>
+      <article class="ops-card">
+        <div><span class="pill">${escapeHtml(translateExactText("CVE / KEV / EPSS Watch"))}</span><strong>${cveWatch.length}</strong></div>
+        ${renderCveWatch(cveWatch)}
       </article>
     </div>
 

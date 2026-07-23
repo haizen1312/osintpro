@@ -92,6 +92,56 @@ class Cycle14TechnicalDepthTests(unittest.TestCase):
         self.assertEqual(context[0]["asn"], "AS64496")
         self.assertEqual(context[0]["provider"], "Example Hosting")
 
+    def test_reddit_feedback_passive_enrichment_pivots_are_generated(self):
+        enrichment = server.passive_enrichment(
+            "example.com",
+            ["93.184.216.34"],
+            ["nginx", "XML sitemap"],
+        )
+
+        pivot_names = {item["name"] for item in enrichment["external_pivots"]}
+        self.assertIn("urlscan history", pivot_names)
+        self.assertIn("crt.sh certificate search", pivot_names)
+        self.assertIn("Censys host search", pivot_names)
+        self.assertTrue(any("same-IP context" in name for name in pivot_names))
+        self.assertGreater(len(enrichment["typo_candidates"]), 0)
+        self.assertEqual(enrichment["typo_candidates"][0]["confidence"], "low")
+        self.assertEqual(enrichment["cve_watch"][0]["technology"], "nginx")
+        self.assertIn("passive research aids", enrichment["boundary"])
+
+    def test_reddit_feedback_enrichment_reaches_findings_and_paths(self):
+        report = {
+            "dns": {"caa": ["0 issue \"letsencrypt.org\""]},
+            "https": {
+                "available": True,
+                "certificate": {"days_remaining": 90},
+                "security_headers": [],
+            },
+            "email_security": {"applicable": False, "flags": {}},
+            "web_presence": {"security_txt": {"available": True, "present": True}},
+            "advanced_intel": {"signals": {"dnssec_enabled": True}, "takeover_hints": []},
+            "network_context": [],
+            "passive_enrichment": {
+                "external_pivots": [{"name": "urlscan history", "confidence": "medium"}],
+                "typo_candidates": [{"domain": "examp1e.com", "confidence": "low"}],
+                "cve_watch": [{"technology": "nginx", "confidence": "low"}],
+            },
+        }
+
+        finding_titles = {item["title"] for item in server.risk_findings(report)}
+        hypothesis_titles = {item["title"] for item in server.vulnerability_hypotheses(report)}
+        path_names = {item["name"] for item in server.red_team_paths(report)}
+        controls = {item["control"] for item in server.purple_team_controls(report)}
+
+        self.assertIn("Typo-domain leads generated", finding_titles)
+        self.assertIn("Technology CVE watch recommended", finding_titles)
+        self.assertIn("Lookalike domain abuse to monitor", hypothesis_titles)
+        self.assertIn("Version-specific CVE exposure needs inventory confirmation", hypothesis_titles)
+        self.assertIn("urlscan/Shodan/Censys pivot", path_names)
+        self.assertIn("Lookalike domain review", path_names)
+        self.assertIn("Brand typo-domain watch", controls)
+        self.assertIn("CVE/KEV/EPSS patch review", controls)
+
 
 if __name__ == "__main__":
     unittest.main()

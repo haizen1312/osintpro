@@ -284,6 +284,21 @@ more link-forward posting risky for account quality; future Reddit work should
 be comment-led, community-specific and based on real discussion rather than
 reposting the same launch message.
 
+## 2026-07-23: Reddit Feedback Implemented In Product
+
+Community feedback from r/osinttools was converted into product behavior:
+
+- urlscan history pivot added as a passive external research link.
+- crt.sh, Shodan and Censys pivots added as analyst-controlled enrichment paths.
+- Same-IP/CDN correlations are explicitly labeled as weak leads.
+- Defensive typo-domain candidates are generated locally without querying or
+  attributing the candidates.
+- Observed technologies now create NVD, CISA KEV and EPSS patch-review pivots
+  when versions are not passively confirmed.
+- Entity graph exports include passive pivot, typo-domain and CVE watch nodes.
+
+No new public claims or traffic metrics were introduced by this implementation.
+
 ## Requires Leo Confirmation
 
 These actions must not be performed without explicit approval at action time:

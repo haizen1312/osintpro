@@ -63,6 +63,7 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 - Passive technology fingerprinting from headers and web signals.
 - Risk findings, vulnerability hypotheses and Red/Purple Team recommendations derived only from passive evidence.
 - Realistic abuse context for each finding: how an attacker may benefit, likely business impact, evidence to collect and owner action.
+- Community-requested passive enrichment: urlscan history, crt.sh cross-checks, Shodan/Censys pivots, weak same-IP correlation warnings, typo-domain candidates and CVE/CISA KEV/EPSS patch-review leads.
 - Six-language interface and finding/report localization: English, Italian, Spanish, French, German and Portuguese with English fallback.
 - Web Audit Lab: Burp-style beginner workflow with safe commands, evidence checklist and technical glossary.
 - Repository Audit Lab: static source review with file/line evidence, confidence, applicability and remediation without executing uploaded code.
@@ -71,6 +72,7 @@ OSINTPRO collects passive public signals and turns them into client-ready report
 - Social OSINT: public username presence checks across social, developer and community platforms.
 - Wallet OSINT: public Bitcoin and Ethereum/EVM balance, recent movements, counterparties and explorer links.
 - Entity graph: a workspace view that connects domains, usernames, profiles, DNS, findings, technologies, wallets, transactions and counterparties.
+- Entity graph enrichment nodes for passive pivots, typo-domain leads and CVE/KEV/EPSS watch items.
 - Monitoring: saved domains can be rechecked for public drift.
 - PDF/CSV exports for client delivery and internal case notes.
 

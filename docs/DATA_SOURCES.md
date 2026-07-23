@@ -12,6 +12,10 @@ OSINTPRO currently uses passive public sources and direct observations. It avoid
 | Web exposure | Public HTTP paths on the submitted host | No paid API | `security.txt`, `robots.txt`, `sitemap.xml` and selected `.well-known` paths. |
 | RDAP | `rdap.org` | No paid API | Public registration metadata where available. |
 | Certificate Transparency | `crt.sh` JSON output | No paid API | Public CT names and subdomain evidence. |
+| urlscan history | External urlscan search link | No paid API | Analyst pivot for public scan history; OSINTPRO does not submit scans automatically. |
+| Shodan/Censys pivots | External search links | Optional analyst accounts | Passive exposure research links only; no paid API keys are bundled. |
+| CVE/KEV/EPSS pivots | NVD, CISA KEV catalog and FIRST EPSS links | No paid API | Patch-review leads for observed technology names, not confirmed vulnerabilities unless versions are verified. |
+| Typo-domain leads | Local candidate generator | No network cost | Defensive brand-monitoring candidates; OSINTPRO does not query or attribute candidates automatically. |
 | Social username checks | Public profile URLs | No paid API | Presence checks only. No login, private scraping or attribution guarantee. |
 | Bitcoin wallet OSINT | Blockstream public API | No paid API | Public balance, recent transactions and explorer links. Subject to fair-use limits. |
 | Ethereum/EVM wallet OSINT | Blockscout public API | No paid API | Public balance, account type and recent activity where available. Subject to fair-use limits. |

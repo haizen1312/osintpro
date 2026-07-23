@@ -15,6 +15,7 @@ Web Audit Lab, Repository Audit Lab, Network Traffic Lab, Social OSINT and Walle
 - Expand passive wallet OSINT for fraud reconstruction.
 - Strengthen exports and case-ready reporting.
 - Make every risk finding more owner-ready with realistic abuse context, business impact and defensive ownership.
+- Turn real community feedback into passive enrichment paths with explicit confidence labels.
 - Expand beginner-friendly Web Audit Lab workflows without adding invasive scanning.
 - Expand defensive repository review without executing uploaded code or generating exploits.
 - Add beginner-friendly network traffic analysis without unauthorized packet capture.
@@ -39,6 +40,12 @@ case summaries, entity graph filters, JSON-LD/DOT/CSV graph export, a cleaner
 command/evidence/labs/operations dashboard and dual-mode Network Traffic Lab
 are implemented. Auth is now split across dedicated login, register, password
 reset and security settings pages.
+
+Reddit-requested passive enrichment is also implemented: domain reports now
+prepare urlscan, crt.sh, Shodan and Censys pivots; generate defensive
+typo-domain candidates without querying them; warn that same-IP/CDN matches are
+weak correlations; and add CVE/CISA KEV/EPSS patch-review pivots for observed
+technology names when versions are not passively confirmed.
 
 ### Internationalization
 

@@ -1308,6 +1308,30 @@ textarea:focus {
   border-color: rgba(255, 189, 89, .34);
 }
 
+.inline-link {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 8px;
+  color: var(--cyan);
+  font-family: var(--font-display);
+  font-size: 12px;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(98, 216, 255, .42);
+}
+
+.inline-link:hover {
+  color: var(--green);
+  border-bottom-color: rgba(57, 255, 184, .6);
+}
+
+.mini-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .ops-row strong {
   display: block;
   margin: 7px 0 4px;

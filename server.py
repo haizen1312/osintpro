@@ -3545,6 +3545,129 @@ def cname_takeover_hints(subdomains: list[str]) -> list[dict[str, str]]:
     return hints[:10]
 
 
+def typo_domain_candidates(domain: str) -> list[dict[str, str]]:
+    """Generate a small defensive typo list without probing the candidates."""
+    labels = domain.split(".")
+    if len(labels) < 2:
+        return []
+    name = labels[0]
+    suffix = ".".join(labels[1:])
+    if len(name) < 4:
+        return []
+
+    candidates: set[str] = set()
+    for index in range(1, min(len(name), 12)):
+        candidates.add(f"{name[:index]}{name[index + 1:]}.{suffix}")
+    replacements = {
+        "o": "0",
+        "i": "1",
+        "l": "1",
+        "e": "3",
+        "a": "@",
+        "s": "5",
+    }
+    for original, replacement in replacements.items():
+        if original in name:
+            candidates.add(f"{name.replace(original, replacement, 1)}.{suffix}")
+    if "-" not in name and len(name) > 5:
+        candidates.add(f"{name[:3]}-{name[3:]}.{suffix}")
+
+    clean = []
+    for candidate in sorted(candidates):
+        normalized = candidate.replace("@", "a")
+        if normalized != domain and DOMAIN_RE.match(normalized):
+            clean.append({
+                "domain": normalized,
+                "confidence": "low",
+                "source": "local typo generator",
+                "note": "Candidate only; OSINTPRO did not query or attribute this domain.",
+            })
+    return clean[:10]
+
+
+def passive_external_pivots(domain: str, addresses: list[str]) -> list[dict[str, str]]:
+    """Build safe external research pivots suggested by OSINT practitioners."""
+    pivots = [
+        {
+            "name": "urlscan history",
+            "url": f"https://urlscan.io/search/#{quote('domain:' + domain)}",
+            "use": "Review previously submitted public scans and page resources.",
+            "confidence": "medium",
+        },
+        {
+            "name": "crt.sh certificate search",
+            "url": f"https://crt.sh/?q=%25.{quote(domain)}",
+            "use": "Cross-check Certificate Transparency names and unexpected issuance.",
+            "confidence": "high",
+        },
+        {
+            "name": "Censys host search",
+            "url": f"https://search.censys.io/search?resource=hosts&q={quote(domain)}",
+            "use": "Review passive internet exposure if the analyst has Censys access.",
+            "confidence": "medium",
+        },
+        {
+            "name": "Shodan host search",
+            "url": f"https://www.shodan.io/search?query={quote(domain)}",
+            "use": "Review passive service intelligence if the analyst has Shodan access.",
+            "confidence": "medium",
+        },
+    ]
+    for address in addresses[:3]:
+        pivots.append({
+            "name": f"same-IP context {address}",
+            "url": f"https://search.censys.io/hosts/{quote(address)}",
+            "use": "Treat co-hosting as a weak correlation; confirm ownership before using it in a report.",
+            "confidence": "low",
+        })
+    return pivots
+
+
+def cve_watch_pivots(technologies: list[str]) -> list[dict[str, str]]:
+    """Map observed technology names to public vulnerability research pivots."""
+    watch: list[dict[str, str]] = []
+    normalized = {
+        "nginx": "nginx",
+        "Apache": "Apache HTTP Server",
+        "Cloudflare edge": "Cloudflare",
+        "AWS CloudFront": "Amazon CloudFront",
+    }
+    for tech in technologies[:8]:
+        product = normalized.get(tech, tech)
+        if product in {"XML sitemap", "security.txt disclosure"}:
+            continue
+        watch.append({
+            "technology": product,
+            "nvd_url": f"https://nvd.nist.gov/vuln/search/results?query={quote(product)}",
+            "cisa_kev_url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+            "epss_url": f"https://www.first.org/epss/search?text={quote(product)}",
+            "confidence": "low",
+            "note": "Version was not confirmed passively; use this as a patch-review pivot, not a confirmed CVE finding.",
+        })
+    return watch[:6]
+
+
+def passive_enrichment(
+    domain: str,
+    addresses: list[str],
+    technologies: list[str],
+) -> dict[str, object]:
+    """Package Reddit-requested passive pivots with explicit confidence labels."""
+    return {
+        "external_pivots": passive_external_pivots(domain, addresses),
+        "typo_candidates": typo_domain_candidates(domain),
+        "cve_watch": cve_watch_pivots(technologies),
+        "same_ip_note": (
+            "Domains on the same IP or CDN edge are weak correlations. Use them only "
+            "as leads until ownership, hosting account or certificate evidence confirms a relationship."
+        ),
+        "boundary": (
+            "These enrichment paths are passive research aids. OSINTPRO does not log into "
+            "third-party services, run exploits or claim compromise from these pivots."
+        ),
+    }
+
+
 def advanced_passive_intel(domain: str, ct: dict[str, object]) -> dict[str, object]:
     subdomains = [str(item) for item in ct.get("subdomains", [])] if isinstance(ct, dict) else []
     dnssec = dnssec_posture(domain)
@@ -3620,9 +3743,11 @@ def hypothesis(
     attacker_path: str,
     likely_impact: str,
     defensive_priority: str,
+    template_id: str | None = None,
 ) -> dict[str, str]:
     """Explain potential abuse without payloads, bypasses or attack procedure."""
     return {
+        "template_id": template_id or "",
         "severity": severity,
         "confidence": confidence,
         "title": title,
@@ -3640,6 +3765,7 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
     email = report.get("email_security", {})
     web = report.get("web_presence", {})
     advanced = report.get("advanced_intel", {})
+    enrichment = report.get("passive_enrichment", {})
     network_context = report.get("network_context", [])
     cert = https.get("certificate", {}) if isinstance(https, dict) else {}
     days = cert.get("days_remaining")
@@ -3814,6 +3940,28 @@ def risk_findings(report: dict[str, object]) -> list[dict[str, str]]:
             "subdomain_takeover",
             "subdomain_takeover",
         ))
+    if isinstance(enrichment, dict) and enrichment.get("typo_candidates"):
+        findings.append(public_finding(
+            "low",
+            "Typo-domain leads generated",
+            "OSINTPRO generated defensive typo candidates without querying or attributing those domains.",
+            "Attackers often register lookalike domains for phishing, fake support, ad abuse or wallet/invoice redirection.",
+            "Brand abuse can happen outside the primary domain even when the main site is well configured.",
+            "Review the candidates manually, monitor confirmed abusive registrations and document which are false positives.",
+            "Collect candidate list, registrar/WHOIS/RDAP data for confirmed lookalikes, screenshots and takedown owner.",
+            "typo_domain_leads",
+        ))
+    if isinstance(enrichment, dict) and enrichment.get("cve_watch"):
+        findings.append(public_finding(
+            "low",
+            "Technology CVE watch recommended",
+            "Observable technology names can be mapped to NVD, CISA KEV and EPSS research, but versions were not confirmed passively.",
+            "An attacker would prioritize exposed software with known exploited vulnerabilities once a version and reachable service are confirmed.",
+            "Patch prioritization may be weak if public technology signals are not tied to an owner and update process.",
+            "Use the CVE pivots as patch-review leads, then confirm versions through authorized inventory or authenticated tooling.",
+            "Collect asset owner, package/runtime version, exposed route, CISA KEV status, EPSS score and patch SLA.",
+            "technology_cve_watch",
+        ))
     return findings[:10]
 
 
@@ -3823,6 +3971,7 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
     web = report.get("web_presence", {})
     dns = report.get("dns", {})
     advanced = report.get("advanced_intel", {})
+    enrichment = report.get("passive_enrichment", {})
     cert = https.get("certificate", {}) if isinstance(https, dict) else {}
     headers = {item.get("name"): item for item in https.get("security_headers", [])} if isinstance(https, dict) else {}
     flags = email.get("flags", {})
@@ -3913,6 +4062,30 @@ def vulnerability_hypotheses(report: dict[str, object]) -> list[dict[str, str]]:
             "Lost revenue, failed login/checkout, support load and increased phishing susceptibility during incident response.",
             "Test renewal automation, alert escalation and emergency certificate replacement before the final week.",
         ))
+    if isinstance(enrichment, dict) and enrichment.get("typo_candidates"):
+        vulns.append(hypothesis(
+            "low",
+            "medium",
+            "Lookalike domain abuse to monitor",
+            f"{len(enrichment.get('typo_candidates') or [])} defensive typo candidates were generated locally.",
+            "Verify candidate domains through authorized passive checks before adding them to takedown or monitoring workflows.",
+            "An attacker may use a lookalike domain to imitate login, support, invoices or wallet-payment instructions.",
+            "Customer confusion, phishing, fraudulent payment redirection and support workload.",
+            "Define brand-monitoring ownership and track confirmed abusive domains separately from speculative candidates.",
+            "lookalike_domain_monitor",
+        ))
+    if isinstance(enrichment, dict) and enrichment.get("cve_watch"):
+        vulns.append(hypothesis(
+            "low",
+            "low",
+            "Version-specific CVE exposure needs inventory confirmation",
+            "Public headers exposed technology names, but no reliable version was confirmed from passive evidence.",
+            "Use inventory, SBOM, dependency files or authenticated scanner output to confirm whether any NVD/CISA KEV/EPSS lead applies.",
+            "Attackers commonly sort exposed services by known exploited vulnerabilities after fingerprinting stack and version.",
+            "Unpatched public components can become an initial-access path if version, reachability and exploitability align.",
+            "Connect public fingerprints to asset inventory, then prioritize CISA KEV and high-EPSS items first.",
+            "cve_inventory_confirmation",
+        ))
     return vulns[:8]
 
 
@@ -3922,6 +4095,7 @@ def red_team_paths(report: dict[str, object]) -> list[dict[str, str]]:
     web = report.get("web_presence", {})
     tech = report.get("technology", [])
     advanced = report.get("advanced_intel", {})
+    enrichment = report.get("passive_enrichment", {})
     flags = email.get("flags", {})
     paths: list[dict[str, str]] = []
 
@@ -3955,6 +4129,18 @@ def red_team_paths(report: dict[str, object]) -> list[dict[str, str]]:
             "objective": "Verify cloud/SaaS assets referenced by public CNAMEs.",
             "signal": f"{len(advanced.get('takeover_hints', []))} CNAMEs to review.",
         })
+    if isinstance(enrichment, dict) and enrichment.get("external_pivots"):
+        paths.append({
+            "name": "urlscan/Shodan/Censys pivot",
+            "objective": "Cross-check public history and exposure in third-party passive datasets.",
+            "signal": f"{len(enrichment.get('external_pivots', []))} passive pivots prepared.",
+        })
+    if isinstance(enrichment, dict) and enrichment.get("typo_candidates"):
+        paths.append({
+            "name": "Lookalike domain review",
+            "objective": "Review likely typo-domain candidates without treating them as confirmed abuse.",
+            "signal": f"{len(enrichment.get('typo_candidates', []))} candidates generated locally.",
+        })
     if not paths:
         paths.append({
             "name": "Baseline validation",
@@ -3966,6 +4152,7 @@ def red_team_paths(report: dict[str, object]) -> list[dict[str, str]]:
 
 def purple_team_controls(report: dict[str, object]) -> list[dict[str, str]]:
     email = report.get("email_security", {})
+    enrichment = report.get("passive_enrichment", {})
     controls = [
         {
             "control": "DNS drift detection",
@@ -3993,6 +4180,18 @@ def purple_team_controls(report: dict[str, object]) -> list[dict[str, str]]:
             "control": "Email authentication guardrail",
             "why": "SPF/DMARC/MTA-STS reduce brand abuse for the observed mail or brand-protection scope.",
             "cadence": "weekly",
+        })
+    if isinstance(enrichment, dict) and enrichment.get("typo_candidates"):
+        controls.append({
+            "control": "Brand typo-domain watch",
+            "why": "Lookalike domains should be triaged with evidence before takedown or customer-warning decisions.",
+            "cadence": "weekly",
+        })
+    if isinstance(enrichment, dict) and enrichment.get("cve_watch"):
+        controls.append({
+            "control": "CVE/KEV/EPSS patch review",
+            "why": "Public fingerprints should be reconciled with inventory so known-exploited and high-EPSS items get priority.",
+            "cadence": "per release",
         })
     return controls
 
@@ -4075,6 +4274,7 @@ def analyze(raw_target: str) -> dict[str, object]:
     ct = certificate_transparency(domain)
     advanced = advanced_passive_intel(domain, ct)
     tech = technology_fingerprint(https, web)
+    enrichment = passive_enrichment(domain, addresses, tech)
     score = score_report(addresses, cert, https["security_headers"], email, web)
 
     missing_headers = [
@@ -4119,6 +4319,7 @@ def analyze(raw_target: str) -> dict[str, object]:
         "network_context": network_context,
         "certificate_transparency": ct,
         "advanced_intel": advanced,
+        "passive_enrichment": enrichment,
         "technology": tech,
     }
     report = redact_data(report)
@@ -6054,6 +6255,25 @@ class Handler(SimpleHTTPRequestHandler):
                     node_id = f"takeover:{subdomain}"
                     add_node(node_id, str(subdomain), "risk", None, str(provider or "takeover hint"))
                     add_edge(root, node_id, "takeover review", "risk")
+            enrichment = report.get("passive_enrichment") or {}
+            for pivot in (enrichment.get("external_pivots") or [])[:6]:
+                name = pivot.get("name")
+                if name:
+                    node_id = f"pivot:{domain}:{name}"
+                    add_node(node_id, str(name), "pivot", None, str(pivot.get("confidence") or "passive"))
+                    add_edge(root, node_id, "passive pivot", "enrichment")
+            for typo in (enrichment.get("typo_candidates") or [])[:6]:
+                candidate = typo.get("domain")
+                if candidate:
+                    node_id = f"typo:{candidate}"
+                    add_node(node_id, str(candidate), "domain-lead", None, "typo candidate")
+                    add_edge(root, node_id, "lookalike lead", "enrichment")
+            for watch in (enrichment.get("cve_watch") or [])[:4]:
+                technology = watch.get("technology")
+                if technology:
+                    node_id = f"cve-watch:{technology}"
+                    add_node(node_id, str(technology), "vulnerability-pivot", None, "CVE/KEV/EPSS watch")
+                    add_edge(root, node_id, "patch review", "enrichment")
             if email.get("applicable"):
                 email_node = f"email:{domain}"
                 add_node(email_node, "Email posture", "email", int(email.get("score") or 0), "SPF/DMARC/MTA-STS")
