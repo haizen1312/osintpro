@@ -17,6 +17,8 @@ If this project is useful, star the repository and share the live demo. That hel
 Public build notes and discussion threads:
 
 - Product Hunt: https://www.producthunt.com/p/osintpro
+- Product Hunt traction check: https://www.producthunt.com/p/osintpro/a-tiny-traction-check-what-almost-no-views-taught-us
+- LinkedIn build note: https://www.linkedin.com/feed/update/urn:li:share:7486040478308769793
 - DEV Community: https://dev.to/haizen1312/building-a-passive-osint-workspace-without-overstating-risk-33ic
 - Hashnode: https://osintpro.hashnode.dev/building-a-passive-osint-workspace-without-overstating-risk
 - GitHub Discussion: https://github.com/haizen1312/osintpro/discussions/8
@@ -131,16 +133,20 @@ First 6-month plan:
 | Month 5-6 | Reddit cybersecurity, OSINT and crypto safety communities | Build repeat visibility with educational workflows. |
 | Ongoing | GitHub issues, docs SEO, sanitized examples | Keep searchable product activity alive. |
 
-Current public traction as of July 19, 2026:
+Current public traction as of July 23, 2026:
 
 - Live demo is online.
 - GitHub stars: 2.
 - GitHub forks: 0.
-- Open public roadmap issues: 2.
+- Open public roadmap issues: 4.
+- Product Hunt followers: 8.
+- DEV article readers shown in analytics: 0.
+- Hashnode article all-time views: 1.
 - Stripe Payment Links are configured.
 - First-party conversion signals are tracked in the private admin panel.
 - Agency/Admin API key MVP is available for controlled workflow integrations.
 - Verified public signup, paid-conversion and MRR totals are not published yet because production usage is still early and those numbers should not be invented from local development data.
+- Current growth focus: publish sanitized mini-case examples that separate confirmed evidence, passive enrichment, inferred risk and owner action.
 
 ## Quick Links
 
@@ -165,6 +171,7 @@ Current public traction as of July 19, 2026:
 - [Product Hunt launch plan](docs/PRODUCT_HUNT_LAUNCH.md)
 - [GitHub issues backlog](docs/GITHUB_ISSUES_BACKLOG.md)
 - [Sanitized example reports](docs/EXAMPLE_REPORTS.md)
+- [Sanitized mini-case plan](docs/growth/sanitized-mini-case-plan.md)
 - [Product roadmap](ROADMAP.md)
 - [Public roadmap issues](https://github.com/haizen1312/osintpro/issues)
 

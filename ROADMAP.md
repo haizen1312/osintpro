@@ -118,6 +118,19 @@ Status: Free-to-Pro/Agency onboarding, billing status messaging, agency client f
 Plan-level feature flags, account metrics and non-invasive upgrade nudges are
 also implemented.
 
+### Growth And Distribution
+
+- Publish sanitized mini-case examples for domain posture, repository review and wallet tracing.
+- Make each public example distinguish confirmed evidence, passive enrichment, inferred risk and owner action.
+- Reuse those examples across README, Product Hunt, LinkedIn, technical articles and directory submissions.
+- Keep public metrics honest even when traction is small.
+
+Status: Product Hunt and LinkedIn traction-check posts were published on
+2026-07-23 after verifying low public visibility: GitHub 2 stars, 0 forks,
+Product Hunt 8 followers, DEV 0 readers and Hashnode 1 all-time view. Public
+issue #9 tracks the mini-case example work. The next distribution push should
+favor case-led examples over broad reposting.
+
 ### API
 
 - Keep `/api/meta` public for product metadata and safety boundaries.

@@ -243,6 +243,47 @@ Channel checks:
 - StackShare was inspected, but the visible flow was comparison-oriented rather
   than a clean product-directory submission flow. No forced link drop was made.
 
+## 2026-07-23: Low-Traction Check And Case-Led Distribution Pivot
+
+Five days after the previous distribution push, public visibility is still very
+small. The practical lesson is to stop treating growth as "post everywhere" and
+instead publish short, sanitized examples that show how OSINTPRO turns passive
+evidence into owner-ready action.
+
+Verified public metrics at the time of posting:
+
+- GitHub: 2 stars, 0 forks, 4 open public issues.
+- Product Hunt: 8 followers.
+- DEV article analytics summary: 0 readers, 0 reactions, 0 comments, 0 bookmarks.
+- Hashnode analytics: 1 all-time view.
+
+Published:
+
+- Product Hunt update:
+  https://www.producthunt.com/p/osintpro/a-tiny-traction-check-what-almost-no-views-taught-us
+  - Angle: transparent traction check and shift toward sanitized mini-case
+    examples.
+  - Numeric claims: GitHub 2 stars, 0 forks; Product Hunt 8 followers; DEV 0
+    readers; Hashnode 1 all-time view.
+- LinkedIn post:
+  https://www.linkedin.com/feed/update/urn:li:share:7486040478308769793
+  - Angle: Italian founder-style update about low views and a clearer content
+    direction around evidence, passive enrichment, inferred risk and owner
+    action.
+  - Numeric claims: GitHub 2 stars, Product Hunt 8 followers, DEV 0 readers,
+    Hashnode 1 view.
+- GitHub issue:
+  https://github.com/haizen1312/osintpro/issues/9
+  - Title: `Create sanitized OSINTPRO mini-case examples`.
+  - Purpose: track domain posture, repository review and wallet tracing mini
+    examples for public distribution without exposing sensitive targets or
+    offensive procedures.
+
+No Reddit reposting was attempted in this session. Prior Reddit removals make
+more link-forward posting risky for account quality; future Reddit work should
+be comment-led, community-specific and based on real discussion rather than
+reposting the same launch message.
+
 ## Requires Leo Confirmation
 
 These actions must not be performed without explicit approval at action time:
